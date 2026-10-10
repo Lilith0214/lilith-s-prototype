@@ -125,7 +125,7 @@ a { color: var(--blue); text-decoration: none; }
 .table-wrap { overflow: auto; }
 table { width: 100%; border-collapse: collapse; }
 table.fixed { table-layout: fixed; }
-table.tx { min-width: 1480px; }
+table.tx { min-width: 2280px; }
 th, td {
   padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left;
   vertical-align: middle; font-size: 13px; line-height: 20px; white-space: nowrap;
@@ -256,26 +256,26 @@ const seedMerchants = [
 ];
 
 const seedTxns = [
-  row("19817", "2026-10-08 11:50:40", "online_recharge", "增加", "人工", "USD", 58.21, 58.21, "", "", 1, "—", []),
-  row("16903", "2026-10-08 09:59:09", "offline_recharge", "增加", "人工", "USD", 40000, 40000, "", "", 1, "—", []),
-  row("16902", "2026-10-08 09:58:10", "compensation", "增加", "人工", "USD", 40000, 40000, "", "", 1, "—", []),
-  row("14714", "2026-10-08 09:55:24", "fee_cover", "减少", "人工", "USD", 29.41, 29.41, "", "", 1, "—", []),
-  row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "系统", "USD", 11, 11, 1141.90, 1141.90, 1, "dHiL1PYR@moemail.app", []),
-  row("16903", "2026-10-08 15:02:40", "recover_recharge", "增加", "系统", "USD", 5000, 5000, 104932.65, 114932.65, 1, "3472", []),
-  row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "系统", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "黄银冰（huangyinbing@bestfulfill.com）", []),
-  row("16902", "2026-10-08 13:40:18", "online_recharge", "增加", "系统", "EUR", 100, 87.79, 528.62, 528.62, 0.87791, "19b8a77c-d3fc-45da-9520-4a07463123df", []),
-  row("16902", "2026-10-08 11:12:33", "offline_recharge", "增加", "系统", "EUR", 4.79, 4.79, 77943.22, 77943.22, 1, "李彦（liyan@bestfulfill.com）", []),
-  row("16903", "2026-10-08 10:06:51", "transfer_release", "增加", "系统", "USD", 10, 10, 15, 15, 1, "欧伟权（ouweiquan@bestfulfill.com）", [])
+  row("19817", "2026-10-08 11:50:40", "online_recharge", "增加", "人工", "USD", 58.21, 58.21, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008115040001", "a3c1e8f0-4b21-4d7a-9c55-1f6e2a8b0d11", "-", ""),
+  row("16903", "2026-10-08 09:59:09", "offline_recharge", "增加", "人工", "USD", 40000, 40000, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095909002", "7b2d4e19-8c33-4a61-b0e4-5d9f1c2a6e70", "-", ""),
+  row("16902", "2026-10-08 09:58:10", "compensation", "增加", "人工", "USD", 40000, 40000, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095810003", "c91f0a55-2e74-4b18-8d3c-6a0b7e4f1d22", "-", ""),
+  row("14714", "2026-10-08 09:55:24", "fee_cover", "减少", "人工", "USD", 29.41, 29.41, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095524004", "e4a8c0d2-6f15-4c9b-a271-3b5d8e0c7f43", "-", ""),
+  row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "系统", "USD", 11, 11, 1141.90, 1141.90, 1, "dHiL1PYR@moemail.app", [], "TXFULFILL20261008162011005", "1d6b9e33-0a47-4f82-9c15-8e2a4b7d0c56", "-", ""),
+  row("16903", "2026-10-08 15:02:40", "recover_recharge", "增加", "系统", "USD", 5000, 5000, 104932.65, 114932.65, 1, "oms_system", [], "TXFULFILL20261008150240006", "5c0e7a91-3b28-4d64-8f0a-2c6e9b1d4a77", "-", ""),
+  row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "系统", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008141802007", "9f3a1c68-7d05-4e2b-b184-0a5c6d8e2f88", "-", ""),
+  row("16902", "2026-10-08 13:40:18", "online_recharge", "增加", "系统", "EUR", 100, 87.79, 528.62, 528.62, 0.87791, "oms_system", [], "TXFULFILL20261008134018008", "19b8a77c-d3fc-45da-9520-4a07463123df", "-", ""),
+  row("16902", "2026-10-08 11:12:33", "offline_recharge", "增加", "系统", "EUR", 4.79, 4.79, 77943.22, 77943.22, 1, "李彦（liyan@bestfulfill.com）", [], "TXFULFILL20261008111233009", "2e7c4b80-1a96-4f53-9d28-6b0c5a3e8f19", "-", ""),
+  row("16903", "2026-10-08 10:06:51", "transfer_release", "增加", "系统", "USD", 10, 10, 15, 15, 1, "欧伟权（ouweiquan@bestfulfill.com）", [], "TXFULFILL20261008100651010", "8a1d5f24-6c30-4b97-a0e5-3d7c2b9f4e60", "-", "")
 ];
 
-function row(merchantId, time, code, direction, method, currency, amount, change, afterCurrent, afterAvailable, rate, source, files) {
+function row(merchantId, time, code, direction, method, currency, amount, change, afterCurrent, afterAvailable, rate, source, files, orderNo, flowId, transferNo, remark) {
   const m = seedMerchants.find(x => x.id === merchantId);
   return {
     id: "T" + Math.random().toString(36).slice(2, 8),
     merchantId, merchantName: m ? m.name : "—", biz: m ? m.biz : "—",
     time, code, direction, method, currency, amount, change,
     afterCurrent, afterAvailable, rate, source, files,
-    orderNo: "", flowId: "", transferNo: "", uniqueId: ""
+    orderNo: orderNo || "", flowId: flowId || "", transferNo: transferNo || "-", remark: remark || "", uniqueId: ""
   };
 }
 
@@ -296,12 +296,12 @@ let files = [];
 
 function load() {
   try {
-    const raw = sessionStorage.getItem("aa-proto-v3");
+    const raw = sessionStorage.getItem("aa-proto-v4");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return { merchants: seedMerchants.map(m => Object.assign({}, m)), txns: seedTxns.slice() };
 }
-function save() { sessionStorage.setItem("aa-proto-v3", JSON.stringify(state)); }
+function save() { sessionStorage.setItem("aa-proto-v4", JSON.stringify(state)); }
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -621,7 +621,11 @@ function acceptAdjustment(input) {
     rate: 1,
     source: OPERATOR,
     files: input.files,
-    orderNo: "", flowId: "", transferNo: "", uniqueId: "",
+    orderNo: "TXFULFILL" + time.replace(/[-: ]/g, ""),
+    flowId: (crypto.randomUUID ? crypto.randomUUID() : "00000000-0000-4000-8000-" + Date.now().toString(16).padStart(12, "0")),
+    transferNo: "-",
+    remark: input.reason || "",
+    uniqueId: "",
     reason: input.reason
   };
   state.txns.unshift(txn);
@@ -685,7 +689,7 @@ function renderTxns() {
         <thead><tr>
           <th>商户ID</th><th>商户名称</th><th>交易时间</th><th>所属业务</th><th>变动类型</th>
           <th>操作方式</th><th>交易币种</th><th>交易金额</th><th>默认币种</th>
-          <th>变动金额</th><th>变动后当前余额</th><th>变动后的可用余额</th><th>汇率</th><th>操作来源</th><th>操作</th>
+          <th>变动金额</th><th>变动后当前余额</th><th>变动后的可用余额</th><th>汇率</th><th>操作来源</th><th>交易单号</th><th>流水交易ID</th><th>调拨单号</th><th>描述/备注</th><th>操作</th>
         </tr></thead>
         <tbody>${rows.map(t => {
           const amt = displayAmount(t);
@@ -698,9 +702,10 @@ function renderTxns() {
             <td>${esc(t.currency)}</td><td class="money ${sign}">${signedMoney(amt)}</td><td>${esc(t.currency)}</td>
             <td class="money ${sign}">${signedMoney(delta)}</td><td>${money(t.afterCurrent)}</td><td>${money(t.afterAvailable)}</td>
             <td>${esc(t.rate)}</td><td>${esc(t.source || "—")}</td>
+            <td>${esc(t.orderNo || "")}</td><td>${esc(t.flowId || "")}</td><td>${esc(t.transferNo || "-")}</td><td>${esc(t.remark || "")}</td>
             <td><button class="btn link" data-files="${esc(t.id)}" type="button">查看附件</button></td>
           </tr>`;
-        }).join("")}${rows.length ? "" : `<tr class="empty"><td colspan="15">暂无数据</td></tr>`}</tbody>
+        }).join("")}${rows.length ? "" : `<tr class="empty"><td colspan="19">暂无数据</td></tr>`}</tbody>
       </table></div>
       <div class="pager">共 ${rows.length} 条记录　20条/页</div>
     </div>`;
@@ -740,10 +745,10 @@ function renderTxns() {
 }
 
 function exportTxns(rows) {
-  const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "操作方式", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源"];
+  const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "操作方式", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源", "交易单号", "流水交易ID", "调拨单号", "描述/备注"];
   const lines = [header.join(",")];
   rows.forEach(t => {
-    const cells = [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.method, t.currency, displayAmount(t), t.currency, displayChange(t), t.afterCurrent, t.afterAvailable, t.rate, t.source];
+    const cells = [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.method, t.currency, displayAmount(t), t.currency, displayChange(t), t.afterCurrent, t.afterAvailable, t.rate, t.source, t.orderNo, t.flowId, t.transferNo, t.remark];
     lines.push(cells.map(c => `"${String(c == null ? "" : c).replace(/"/g, '""')}"`).join(","));
   });
   const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });

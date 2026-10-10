@@ -120,7 +120,9 @@ a { color: var(--blue); text-decoration: none; }
 .btn.primary:hover { background: var(--blue-h); }
 .btn.link { height: 22px; border: 0; background: transparent; color: var(--blue); padding: 0; line-height: 22px; }
 .btn.link.danger { color: var(--danger); }
-.ops { display: flex; align-items: center; gap: 12px; }
+.ops { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; white-space: normal; }
+.ops .line { display: flex; align-items: center; gap: 12px; }
+table.merchants { min-width: 2860px; }
 .toolbar { display: flex; justify-content: flex-end; margin-top: 12px; }
 .table-wrap { overflow: auto; }
 table { width: 100%; border-collapse: collapse; }
@@ -247,19 +249,21 @@ function listLabel(code) {
 }
 
 const seedMerchants = [
-  { id: "15327", name: "—", accountId: "", currency: "USD", attr: "主币种", balance: 0, opening: "未设置", status: "启用", biz: "履约" },
-  { id: "20044", name: "—", accountId: "", currency: "USD", attr: "主币种", balance: 0, opening: "未设置", status: "启用", biz: "履约" },
-  { id: "19817", name: "Wassil", accountId: "", currency: "USD", attr: "主币种", balance: 1200, opening: "已设置", status: "启用", biz: "广告" },
-  { id: "16903", name: "Nico Cazacu", accountId: "", currency: "USD", attr: "主币种", balance: 114932.65, opening: "已设置", status: "启用", biz: "履约" },
-  { id: "16902", name: "Nico Cazacu", accountId: "", currency: "EUR", attr: "主币种", balance: 77943.22, opening: "已设置", status: "启用", biz: "履约" },
-  { id: "14714", name: "Nicu Auris", accountId: "", currency: "USD", attr: "主币种", balance: 860, opening: "已设置", status: "启用", biz: "履约" }
+  { id: "20158", name: "mathy@bestfulfill.com", uniqueId: "mathy@bestfulfill.com", erp: "MATHY", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "未设置", openingAt: "", accountId: "FB14PR5ATUSH7YOH", createdAt: "2026-10-10 09:41:12" },
+  { id: "20158", name: "mathy@bestfulfill.com", uniqueId: "mathy@bestfulfill.com", erp: "MATHY", biz: "履约", currency: "EUR", attr: "非主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "未设置", openingAt: "", accountId: "Q7H2MN8C4W6Y3KPL", createdAt: "2026-10-10 09:41:18" },
+  { id: "20044", name: "—", uniqueId: "", erp: "", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "未设置", openingAt: "", accountId: "B6T9L3V8R1C5N2WD", createdAt: "2026-08-02 11:06:40" },
+  { id: "15327", name: "—", uniqueId: "", erp: "", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "未设置", openingAt: "", accountId: "C3K8R2N6P4W7Y1QH", createdAt: "2026-07-18 16:22:05" },
+  { id: "19817", name: "Wassil", uniqueId: "wassil", erp: "WASSIL", biz: "广告", currency: "USD", attr: "主币种", status: "正常", current: 1200, balance: 1200, realAmount: 1200, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "已设置", openingAt: "2026-09-01 00:00:00", accountId: "W9L4SD2H8M6C3QKA", createdAt: "2026-06-11 08:15:44" },
+  { id: "16903", name: "Nico Cazacu", uniqueId: "nico.cazacu", erp: "NICO", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 114932.65, balance: 114932.65, realAmount: 114932.65, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "已设置", openingAt: "2026-09-01 00:00:00", accountId: "N5P8E1T7R2Y6B4VX", createdAt: "2026-05-20 13:48:09" },
+  { id: "16902", name: "Nico Cazacu", uniqueId: "nico.cazacu", erp: "NICO", biz: "履约", currency: "EUR", attr: "非主币种", status: "正常", current: 77943.22, balance: 77943.22, realAmount: 77943.22, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "已设置", openingAt: "2026-09-01 00:00:00", accountId: "H3J6K9M2Q8W5C1ZL", createdAt: "2026-05-20 13:48:11" },
+  { id: "14714", name: "Nicu Auris", uniqueId: "nicu.auris", erp: "AURIS", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 860, balance: 860, realAmount: 860, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "已设置", openingAt: "2026-09-01 00:00:00", accountId: "D4F7G2B8N6S3P9YE", createdAt: "2026-04-09 10:03:27" }
 ];
 
 const seedTxns = [
   row("19817", "2026-10-08 11:50:40", "online_recharge", "增加", "人工", "USD", 58.21, 58.21, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008115040001", "a3c1e8f0-4b21-4d7a-9c55-1f6e2a8b0d11", "-", ""),
   row("16903", "2026-10-08 09:59:09", "offline_recharge", "增加", "人工", "USD", 40000, 40000, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095909002", "7b2d4e19-8c33-4a61-b0e4-5d9f1c2a6e70", "-", ""),
   row("16902", "2026-10-08 09:58:10", "compensation", "增加", "人工", "USD", 40000, 40000, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095810003", "c91f0a55-2e74-4b18-8d3c-6a0b7e4f1d22", "-", ""),
-  row("14714", "2026-10-08 09:55:24", "fee_cover", "减少", "人工", "USD", 29.41, 29.41, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095524004", "e4a8c0d2-6f15-4c9b-a271-3b5d8e0c7f43", "-", ""),
+  row("14714", "2026-10-08 09:55:24", "fee_cover", "减少", "人工", "USD", 29.41, 29.41, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095524004", "e4a8c0d2-6f15-4c9b-a271-3b5d8e0c7f43", "-", "", "拒付"),
   row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "系统", "USD", 11, 11, 1141.90, 1141.90, 1, "dHiL1PYR@moemail.app", [], "TXFULFILL20261008162011005", "1d6b9e33-0a47-4f82-9c15-8e2a4b7d0c56", "-", ""),
   row("16903", "2026-10-08 15:02:40", "recover_recharge", "增加", "系统", "USD", 5000, 5000, 104932.65, 114932.65, 1, "oms_system", [], "TXFULFILL20261008150240006", "5c0e7a91-3b28-4d64-8f0a-2c6e9b1d4a77", "-", ""),
   row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "系统", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008141802007", "9f3a1c68-7d05-4e2b-b184-0a5c6d8e2f88", "-", ""),
@@ -268,11 +272,11 @@ const seedTxns = [
   row("16903", "2026-10-08 10:06:51", "transfer_release", "增加", "系统", "USD", 10, 10, 15, 15, 1, "欧伟权（ouweiquan@bestfulfill.com）", [], "TXFULFILL20261008100651010", "8a1d5f24-6c30-4b97-a0e5-3d7c2b9f4e60", "-", "")
 ];
 
-function row(merchantId, time, code, direction, method, currency, amount, change, afterCurrent, afterAvailable, rate, source, files, orderNo, flowId, transferNo, remark) {
+function row(merchantId, time, code, direction, method, currency, amount, change, afterCurrent, afterAvailable, rate, source, files, orderNo, flowId, transferNo, remark, bizName) {
   const m = seedMerchants.find(x => x.id === merchantId);
   return {
     id: "T" + Math.random().toString(36).slice(2, 8),
-    merchantId, merchantName: m ? m.name : "—", biz: m ? m.biz : "—",
+    merchantId, merchantName: m ? m.name : "—", biz: bizName || (m ? m.biz : "—"),
     time, code, direction, method, currency, amount, change,
     afterCurrent, afterAvailable, rate, source, files,
     orderNo: orderNo || "", flowId: flowId || "", transferNo: transferNo || "-", remark: remark || "", uniqueId: ""
@@ -289,19 +293,19 @@ function pageFromLocation() {
 }
 let page = pageFromLocation();
 let focusId = new URLSearchParams(location.search).get("focus") || "";
-let merchantQuery = { id: "", accountId: "", opening: "", status: "" };
+let merchantQuery = { id: "", name: "", uniqueId: "", erp: "", accountId: "", amountMin: "", amountMax: "", currency: "", attr: "", status: "", opening: "" };
 let txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
 let modal = null;
 let files = [];
 
 function load() {
   try {
-    const raw = sessionStorage.getItem("aa-proto-v4");
+    const raw = sessionStorage.getItem("aa-proto-v5");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return { merchants: seedMerchants.map(m => Object.assign({}, m)), txns: seedTxns.slice() };
 }
-function save() { sessionStorage.setItem("aa-proto-v4", JSON.stringify(state)); }
+function save() { sessionStorage.setItem("aa-proto-v5", JSON.stringify(state)); }
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -403,71 +407,112 @@ function renderMerchants() {
   const q = merchantQuery;
   const rows = state.merchants.filter(m => {
     if (q.id && m.id.indexOf(q.id.trim()) < 0) return false;
+    if (q.name && String(m.name).indexOf(q.name.trim()) < 0) return false;
+    if (q.uniqueId && String(m.uniqueId || "").indexOf(q.uniqueId.trim()) < 0) return false;
+    if (q.erp && String(m.erp || "").indexOf(q.erp.trim()) < 0) return false;
     if (q.accountId && String(m.accountId).indexOf(q.accountId.trim()) < 0) return false;
-    if (q.opening && m.opening !== q.opening) return false;
+    if (q.amountMin !== "" && Number(m.current) < Number(q.amountMin)) return false;
+    if (q.amountMax !== "" && Number(m.current) > Number(q.amountMax)) return false;
+    if (q.currency && m.currency !== q.currency) return false;
+    if (q.attr && m.attr !== q.attr) return false;
     if (q.status && m.status !== q.status) return false;
+    if (q.opening && m.opening !== q.opening) return false;
     return true;
   });
+  const opt = (cur, text) => `<option ${cur === text ? "selected" : ""}>${text}</option>`;
   document.getElementById("content").innerHTML = `
     <div class="panel">
       <div class="filters">
         <div class="field"><label>商户ID</label><input id="mq-id" placeholder="请输入商户ID" value="${esc(q.id)}" /></div>
-        <div class="field"><label>资金账户ID</label><input id="mq-acc" placeholder="请输入子账户ID" value="${esc(q.accountId)}" /></div>
-        <div class="field"><label>期初设置</label>
-          <select id="mq-open"><option value="">请选择期初设置</option><option ${q.opening === "已设置" ? "selected" : ""}>已设置</option><option ${q.opening === "未设置" ? "selected" : ""}>未设置</option></select>
+        <div class="field"><label>商户名称</label><input id="mq-name" placeholder="请输入商户名称" value="${esc(q.name)}" /></div>
+        <div class="field"><label>商户唯一标识</label><input id="mq-uid" placeholder="请输入商户唯一标识" value="${esc(q.uniqueId)}" /></div>
+        <div class="field"><label>ERP代码</label><input id="mq-erp" placeholder="请输入ERP代码" value="${esc(q.erp)}" /></div>
+        <div class="field"><label>资金账户ID</label><input id="mq-acc" placeholder="请输入资金账户ID" value="${esc(q.accountId)}" /></div>
+        <div class="field"><label>当前金额</label>
+          <div class="range">
+            <input id="mq-min" placeholder="最小" value="${esc(q.amountMin)}" />
+            <span>-</span>
+            <input id="mq-max" placeholder="最大" value="${esc(q.amountMax)}" />
+          </div>
         </div>
-        <div class="field"><label>状态</label>
-          <select id="mq-st"><option value="">请选择状态</option><option ${q.status === "启用" ? "selected" : ""}>启用</option><option ${q.status === "禁用" ? "selected" : ""}>禁用</option></select>
+        <div class="field"><label>币种</label>
+          <select id="mq-cur"><option value="">请选择币种</option>${opt(q.currency, "USD")}${opt(q.currency, "EUR")}</select>
+        </div>
+        <div class="field"><label>币种属性</label>
+          <select id="mq-attr"><option value="">请选择币种属性</option>${opt(q.attr, "主币种")}${opt(q.attr, "非主币种")}</select>
+        </div>
+        <div class="field"><label>账户状态</label>
+          <select id="mq-st"><option value="">请选择账户状态</option>${opt(q.status, "正常")}${opt(q.status, "禁用")}</select>
+        </div>
+        <div class="field"><label>期初设置</label>
+          <select id="mq-open"><option value="">请选择期初设置</option>${opt(q.opening, "已设置")}${opt(q.opening, "未设置")}</select>
         </div>
       </div>
       <div class="actions">
         <button class="btn primary" id="mq-search" type="button">搜索</button>
         <button class="btn" id="mq-reset" type="button">重置</button>
-        </div>
+      </div>
     </div>
     <div class="toolbar"><button class="btn primary" id="mq-export" type="button">导出数据</button></div>
     <div class="panel table-panel">
-      <div class="table-wrap"><table class="fixed">
-        <colgroup><col style="width:12%"><col style="width:18%"><col style="width:12%"><col style="width:8%"><col style="width:12%"><col style="width:16%"><col style="width:22%"></colgroup>
+      <div class="table-wrap"><table class="merchants">
         <thead><tr>
-          <th>商户ID</th><th>商户名称</th><th>所属业务</th><th>币种</th><th>币种属性</th><th>可用余额</th><th>操作</th>
+          <th>商户ID</th><th>商户名称</th><th>商户唯一标识</th><th>ERP代码</th><th>子业务</th><th>币种</th><th>币种属性</th>
+          <th>账户状态</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th>
+          <th>额度状态</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th><th>操作</th>
         </tr></thead>
         <tbody>${rows.map(m => `<tr>
-          <td>${esc(m.id)}</td><td>${esc(m.name)}</td><td>${esc(m.biz)}</td><td>${esc(m.currency)}</td>
-          <td><span class="tag">${esc(m.attr)}</span></td><td>${money(m.balance)}</td>
+          <td>${esc(m.id)}</td><td>${esc(m.name)}</td><td>${esc(m.uniqueId || "—")}</td><td>${esc(m.erp || "—")}</td><td>${esc(m.biz)}</td>
+          <td>${esc(m.currency)}</td><td><span class="tag ${m.attr === "主币种" ? "" : "gray"}">${esc(m.attr)}</span></td>
+          <td><span class="tag ${m.status === "正常" ? "green" : "gray"}">${esc(m.status)}</span></td>
+          <td>${money(m.current)}</td><td>${money(m.balance)}</td><td>${money(m.realAmount)}</td><td>${money(m.frozen)}</td>
+          <td>${money(m.credit)}</td><td>${money(m.creditUsed)}</td><td>${money(m.creditLeft)}</td><td>${esc(m.creditStatus || "—")}</td>
+          <td>${esc(m.opening)}</td><td>${m.openingAt ? esc(m.openingAt) : "—"}</td><td>${esc(m.accountId || "—")}</td><td>${esc(m.createdAt || "—")}</td>
           <td><div class="ops">
-            <button class="btn link" data-adjust="${esc(m.id)}" type="button">调整金额</button>
-            <button class="btn link" data-frozen="日志" type="button">日志</button>
-            <button class="btn link" data-frozen="期初设置" type="button">期初设置</button>
-            <button class="btn link danger" data-frozen="禁用" type="button">禁用</button>
+            <div class="line">
+              <button class="btn link" data-adjust="${esc(m.id)}" data-currency="${esc(m.currency)}" type="button">调整金额</button>
+              <button class="btn link" data-frozen="日志" type="button">日志</button>
+            </div>
+            <div class="line">
+              <button class="btn link" data-frozen="期初设置" type="button">期初设置</button>
+              <button class="btn link danger" data-frozen="禁用" type="button">禁用</button>
+            </div>
           </div></td>
-        </tr>`).join("")}</tbody>
+        </tr>`).join("")}${rows.length ? "" : `<tr class="empty"><td colspan="21">暂无数据</td></tr>`}</tbody>
       </table></div>
       <div class="pager">共 ${rows.length} 条记录　20条/页</div>
     </div>`;
+  const blankQuery = () => ({ id: "", name: "", uniqueId: "", erp: "", accountId: "", amountMin: "", amountMax: "", currency: "", attr: "", status: "", opening: "" });
   document.getElementById("mq-search").onclick = () => {
     merchantQuery = {
       id: document.getElementById("mq-id").value,
+      name: document.getElementById("mq-name").value,
+      uniqueId: document.getElementById("mq-uid").value,
+      erp: document.getElementById("mq-erp").value,
       accountId: document.getElementById("mq-acc").value,
-      opening: document.getElementById("mq-open").value,
-      status: document.getElementById("mq-st").value
+      amountMin: document.getElementById("mq-min").value.trim(),
+      amountMax: document.getElementById("mq-max").value.trim(),
+      currency: document.getElementById("mq-cur").value,
+      attr: document.getElementById("mq-attr").value,
+      status: document.getElementById("mq-st").value,
+      opening: document.getElementById("mq-open").value
     };
     render();
   };
-  document.getElementById("mq-reset").onclick = () => { merchantQuery = { id: "", accountId: "", opening: "", status: "" }; render(); };
+  document.getElementById("mq-reset").onclick = () => { merchantQuery = blankQuery(); render(); };
   document.getElementById("mq-export").onclick = () => toast("商户列表导出保持现网，本期不改");
   document.getElementById("content").onclick = (e) => {
     const a = e.target.closest("[data-adjust]");
     const f = e.target.closest("[data-frozen]");
-    if (a) openModal(a.dataset.adjust);
+    if (a) openModal(a.dataset.adjust, a.dataset.currency);
     if (f) toast("「" + f.dataset.frozen + "」本期不改动");
   };
 }
 
-function openModal(id) {
-  const m = state.merchants.find(x => x.id === id);
+function openModal(id, currency) {
+  const m = state.merchants.find(x => x.id === id && (!currency || x.currency === currency));
   if (!m) return;
-  modal = { merchantId: id, code: "", direction: "增加", amount: "", reason: "", errors: {} };
+  modal = { merchantId: id, currency: m.currency, code: "", direction: "增加", amount: "", reason: "", errors: {} };
   files = [];
   renderMask();
 }
@@ -475,7 +520,7 @@ function openModal(id) {
 function renderMask() {
   const host = document.getElementById("mask");
   if (!modal) { host.innerHTML = ""; return; }
-  const m = state.merchants.find(x => x.id === modal.merchantId);
+  const m = state.merchants.find(x => x.id === modal.merchantId && x.currency === modal.currency);
   const opts = TYPES.map(([code, label]) => `<option value="${esc(code)}" ${modal.code === code ? "selected" : ""}>${esc(label)}</option>`).join("");
   host.innerHTML = `<div class="mask"><div class="modal" role="dialog" aria-label="金额调整">
     <h3>金额调整 <button type="button" id="modal-x">×</button></h3>
@@ -571,6 +616,7 @@ function submitAdjust() {
 
   const result = acceptAdjustment({
     merchantId: modal.merchantId,
+    currency: modal.currency,
     code,
     direction,
     amount: Number(amountText),
@@ -596,11 +642,13 @@ function acceptAdjustment(input) {
   if (input.direction !== "增加" && input.direction !== "减少") {
     return { ok: false, message: "资金方向只能是增加或减少" };
   }
-  const merchant = state.merchants.find(m => m.id === input.merchantId);
+  const merchant = state.merchants.find(m => m.id === input.merchantId && (!input.currency || m.currency === input.currency));
   if (!merchant) return { ok: false, message: "商户不存在" };
   const signed = input.direction === "增加" ? input.amount : -input.amount;
   const next = Math.round((Number(merchant.balance) + signed) * 100) / 100;
   merchant.balance = next;
+  merchant.current = Math.round((Number(merchant.current) + signed) * 100) / 100;
+  merchant.realAmount = Math.round((Number(merchant.realAmount) + signed) * 100) / 100;
   const now = new Date();
   const p = (n) => String(n).padStart(2, "0");
   const time = now.getFullYear() + "-" + p(now.getMonth() + 1) + "-" + p(now.getDate()) + " " + p(now.getHours()) + ":" + p(now.getMinutes()) + ":" + p(now.getSeconds());
@@ -663,7 +711,7 @@ function renderTxns() {
         <div class="field"><label>商户名称</label><input id="tq-name" placeholder="请输入商户名称" value="${esc(q.name)}" /></div>
         <div class="field"><label>商户唯一标识</label><input id="tq-uid" placeholder="请输入商户唯一标识" value="${esc(q.uniqueId)}" /></div>
         <div class="field"><label>所属业务</label>
-          <select id="tq-biz"><option value="">请选择所属业务</option><option ${q.biz === "广告" ? "selected" : ""}>广告</option><option ${q.biz === "履约" ? "selected" : ""}>履约</option></select>
+          <select id="tq-biz"><option value="">请选择所属业务</option><option ${q.biz === "广告" ? "selected" : ""}>广告</option><option ${q.biz === "履约" ? "selected" : ""}>履约</option><option ${q.biz === "拒付" ? "selected" : ""}>拒付</option></select>
         </div>
         <div class="field"><label>变动类型</label><select id="tq-code">${typeOptions}</select></div>
         <div class="field span2"><label>交易时间</label>

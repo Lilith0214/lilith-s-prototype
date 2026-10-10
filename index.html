@@ -73,6 +73,24 @@ a { color: var(--blue); text-decoration: none; }
 .panel { background: #fff; border-radius: 8px; padding: 16px; }
 .panel.table-panel { padding: 0 0 12px; }
 .filters { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 12px 16px; }
+.mfilters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+.mfilters .field { min-width: 0; }
+.mfilters .actions {
+  grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center;
+  gap: 8px; margin: 0; height: 32px; flex-wrap: nowrap;
+}
+.mfilters select {
+  appearance: none; -webkit-appearance: none; padding-right: 28px;
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2.2 4.3 6 8.1 9.8 4.3' fill='none' stroke='%238c8c8c' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 10px center;
+}
+.filters.folded { display: none; }
+th.sortable { cursor: pointer; user-select: none; }
+th .caret { display: inline-flex; flex-direction: column; margin-left: 4px; vertical-align: -1px; gap: 2px; }
+th .caret i { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; }
+th .caret i.up { border-bottom: 4px solid #bfbfbf; }
+th .caret i.down { border-top: 4px solid #bfbfbf; }
+th.asc .caret i.up { border-bottom-color: #1677ff; }
+th.desc .caret i.down { border-top-color: #1677ff; }
 .field.span2 { grid-column: span 2; }
 .field label { display: block; margin-bottom: 6px; color: #595959; line-height: 20px; }
 .field input, .field select, .field textarea {
@@ -194,7 +212,6 @@ tr.empty td { text-align: center; color: #8c8c8c; padding: 48px 12px; }
     <header class="top">
       <div class="crumb" id="crumb"></div>
       <div class="spacer"></div>
-      <div class="who">当前账号 黄银冰（huangyinbing@bestfulfill.com）</div>
     </header>
     <div class="tabs" id="tabs"></div>
     <div class="content" id="content"></div>
@@ -203,7 +220,7 @@ tr.empty td { text-align: center; color: #8c8c8c; padding: 48px 12px; }
 <div id="mask"></div>
 <div class="toast" id="toast"></div>
 <script>
-const OPERATOR = "黄银冰（huangyinbing@bestfulfill.com）";
+const OPERATOR = "王婧娴(wangjingxian@bestfulfill.com)";
 const TYPES = [
   ["online_recharge", "线上充值"],
   ["offline_recharge", "线下充值（转账"],
@@ -249,34 +266,36 @@ function listLabel(code) {
 }
 
 const seedMerchants = [
-  { id: "20158", name: "mathy@bestfulfill.com", uniqueId: "mathy@bestfulfill.com", erp: "MATHY", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "未设置", openingAt: "", accountId: "FB14PR5ATUSH7YOH", createdAt: "2026-10-10 09:41:12" },
-  { id: "20158", name: "mathy@bestfulfill.com", uniqueId: "mathy@bestfulfill.com", erp: "MATHY", biz: "履约", currency: "EUR", attr: "非主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "未设置", openingAt: "", accountId: "Q7H2MN8C4W6Y3KPL", createdAt: "2026-10-10 09:41:18" },
-  { id: "20044", name: "—", uniqueId: "", erp: "", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "未设置", openingAt: "", accountId: "B6T9L3V8R1C5N2WD", createdAt: "2026-08-02 11:06:40" },
-  { id: "15327", name: "—", uniqueId: "", erp: "", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "未设置", openingAt: "", accountId: "C3K8R2N6P4W7Y1QH", createdAt: "2026-07-18 16:22:05" },
-  { id: "19817", name: "Wassil", uniqueId: "wassil", erp: "WASSIL", biz: "广告", currency: "USD", attr: "主币种", status: "正常", current: 1200, balance: 1200, realAmount: 1200, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "已设置", openingAt: "2026-09-01 00:00:00", accountId: "W9L4SD2H8M6C3QKA", createdAt: "2026-06-11 08:15:44" },
-  { id: "16903", name: "Nico Cazacu", uniqueId: "nico.cazacu", erp: "NICO", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 114932.65, balance: 114932.65, realAmount: 114932.65, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "已设置", openingAt: "2026-09-01 00:00:00", accountId: "N5P8E1T7R2Y6B4VX", createdAt: "2026-05-20 13:48:09" },
-  { id: "16902", name: "Nico Cazacu", uniqueId: "nico.cazacu", erp: "NICO", biz: "履约", currency: "EUR", attr: "非主币种", status: "正常", current: 77943.22, balance: 77943.22, realAmount: 77943.22, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "已设置", openingAt: "2026-09-01 00:00:00", accountId: "H3J6K9M2Q8W5C1ZL", createdAt: "2026-05-20 13:48:11" },
-  { id: "14714", name: "Nicu Auris", uniqueId: "nicu.auris", erp: "AURIS", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 860, balance: 860, realAmount: 860, frozen: 0, credit: 0, creditUsed: 0, creditLeft: 0, creditStatus: "—", opening: "已设置", openingAt: "2026-09-01 00:00:00", accountId: "D4F7G2B8N6S3P9YE", createdAt: "2026-04-09 10:03:27" }
+  { id: "20158", name: "mathy@bestfulfill.com", uniqueId: "mat***@bestfulfill.com", erp: "-", biz: "履约", currency: "EUR", attr: "非主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: "-", creditUsed: 0, creditLeft: 0, creditStatus: "-", opening: "未设置", openingAt: "-", accountId: "FB14PR5ATUSH7YOH", createdAt: "2026-10-10 15:13:16" },
+  { id: "20158", name: "mathy@bestfulfill.com", uniqueId: "mat***@bestfulfill.com", erp: "-", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: "-", creditUsed: 0, creditLeft: 0, creditStatus: "-", opening: "未设置", openingAt: "-", accountId: "FBJCEMBPHQLJ4PEG", createdAt: "2026-10-10 15:10:47" },
+  { id: "20157", name: "idalla18a347@r4.pointnexus.org", uniqueId: "ida***@r4.pointnexus.org", erp: "-", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: "-", creditUsed: 0, creditLeft: 0, creditStatus: "-", opening: "未设置", openingAt: "-", accountId: "FBXID1R0D6NJ7RYT", createdAt: "2026-10-10 14:59:56" }
 ];
 
+const txnParty = {
+  "19817": ["Wassil", "广告"],
+  "16903": ["Nico Cazacu", "履约"],
+  "16902": ["Nico Cazacu", "履约"],
+  "14714": ["Nicu Auris", "履约"]
+};
 const seedTxns = [
-  row("19817", "2026-10-08 11:50:40", "online_recharge", "增加", "人工", "USD", 58.21, 58.21, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008115040001", "a3c1e8f0-4b21-4d7a-9c55-1f6e2a8b0d11", "-", ""),
-  row("16903", "2026-10-08 09:59:09", "offline_recharge", "增加", "人工", "USD", 40000, 40000, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095909002", "7b2d4e19-8c33-4a61-b0e4-5d9f1c2a6e70", "-", ""),
-  row("16902", "2026-10-08 09:58:10", "compensation", "增加", "人工", "USD", 40000, 40000, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095810003", "c91f0a55-2e74-4b18-8d3c-6a0b7e4f1d22", "-", ""),
-  row("14714", "2026-10-08 09:55:24", "fee_cover", "减少", "人工", "USD", 29.41, 29.41, "", "", 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008095524004", "e4a8c0d2-6f15-4c9b-a271-3b5d8e0c7f43", "-", "", "拒付"),
-  row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "系统", "USD", 11, 11, 1141.90, 1141.90, 1, "dHiL1PYR@moemail.app", [], "TXFULFILL20261008162011005", "1d6b9e33-0a47-4f82-9c15-8e2a4b7d0c56", "-", ""),
+  row("19817", "2026-10-08 11:50:40", "online_recharge", "增加", "人工", "USD", 58.21, 58.21, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008115040001", "a3c1e8f0-4b21-4d7a-9c55-1f6e2a8b0d11", "-", ""),
+  row("16903", "2026-10-08 09:59:09", "offline_recharge", "增加", "人工", "USD", 40000, 40000, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095909002", "7b2d4e19-8c33-4a61-b0e4-5d9f1c2a6e70", "-", ""),
+  row("16902", "2026-10-08 09:58:10", "compensation", "增加", "人工", "USD", 40000, 40000, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095810003", "c91f0a55-2e74-4b18-8d3c-6a0b7e4f1d22", "-", ""),
+  row("14714", "2026-10-08 09:55:24", "fee_cover", "减少", "人工", "USD", 29.41, 29.41, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095524004", "e4a8c0d2-6f15-4c9b-a271-3b5d8e0c7f43", "-", "", "拒付"),
+  row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "系统", "USD", 11, 11, 1141.90, 1141.90, 1, "oms_system", [], "TXFULFILL20261008162011005", "1d6b9e33-0a47-4f82-9c15-8e2a4b7d0c56", "-", ""),
   row("16903", "2026-10-08 15:02:40", "recover_recharge", "增加", "系统", "USD", 5000, 5000, 104932.65, 114932.65, 1, "oms_system", [], "TXFULFILL20261008150240006", "5c0e7a91-3b28-4d64-8f0a-2c6e9b1d4a77", "-", ""),
-  row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "系统", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "黄银冰（huangyinbing@bestfulfill.com）", [], "TXFULFILL20261008141802007", "9f3a1c68-7d05-4e2b-b184-0a5c6d8e2f88", "-", ""),
-  row("16902", "2026-10-08 13:40:18", "online_recharge", "增加", "系统", "EUR", 100, 87.79, 528.62, 528.62, 0.87791, "oms_system", [], "TXFULFILL20261008134018008", "19b8a77c-d3fc-45da-9520-4a07463123df", "-", ""),
-  row("16902", "2026-10-08 11:12:33", "offline_recharge", "增加", "系统", "EUR", 4.79, 4.79, 77943.22, 77943.22, 1, "李彦（liyan@bestfulfill.com）", [], "TXFULFILL20261008111233009", "2e7c4b80-1a96-4f53-9d28-6b0c5a3e8f19", "-", ""),
-  row("16903", "2026-10-08 10:06:51", "transfer_release", "增加", "系统", "USD", 10, 10, 15, 15, 1, "欧伟权（ouweiquan@bestfulfill.com）", [], "TXFULFILL20261008100651010", "8a1d5f24-6c30-4b97-a0e5-3d7c2b9f4e60", "-", "")
+  row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "系统", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008141802007", "9f3a1c68-7d05-4e2b-b184-0a5c6d8e2f88", "-", ""),
+  row("16902", "2026-10-08 13:40:18", "online_recharge", "增加", "系统", "EUR", 100, 87.79, 528.62, 528.62, 0.91, "oms_system", [], "TXFULFILL20261008134018008", "19b8a77c-d3fc-45da-9520-4a07463123df", "-", ""),
+  row("16902", "2026-10-08 11:12:33", "offline_recharge", "增加", "系统", "EUR", 4.79, 4.79, 77943.22, 77943.22, 1, "oms_system", [], "TXFULFILL20261008111233009", "2e7c4b80-1a96-4f53-9d28-6b0c5a3e8f19", "-", ""),
+  row("16903", "2026-10-08 10:06:51", "transfer_release", "增加", "系统", "USD", 10, 10, 15, 15, 1, "oms_system", [], "TXFULFILL20261008100651010", "8a1d5f24-6c30-4b97-a0e5-3d7c2b9f4e60", "-", "")
 ];
 
 function row(merchantId, time, code, direction, method, currency, amount, change, afterCurrent, afterAvailable, rate, source, files, orderNo, flowId, transferNo, remark, bizName) {
-  const m = seedMerchants.find(x => x.id === merchantId);
+  const m = seedMerchants.find(x => x.id === merchantId && x.currency === currency) || seedMerchants.find(x => x.id === merchantId);
+  const known = txnParty[merchantId];
   return {
     id: "T" + Math.random().toString(36).slice(2, 8),
-    merchantId, merchantName: m ? m.name : "—", biz: bizName || (m ? m.biz : "—"),
+    merchantId, merchantName: m ? m.name : (known ? known[0] : "—"), biz: bizName || (m ? m.biz : (known ? known[1] : "—")),
     time, code, direction, method, currency, amount, change,
     afterCurrent, afterAvailable, rate, source, files,
     orderNo: orderNo || "", flowId: flowId || "", transferNo: transferNo || "-", remark: remark || "", uniqueId: ""
@@ -293,19 +312,21 @@ function pageFromLocation() {
 }
 let page = pageFromLocation();
 let focusId = new URLSearchParams(location.search).get("focus") || "";
-let merchantQuery = { id: "", name: "", uniqueId: "", erp: "", accountId: "", amountMin: "", amountMax: "", currency: "", attr: "", status: "", opening: "" };
+let merchantQuery = { id: "", name: "", uniqueId: "", erp: "", accountId: "", amount: "", currency: "", attr: "", status: "", opening: "" };
+let merchantSort = { key: "", dir: 1 };
+let txnCollapsed = false;
 let txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
 let modal = null;
 let files = [];
 
 function load() {
   try {
-    const raw = sessionStorage.getItem("aa-proto-v5");
+    const raw = sessionStorage.getItem("aa-proto-v6");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return { merchants: seedMerchants.map(m => Object.assign({}, m)), txns: seedTxns.slice() };
 }
-function save() { sessionStorage.setItem("aa-proto-v5", JSON.stringify(state)); }
+function save() { sessionStorage.setItem("aa-proto-v6", JSON.stringify(state)); }
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -360,6 +381,7 @@ function shell() {
     ["Fund", "Fund"], ["BPS", "BPS"], ["EDM", "EDM"], ["抖", "抖份"], ["票", "Ticket"]
   ].map(([k, name]) => `<button class="${name === "Fund" ? "active" : ""}" type="button"><b>${esc(k)}</b><span>${esc(name)}</span></button>`).join("");
   document.getElementById("sider").innerHTML = `
+    <span class="item">工作台</span>
     <h4>商户管理</h4>
     <a class="${page === "merchants" ? "active" : ""}" id="nav-merchants">商户管理</a>
     <span class="item">期初余额记录</span>
@@ -371,27 +393,17 @@ function shell() {
     <span class="item">转账审核</span>
     <span class="item">预充追踪</span>
     <span class="item">预充管理</span>
-    <span class="item">Paypal 账单管理</span>
+    <span class="item">Paypal账单管理</span>
     <span class="item">收款明细</span>
     <h4>额度管理</h4>
     <span class="item">额度账单</span>`;
   document.getElementById("nav-merchants").onclick = () => go("merchants");
   document.getElementById("nav-txns").onclick = () => go("transactions");
-  document.getElementById("sider").querySelectorAll("span.item").forEach(el => {
-    el.style.cursor = "pointer";
-    el.onclick = () => toast("本期不改动此页面");
-  });
   const tab = (id, label, on) => `<button type="button" class="${on ? "on" : ""}" data-tab="${id}">${label}</button>`;
-  document.getElementById("tabs").innerHTML =
-    tab("merchants", "商户管理", page === "merchants") +
-    tab("transactions", "交易详情", page === "transactions");
-  document.getElementById("tabs").onclick = (e) => {
-    const b = e.target.closest("button");
-    if (!b) return;
-    if (b.dataset.tab === "merchants") go("merchants");
-    else if (b.dataset.tab === "transactions") go("transactions");
-  };
-  document.getElementById("crumb").innerHTML = page === "transactions"
+  document.getElementById("tabs").innerHTML = page === "transactions"
+    ? tab("transactions", "交易详情", true)
+    : tab("merchants", "商户管理", true);
+    document.getElementById("crumb").innerHTML = page === "transactions"
     ? `Fund &gt; 交易管理 &gt; <b>交易详情</b>`
     : `Fund &gt; 商户管理 &gt; <b>商户管理</b>`;
 }
@@ -405,36 +417,46 @@ function render() {
 
 function renderMerchants() {
   const q = merchantQuery;
-  const rows = state.merchants.filter(m => {
+  let rows = state.merchants.filter(m => {
     if (q.id && m.id.indexOf(q.id.trim()) < 0) return false;
     if (q.name && String(m.name).indexOf(q.name.trim()) < 0) return false;
     if (q.uniqueId && String(m.uniqueId || "").indexOf(q.uniqueId.trim()) < 0) return false;
     if (q.erp && String(m.erp || "").indexOf(q.erp.trim()) < 0) return false;
     if (q.accountId && String(m.accountId).indexOf(q.accountId.trim()) < 0) return false;
-    if (q.amountMin !== "" && Number(m.current) < Number(q.amountMin)) return false;
-    if (q.amountMax !== "" && Number(m.current) > Number(q.amountMax)) return false;
+    if (q.amount !== "" && Number(m.current) !== Number(q.amount)) return false;
     if (q.currency && m.currency !== q.currency) return false;
     if (q.attr && m.attr !== q.attr) return false;
     if (q.status && m.status !== q.status) return false;
     if (q.opening && m.opening !== q.opening) return false;
     return true;
   });
+  if (merchantSort.key) {
+    const key = merchantSort.key;
+    const dir = merchantSort.dir;
+    rows = rows.slice().sort((a, b) => {
+      const av = a[key] === "-" ? NaN : Number(a[key]);
+      const bv = b[key] === "-" ? NaN : Number(b[key]);
+      if (isNaN(av) && isNaN(bv)) return 0;
+      if (isNaN(av)) return 1;
+      if (isNaN(bv)) return -1;
+      return (av - bv) * dir;
+    });
+  }
   const opt = (cur, text) => `<option ${cur === text ? "selected" : ""}>${text}</option>`;
+  const sortTh = (key, label) => {
+    const cls = merchantSort.key === key ? (merchantSort.dir < 0 ? "desc" : "asc") : "";
+    return `<th class="sortable ${cls}" data-sort="${key}">${label}<span class="caret"><i class="up"></i><i class="down"></i></span></th>`;
+  };
+  const blankQuery = () => ({ id: "", name: "", uniqueId: "", erp: "", accountId: "", amount: "", currency: "", attr: "", status: "", opening: "" });
   document.getElementById("content").innerHTML = `
     <div class="panel">
-      <div class="filters">
+      <div class="mfilters">
         <div class="field"><label>商户ID</label><input id="mq-id" placeholder="请输入商户ID" value="${esc(q.id)}" /></div>
         <div class="field"><label>商户名称</label><input id="mq-name" placeholder="请输入商户名称" value="${esc(q.name)}" /></div>
         <div class="field"><label>商户唯一标识</label><input id="mq-uid" placeholder="请输入商户唯一标识" value="${esc(q.uniqueId)}" /></div>
         <div class="field"><label>ERP代码</label><input id="mq-erp" placeholder="请输入ERP代码" value="${esc(q.erp)}" /></div>
-        <div class="field"><label>资金账户ID</label><input id="mq-acc" placeholder="请输入资金账户ID" value="${esc(q.accountId)}" /></div>
-        <div class="field"><label>当前金额</label>
-          <div class="range">
-            <input id="mq-min" placeholder="最小" value="${esc(q.amountMin)}" />
-            <span>-</span>
-            <input id="mq-max" placeholder="最大" value="${esc(q.amountMax)}" />
-          </div>
-        </div>
+        <div class="field"><label>资金账户ID</label><input id="mq-acc" placeholder="请输入子账户ID" value="${esc(q.accountId)}" /></div>
+        <div class="field"><label>当前金额</label><input id="mq-amt" placeholder="请输入当前金额" value="${esc(q.amount)}" /></div>
         <div class="field"><label>币种</label>
           <select id="mq-cur"><option value="">请选择币种</option>${opt(q.currency, "USD")}${opt(q.currency, "EUR")}</select>
         </div>
@@ -447,42 +469,43 @@ function renderMerchants() {
         <div class="field"><label>期初设置</label>
           <select id="mq-open"><option value="">请选择期初设置</option>${opt(q.opening, "已设置")}${opt(q.opening, "未设置")}</select>
         </div>
-      </div>
-      <div class="actions">
-        <button class="btn primary" id="mq-search" type="button">搜索</button>
-        <button class="btn" id="mq-reset" type="button">重置</button>
+        <div class="actions">
+          <button class="btn primary" id="mq-search" type="button">搜索</button>
+          <button class="btn" id="mq-reset" type="button">重置</button>
+        </div>
       </div>
     </div>
-    <div class="toolbar"><button class="btn primary" id="mq-export" type="button">导出数据</button></div>
     <div class="panel table-panel">
       <div class="table-wrap"><table class="merchants">
         <thead><tr>
           <th>商户ID</th><th>商户名称</th><th>商户唯一标识</th><th>ERP代码</th><th>子业务</th><th>币种</th><th>币种属性</th>
-          <th>账户状态</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th>
+          <th>账户状态</th>${sortTh("current", "当前金额")}${sortTh("balance", "可用余额")}${sortTh("realAmount", "真实金额")}${sortTh("frozen", "冻结金额")}${sortTh("credit", "信用额度")}${sortTh("creditUsed", "已用额度")}<th>剩余额度</th>
           <th>额度状态</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th><th>操作</th>
         </tr></thead>
-        <tbody>${rows.map(m => `<tr>
-          <td>${esc(m.id)}</td><td>${esc(m.name)}</td><td>${esc(m.uniqueId || "—")}</td><td>${esc(m.erp || "—")}</td><td>${esc(m.biz)}</td>
+        <tbody>${rows.map(m => {
+          const amt = (n) => esc(m.currency) + " " + money(n);
+          return `<tr>
+          <td>${esc(m.id)}</td><td>${esc(m.name)}</td><td>${esc(m.uniqueId)}</td><td>${esc(m.erp)}</td><td>${esc(m.biz)}</td>
           <td>${esc(m.currency)}</td><td><span class="tag ${m.attr === "主币种" ? "" : "gray"}">${esc(m.attr)}</span></td>
-          <td><span class="tag ${m.status === "正常" ? "green" : "gray"}">${esc(m.status)}</span></td>
-          <td>${money(m.current)}</td><td>${money(m.balance)}</td><td>${money(m.realAmount)}</td><td>${money(m.frozen)}</td>
-          <td>${money(m.credit)}</td><td>${money(m.creditUsed)}</td><td>${money(m.creditLeft)}</td><td>${esc(m.creditStatus || "—")}</td>
-          <td>${esc(m.opening)}</td><td>${m.openingAt ? esc(m.openingAt) : "—"}</td><td>${esc(m.accountId || "—")}</td><td>${esc(m.createdAt || "—")}</td>
+          <td><span class="tag green">${esc(m.status)}</span></td>
+          <td>${amt(m.current)}</td><td>${amt(m.balance)}</td><td>${amt(m.realAmount)}</td><td>${amt(m.frozen)}</td>
+          <td>-</td><td>${amt(m.creditUsed)}</td><td>${amt(m.creditLeft)}</td><td>-</td>
+          <td><span class="tag gray">${esc(m.opening)}</span></td><td>-</td><td>${esc(m.accountId)}</td><td>${esc(m.createdAt)}</td>
           <td><div class="ops">
             <div class="line">
               <button class="btn link" data-adjust="${esc(m.id)}" data-currency="${esc(m.currency)}" type="button">调整金额</button>
-              <button class="btn link" data-frozen="日志" type="button">日志</button>
+              <button class="btn link" data-act="日志" type="button">日志</button>
             </div>
             <div class="line">
-              <button class="btn link" data-frozen="期初设置" type="button">期初设置</button>
-              <button class="btn link danger" data-frozen="禁用" type="button">禁用</button>
+              <button class="btn link" data-act="期初设置" type="button">期初设置</button>
+              <button class="btn link danger" data-act="禁用" type="button">禁用</button>
             </div>
           </div></td>
-        </tr>`).join("")}${rows.length ? "" : `<tr class="empty"><td colspan="21">暂无数据</td></tr>`}</tbody>
+        </tr>`;
+        }).join("")}${rows.length ? "" : `<tr class="empty"><td colspan="21">暂无数据</td></tr>`}</tbody>
       </table></div>
-      <div class="pager">共 ${rows.length} 条记录　20条/页</div>
+      <div class="pager">共 9335 条记录　20条/页</div>
     </div>`;
-  const blankQuery = () => ({ id: "", name: "", uniqueId: "", erp: "", accountId: "", amountMin: "", amountMax: "", currency: "", attr: "", status: "", opening: "" });
   document.getElementById("mq-search").onclick = () => {
     merchantQuery = {
       id: document.getElementById("mq-id").value,
@@ -490,8 +513,7 @@ function renderMerchants() {
       uniqueId: document.getElementById("mq-uid").value,
       erp: document.getElementById("mq-erp").value,
       accountId: document.getElementById("mq-acc").value,
-      amountMin: document.getElementById("mq-min").value.trim(),
-      amountMax: document.getElementById("mq-max").value.trim(),
+      amount: document.getElementById("mq-amt").value.trim(),
       currency: document.getElementById("mq-cur").value,
       attr: document.getElementById("mq-attr").value,
       status: document.getElementById("mq-st").value,
@@ -499,13 +521,18 @@ function renderMerchants() {
     };
     render();
   };
-  document.getElementById("mq-reset").onclick = () => { merchantQuery = blankQuery(); render(); };
-  document.getElementById("mq-export").onclick = () => toast("商户列表导出保持现网，本期不改");
+  document.getElementById("mq-reset").onclick = () => { merchantQuery = blankQuery(); merchantSort = { key: "", dir: 1 }; render(); };
+  document.querySelectorAll("th.sortable").forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.sort;
+      if (merchantSort.key === key) merchantSort.dir *= -1;
+      else { merchantSort.key = key; merchantSort.dir = 1; }
+      render();
+    };
+  });
   document.getElementById("content").onclick = (e) => {
     const a = e.target.closest("[data-adjust]");
-    const f = e.target.closest("[data-frozen]");
     if (a) openModal(a.dataset.adjust, a.dataset.currency);
-    if (f) toast("「" + f.dataset.frozen + "」本期不改动");
   };
 }
 
@@ -706,7 +733,7 @@ function renderTxns() {
     `<option value="${esc(code)}" ${q.code === code ? "selected" : ""}>${esc(label)}</option>`).join("");
   document.getElementById("content").innerHTML = `
     <div class="panel">
-      <div class="filters">
+      <div class="filters ${txnCollapsed ? "folded" : ""}">
         <div class="field"><label>商户ID</label><input id="tq-id" placeholder="请输入商户ID" value="${esc(q.id)}" /></div>
         <div class="field"><label>商户名称</label><input id="tq-name" placeholder="请输入商户名称" value="${esc(q.name)}" /></div>
         <div class="field"><label>商户唯一标识</label><input id="tq-uid" placeholder="请输入商户唯一标识" value="${esc(q.uniqueId)}" /></div>
@@ -716,22 +743,20 @@ function renderTxns() {
         <div class="field"><label>变动类型</label><select id="tq-code">${typeOptions}</select></div>
         <div class="field span2"><label>交易时间</label>
           <div class="range">
-            <input id="tq-from" type="date" value="${esc(q.from)}" />
-            <span>→</span>
-            <input id="tq-to" type="date" value="${esc(q.to)}" />
+            <input id="tq-from" placeholder="开始日期" value="${esc(q.from)}" />
+            <input id="tq-to" placeholder="结束日期" value="${esc(q.to)}" />
           </div>
         </div>
         <div class="field"><label>交易单号</label><input id="tq-order" placeholder="请输入交易单号" value="${esc(q.orderNo)}" /></div>
         <div class="field"><label>流水交易ID</label><input id="tq-flow" placeholder="请输入流水交易ID" value="${esc(q.flowId)}" /></div>
         <div class="field"><label>调拨单号</label><input id="tq-tr" placeholder="请输入调拨单号" value="${esc(q.transferNo)}" /></div>
-        <div class="field"><label>操作来源</label><input id="tq-src" placeholder="邮箱、姓名、id" value="${esc(q.source)}" /></div>
       </div>
       <div class="actions">
         <button class="btn primary" id="tq-search" type="button">搜索</button>
         <button class="btn" id="tq-reset" type="button">重置</button>
+        <button class="btn" id="tq-fold" type="button">${txnCollapsed ? "展开" : "收起"}</button>
       </div>
     </div>
-    <div class="toolbar"><button class="btn primary" id="tq-export" type="button">导出数据</button></div>
     <div class="panel table-panel">
       <div class="table-wrap"><table class="tx">
         <thead><tr>
@@ -768,14 +793,14 @@ function renderTxns() {
     orderNo: document.getElementById("tq-order").value,
     flowId: document.getElementById("tq-flow").value,
     transferNo: document.getElementById("tq-tr").value,
-    source: document.getElementById("tq-src").value
+    source: ""
   });
   document.getElementById("tq-search").onclick = () => { txnQuery = read(); focusId = ""; render(); };
   document.getElementById("tq-reset").onclick = () => {
     txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
     focusId = ""; render();
   };
-  document.getElementById("tq-export").onclick = () => exportTxns(filteredTxns());
+  document.getElementById("tq-fold").onclick = () => { txnCollapsed = !txnCollapsed; render(); };
   document.getElementById("content").onclick = (e) => {
     const b = e.target.closest("[data-files]");
     if (!b) return;

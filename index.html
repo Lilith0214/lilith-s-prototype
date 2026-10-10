@@ -84,6 +84,27 @@ a { color: var(--blue); text-decoration: none; }
   background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2.2 4.3 6 8.1 9.8 4.3' fill='none' stroke='%238c8c8c' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 10px center;
 }
 .filters.folded { display: none; }
+.fake-select {
+  display: flex; align-items: center; width: 100%; height: 32px; box-sizing: border-box;
+  border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 28px 0 10px; color: #bfbfbf;
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2.2 4.3 6 8.1 9.8 4.3' fill='none' stroke='%238c8c8c' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 10px center;
+  cursor: default; user-select: none;
+}
+.tfilters { align-items: end; }
+.tfilters .t-actions { display: flex; align-items: center; gap: 8px; height: 32px; margin: 0; flex-wrap: nowrap; }
+.tfilters.folded .field { display: none; }
+.tfilters.folded .t-actions { grid-column: 1 / -1; justify-content: flex-end; }
+.btn.text {
+  height: 32px; border: 0; background: transparent; color: var(--blue); padding: 0 2px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+table.merchants, table.tx { border-collapse: separate; border-spacing: 0; }
+.stick-l, .stick-r { position: sticky; background: #fff; z-index: 1; }
+.stick-l { left: 0; box-shadow: 6px 0 8px -6px rgba(0,0,0,.18); }
+.stick-r { right: 0; box-shadow: -6px 0 8px -6px rgba(0,0,0,.18); }
+th.stick-l, th.stick-r { background: #fafafa; z-index: 2; }
+tr.hit td.stick-l, tr.hit td.stick-r { background: #f6ffed; }
+
 th.sortable { cursor: pointer; user-select: none; }
 th .caret { display: inline-flex; flex-direction: column; margin-left: 4px; vertical-align: -1px; gap: 2px; }
 th .caret i { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; }
@@ -415,6 +436,11 @@ function render() {
   renderMask();
 }
 
+function fieldValue(id) {
+  const el = document.getElementById(id);
+  if (!el || el.tagName === "DIV") return "";
+  return el.value;
+}
 function renderMerchants() {
   const q = merchantQuery;
   let rows = state.merchants.filter(m => {
@@ -458,16 +484,16 @@ function renderMerchants() {
         <div class="field"><label>资金账户ID</label><input id="mq-acc" placeholder="请输入子账户ID" value="${esc(q.accountId)}" /></div>
         <div class="field"><label>当前金额</label><input id="mq-amt" placeholder="请输入当前金额" value="${esc(q.amount)}" /></div>
         <div class="field"><label>币种</label>
-          <select id="mq-cur"><option value="">请选择币种</option>${opt(q.currency, "USD")}${opt(q.currency, "EUR")}</select>
+          <div class="fake-select" id="mq-cur">请选择币种</div>
         </div>
         <div class="field"><label>币种属性</label>
-          <select id="mq-attr"><option value="">请选择币种属性</option>${opt(q.attr, "主币种")}${opt(q.attr, "非主币种")}</select>
+          <div class="fake-select" id="mq-attr">请选择币种属性</div>
         </div>
         <div class="field"><label>账户状态</label>
-          <select id="mq-st"><option value="">请选择账户状态</option>${opt(q.status, "正常")}${opt(q.status, "禁用")}</select>
+          <div class="fake-select" id="mq-st">请选择账户状态</div>
         </div>
         <div class="field"><label>期初设置</label>
-          <select id="mq-open"><option value="">请选择期初设置</option>${opt(q.opening, "已设置")}${opt(q.opening, "未设置")}</select>
+          <div class="fake-select" id="mq-open">请选择期初设置</div>
         </div>
         <div class="actions">
           <button class="btn primary" id="mq-search" type="button">搜索</button>
@@ -478,20 +504,20 @@ function renderMerchants() {
     <div class="panel table-panel">
       <div class="table-wrap"><table class="merchants">
         <thead><tr>
-          <th>商户ID</th><th>商户名称</th><th>商户唯一标识</th><th>ERP代码</th><th>子业务</th><th>币种</th><th>币种属性</th>
+          <th class="stick-l">商户ID</th><th>商户名称</th><th>商户唯一标识</th><th>ERP代码</th><th>子业务</th><th>币种</th><th>币种属性</th>
           <th>账户状态</th>${sortTh("current", "当前金额")}${sortTh("balance", "可用余额")}${sortTh("realAmount", "真实金额")}${sortTh("frozen", "冻结金额")}${sortTh("credit", "信用额度")}${sortTh("creditUsed", "已用额度")}<th>剩余额度</th>
-          <th>额度状态</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th><th>操作</th>
+          <th>额度状态</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th><th class="stick-r">操作</th>
         </tr></thead>
         <tbody>${rows.map(m => {
           const amt = (n) => esc(m.currency) + " " + money(n);
           return `<tr>
-          <td>${esc(m.id)}</td><td>${esc(m.name)}</td><td>${esc(m.uniqueId)}</td><td>${esc(m.erp)}</td><td>${esc(m.biz)}</td>
+          <td class="stick-l">${esc(m.id)}</td><td>${esc(m.name)}</td><td>${esc(m.uniqueId)}</td><td>${esc(m.erp)}</td><td>${esc(m.biz)}</td>
           <td>${esc(m.currency)}</td><td><span class="tag ${m.attr === "主币种" ? "" : "gray"}">${esc(m.attr)}</span></td>
           <td><span class="tag green">${esc(m.status)}</span></td>
           <td>${amt(m.current)}</td><td>${amt(m.balance)}</td><td>${amt(m.realAmount)}</td><td>${amt(m.frozen)}</td>
           <td>-</td><td>${amt(m.creditUsed)}</td><td>${amt(m.creditLeft)}</td><td>-</td>
           <td><span class="tag gray">${esc(m.opening)}</span></td><td>-</td><td>${esc(m.accountId)}</td><td>${esc(m.createdAt)}</td>
-          <td><div class="ops">
+          <td class="stick-r"><div class="ops">
             <div class="line">
               <button class="btn link" data-adjust="${esc(m.id)}" data-currency="${esc(m.currency)}" type="button">调整金额</button>
               <button class="btn link" data-act="日志" type="button">日志</button>
@@ -514,10 +540,10 @@ function renderMerchants() {
       erp: document.getElementById("mq-erp").value,
       accountId: document.getElementById("mq-acc").value,
       amount: document.getElementById("mq-amt").value.trim(),
-      currency: document.getElementById("mq-cur").value,
-      attr: document.getElementById("mq-attr").value,
-      status: document.getElementById("mq-st").value,
-      opening: document.getElementById("mq-open").value
+      currency: fieldValue("mq-cur"),
+      attr: fieldValue("mq-attr"),
+      status: fieldValue("mq-st"),
+      opening: fieldValue("mq-open")
     };
     render();
   };
@@ -729,32 +755,34 @@ function filteredTxns() {
 function renderTxns() {
   const q = txnQuery;
   const rows = filteredTxns();
-  const typeOptions = `<option value="">请选择变动类型</option>` + TYPES.map(([code, label]) =>
-    `<option value="${esc(code)}" ${q.code === code ? "selected" : ""}>${esc(label)}</option>`).join("");
+  const foldIcon = txnCollapsed
+    ? '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 4.3 6 8.1 9.8 4.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    : '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 7.7 6 3.9 9.8 7.7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   document.getElementById("content").innerHTML = `
     <div class="panel">
-      <div class="filters ${txnCollapsed ? "folded" : ""}">
+      <div class="mfilters tfilters ${txnCollapsed ? "folded" : ""}">
         <div class="field"><label>商户ID</label><input id="tq-id" placeholder="请输入商户ID" value="${esc(q.id)}" /></div>
         <div class="field"><label>商户名称</label><input id="tq-name" placeholder="请输入商户名称" value="${esc(q.name)}" /></div>
         <div class="field"><label>商户唯一标识</label><input id="tq-uid" placeholder="请输入商户唯一标识" value="${esc(q.uniqueId)}" /></div>
         <div class="field"><label>所属业务</label>
           <select id="tq-biz"><option value="">请选择所属业务</option><option ${q.biz === "广告" ? "selected" : ""}>广告</option><option ${q.biz === "履约" ? "selected" : ""}>履约</option><option ${q.biz === "拒付" ? "selected" : ""}>拒付</option></select>
         </div>
-        <div class="field"><label>变动类型</label><select id="tq-code">${typeOptions}</select></div>
-        <div class="field span2"><label>交易时间</label>
+        <div class="field"><label>变动类型</label><div class="fake-select" id="tq-code">请选择变动类型</div></div>
+        <div class="field"><label>交易时间</label>
           <div class="range">
             <input id="tq-from" placeholder="开始日期" value="${esc(q.from)}" />
+            <span>→</span>
             <input id="tq-to" placeholder="结束日期" value="${esc(q.to)}" />
           </div>
         </div>
         <div class="field"><label>交易单号</label><input id="tq-order" placeholder="请输入交易单号" value="${esc(q.orderNo)}" /></div>
         <div class="field"><label>流水交易ID</label><input id="tq-flow" placeholder="请输入流水交易ID" value="${esc(q.flowId)}" /></div>
         <div class="field"><label>调拨单号</label><input id="tq-tr" placeholder="请输入调拨单号" value="${esc(q.transferNo)}" /></div>
-      </div>
-      <div class="actions">
-        <button class="btn primary" id="tq-search" type="button">搜索</button>
-        <button class="btn" id="tq-reset" type="button">重置</button>
-        <button class="btn" id="tq-fold" type="button">${txnCollapsed ? "展开" : "收起"}</button>
+        <div class="t-actions">
+          <button class="btn primary" id="tq-search" type="button">搜索</button>
+          <button class="btn" id="tq-reset" type="button">重置</button>
+          <button class="btn text" id="tq-fold" type="button">${txnCollapsed ? "展开" : "收起"}${foldIcon}</button>
+        </div>
       </div>
     </div>
     <div class="panel table-panel">
@@ -762,7 +790,7 @@ function renderTxns() {
         <thead><tr>
           <th>商户ID</th><th>商户名称</th><th>交易时间</th><th>所属业务</th><th>变动类型</th>
           <th>操作方式</th><th>交易币种</th><th>交易金额</th><th>默认币种</th>
-          <th>变动金额</th><th>变动后当前余额</th><th>变动后的可用余额</th><th>汇率</th><th>操作来源</th><th>交易单号</th><th>流水交易ID</th><th>调拨单号</th><th>描述/备注</th><th>操作</th>
+          <th>变动金额</th><th>变动后当前余额</th><th>变动后的可用余额</th><th>汇率</th><th>操作来源</th><th>交易单号</th><th>流水交易ID</th><th>调拨单号</th><th>描述/备注</th><th class="stick-r">操作</th>
         </tr></thead>
         <tbody>${rows.map(t => {
           const amt = displayAmount(t);
@@ -776,7 +804,7 @@ function renderTxns() {
             <td class="money ${sign}">${signedMoney(delta)}</td><td>${money(t.afterCurrent)}</td><td>${money(t.afterAvailable)}</td>
             <td>${esc(t.rate)}</td><td>${esc(t.source || "—")}</td>
             <td>${esc(t.orderNo || "")}</td><td>${esc(t.flowId || "")}</td><td>${esc(t.transferNo || "-")}</td><td>${esc(t.remark || "")}</td>
-            <td><button class="btn link" data-files="${esc(t.id)}" type="button">查看附件</button></td>
+            <td class="stick-r"><button class="btn link" data-files="${esc(t.id)}" type="button">查看附件</button></td>
           </tr>`;
         }).join("")}${rows.length ? "" : `<tr class="empty"><td colspan="19">暂无数据</td></tr>`}</tbody>
       </table></div>
@@ -787,7 +815,7 @@ function renderTxns() {
     name: document.getElementById("tq-name").value,
     uniqueId: document.getElementById("tq-uid").value,
     biz: document.getElementById("tq-biz").value,
-    code: document.getElementById("tq-code").value,
+    code: fieldValue("tq-code"),
     from: document.getElementById("tq-from").value,
     to: document.getElementById("tq-to").value,
     orderNo: document.getElementById("tq-order").value,

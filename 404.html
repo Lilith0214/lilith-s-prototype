@@ -230,7 +230,6 @@ tr.empty td { text-align: center; color: #8c8c8c; padding: 48px 12px; }
 </head>
 <body>
 <div class="app">
-  <nav class="rail" id="rail"></nav>
   <aside class="sider" id="sider"></aside>
   <section class="main">
     <header class="top">
@@ -400,12 +399,8 @@ window.addEventListener("popstate", () => {
 });
 
 function shell() {
-  document.getElementById("rail").innerHTML = [
-    ["OMS", "OMS"], ["CIS", "CIS"], ["库", "产品库"], ["PIM", "PIMS"], ["Ads", "Ads"],
-    ["Fund", "Fund"], ["BPS", "BPS"], ["EDM", "EDM"], ["抖", "抖份"], ["票", "Ticket"]
-  ].map(([k, name]) => `<button class="${name === "Fund" ? "active" : ""}" type="button"><b>${esc(k)}</b><span>${esc(name)}</span></button>`).join("");
   document.getElementById("sider").innerHTML = `
-    <span class="item">工作台</span>
+    <span class="item">Fund</span>
     <h4>商户管理</h4>
     <a class="${page === "merchants" ? "active" : ""}" id="nav-merchants">商户管理</a>
     <span class="item">期初余额记录</span>
@@ -626,7 +621,13 @@ function renderMask() {
       <button class="btn" id="modal-cancel" type="button">取消</button>
       <button class="btn primary" id="modal-ok" type="button">确认</button>
     </div>
-  </div></div>`;
+  </div></div>` + (modal.confirming ? `<div class="mask"><div class="modal" style="width:420px" role="dialog">
+      <div class="body">是否确认进行金额调整？</div>
+      <div class="footer">
+        <button class="btn" id="confirm-cancel" type="button">取消</button>
+        <button class="btn primary" id="confirm-ok" type="button">确认</button>
+      </div>
+    </div></div>` : "");
   document.getElementById("f-code").onchange = (e) => { modal.code = e.target.value; };
   document.querySelectorAll("input[name=dir]").forEach(r => r.onchange = () => { modal.direction = r.value; });
   document.getElementById("f-amount").oninput = (e) => { modal.amount = e.target.value; };
@@ -650,6 +651,10 @@ function renderMask() {
   document.getElementById("modal-x").onclick = closeModal;
   document.getElementById("modal-cancel").onclick = closeModal;
   document.getElementById("modal-ok").onclick = submitAdjust;
+  if (modal.confirming) {
+    document.getElementById("confirm-cancel").onclick = cancelConfirm;
+    document.getElementById("confirm-ok").onclick = confirmAdjust;
+  }
 }
 
 function closeModal() { modal = null; files = []; renderMask(); }
@@ -670,19 +675,30 @@ function submitAdjust() {
   else if (reason.length > 200) errors.reason = "调整原因最多 200 字";
   if (files.length > 10) errors.files = "最多 10 张";
   modal.code = code; modal.direction = direction; modal.amount = amountText; modal.reason = reason; modal.errors = errors;
-  if (Object.keys(errors).length) { renderMask(); return; }
+  if (Object.keys(errors).length) { modal.confirming = false; renderMask(); return; }
+  modal.confirming = true;
+  renderMask();
+}
 
+function cancelConfirm() {
+  if (!modal) return;
+  modal.confirming = false;
+  renderMask();
+}
+
+function confirmAdjust() {
   const result = acceptAdjustment({
     merchantId: modal.merchantId,
     currency: modal.currency,
-    code,
-    direction,
-    amount: Number(amountText),
-    reason,
+    code: modal.code,
+    direction: modal.direction,
+    amount: Number(modal.amount),
+    reason: modal.reason,
     files: files.slice(),
     operationMethod: "系统"
   });
   if (!result.ok) {
+    modal.confirming = false;
     modal.errors.code = result.message;
     renderMask();
     return;
@@ -880,7 +896,8 @@ function exportTxns(rows) {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    if (modal) closeModal();
+    if (modal && modal.confirming) cancelConfirm();
+    else if (modal) closeModal();
     else document.getElementById("mask").innerHTML = "";
   }
 });

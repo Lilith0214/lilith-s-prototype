@@ -285,7 +285,14 @@ function row(merchantId, time, code, direction, method, currency, amount, change
 }
 
 const state = load();
-let page = location.pathname.indexOf("transaction") >= 0 ? "transactions" : "merchants";
+function basePath() {
+  return location.pathname.indexOf("/lilith-s-prototype") === 0 ? "/lilith-s-prototype" : "";
+}
+function pageFromLocation() {
+  const rest = location.pathname.slice(basePath().length);
+  return rest.indexOf("transaction") >= 0 ? "transactions" : "merchants";
+}
+let page = pageFromLocation();
 let focusId = new URLSearchParams(location.search).get("focus") || "";
 let merchantQuery = { id: "", accountId: "", opening: "", status: "" };
 let txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
@@ -337,13 +344,13 @@ function toast(text) {
 function go(next, query) {
   page = next;
   focusId = query && query.focus || "";
-  const path = next === "transactions" ? "/transactions" : "/merchants";
+  const path = basePath() + (next === "transactions" ? "/transactions" : "/merchants");
   const url = path + (focusId ? "?focus=" + encodeURIComponent(focusId) : "");
   if (location.protocol !== "file:") history.pushState({}, "", url);
   render();
 }
 window.addEventListener("popstate", () => {
-  page = location.pathname.indexOf("transaction") >= 0 ? "transactions" : "merchants";
+  page = pageFromLocation();
   focusId = new URLSearchParams(location.search).get("focus") || "";
   render();
 });

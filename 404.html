@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fund · 金额调整</title>
+<style>
+:root {
+  --blue: #1677ff;
+  --blue-h: #4096ff;
+  --bg: #f5f6f8;
+  --line: #f0f0f0;
+  --text: #1f1f1f;
+  --muted: #8c8c8c;
+  --danger: #ff4d4f;
+  --green: #389e0d;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 13px;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--blue); text-decoration: none; }
+.app { display: flex; height: 100%; min-width: 0; }
+.rail {
+  width: 72px; background: #001529; color: rgba(255,255,255,.72);
+  display: flex; flex-direction: column; align-items: center; padding: 8px 0; flex: none; gap: 2px;
+}
+.rail .logo {
+  width: 28px; height: 28px; border-radius: 7px; background: var(--blue);
+  color: #fff; display: grid; place-items: center; font-weight: 700; margin: 4px 0 8px; font-size: 13px;
+}
+.rail button {
+  width: 64px; border: 0; background: transparent; color: rgba(255,255,255,.65);
+  border-radius: 6px; padding: 6px 0 5px; line-height: 1.15;
+}
+.rail button b { display: block; font-size: 12px; font-weight: 600; }
+.rail button span { display: block; font-size: 10px; margin-top: 2px; }
+.rail button.active { background: var(--blue); color: #fff; }
+.sider {
+  width: 188px; background: #fff; border-right: 1px solid var(--line); flex: none;
+  overflow: auto; padding: 8px 0 16px;
+}
+.sider h4 { margin: 12px 12px 4px; font-size: 12px; color: #8c8c8c; font-weight: 500; }
+.sider a, .sider span.item {
+  display: block; margin: 0 8px; padding: 7px 10px 7px 16px; border-radius: 6px;
+  color: #434343; font-size: 13px; line-height: 20px;
+}
+.sider a.active { background: #e6f4ff; color: var(--blue); font-weight: 500; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.top {
+  height: 46px; background: #fff; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; padding: 0 16px; gap: 12px; flex: none;
+}
+.crumb { color: #8c8c8c; font-size: 13px; white-space: nowrap; }
+.crumb b { color: var(--text); font-weight: 500; }
+.top .spacer { flex: 1; }
+.who { color: #595959; font-size: 12px; white-space: nowrap; }
+.tabs {
+  background: #fff; display: flex; gap: 0; padding: 0 12px; border-bottom: 1px solid var(--line); flex: none;
+}
+.tabs button {
+  border: 0; border-bottom: 2px solid transparent; background: transparent;
+  padding: 10px 14px; margin-bottom: -1px; color: #595959; line-height: 20px;
+}
+.tabs button.on { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
+.content { padding: 12px 16px 16px; overflow: auto; flex: 1; min-width: 0; }
+.panel { background: #fff; border-radius: 8px; padding: 16px; }
+.panel.table-panel { padding: 0 0 12px; }
+.filters { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 12px 16px; }
+.field.span2 { grid-column: span 2; }
+.field label { display: block; margin-bottom: 6px; color: #595959; line-height: 20px; }
+.field input, .field select, .field textarea {
+  width: 100%; height: 32px; border: 1px solid #d9d9d9; border-radius: 6px;
+  padding: 0 10px; background: #fff; outline: none;
+}
+.field textarea { height: 72px; padding: 6px 10px; resize: vertical; }
+.field input[type="checkbox"] {
+  width: 16px; height: 16px; padding: 0; border: 0; flex: none;
+}
+.radios input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #d9d9d9;
+  border-radius: 50%;
+  background: #fff;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 16px;
+  box-shadow: none;
+}
+.radios input[type="radio"]:checked { border-color: #1677ff; }
+.radios input[type="radio"]:checked::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1677ff;
+}
+.radios input[type="radio"]:focus { outline: none; box-shadow: none; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(22,119,255,.12); }
+.range { display: flex; align-items: center; gap: 8px; }
+.range input { flex: 1; min-width: 0; width: auto; }
+.range span { color: #bfbfbf; flex: none; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.btn {
+  height: 32px; border: 1px solid #d9d9d9; background: #fff; border-radius: 6px;
+  padding: 0 15px; line-height: 30px;
+}
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary:hover { background: var(--blue-h); }
+.btn.link { height: 22px; border: 0; background: transparent; color: var(--blue); padding: 0; line-height: 22px; }
+.btn.link.danger { color: var(--danger); }
+.ops { display: flex; align-items: center; gap: 12px; }
+.toolbar { display: flex; justify-content: flex-end; margin-top: 12px; }
+.table-wrap { overflow: auto; }
+table { width: 100%; border-collapse: collapse; }
+table.fixed { table-layout: fixed; }
+table.tx { min-width: 1480px; }
+th, td {
+  padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left;
+  vertical-align: middle; font-size: 13px; line-height: 20px; white-space: nowrap;
+}
+th { background: #fafafa; font-weight: 500; color: #595959; }
+tr.hit td { background: #f6ffed; }
+tr.empty td { text-align: center; color: #8c8c8c; padding: 48px 12px; }
+.money.plus { color: var(--green); }
+.money.minus { color: var(--danger); }
+.tag {
+  display: inline-block; padding: 0 8px; border-radius: 4px; background: #e6f4ff; color: var(--blue);
+  border: 1px solid #91caff; line-height: 20px; font-size: 12px;
+}
+.tag.gray { background: #fafafa; color: #595959; border-color: #d9d9d9; }
+.tag.green { background: #f6ffed; color: var(--green); border-color: #b7eb8f; }
+.pager { display: flex; justify-content: flex-end; color: var(--muted); padding: 10px 12px 0; font-size: 13px; }
+.mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-start;
+  justify-content: center; padding: 40px 16px; z-index: 20; overflow: auto;
+}
+.modal { width: 560px; background: #fff; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+.modal h3 {
+  margin: 0; height: 48px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 600;
+}
+.modal h3 button { border: 0; background: transparent; font-size: 18px; color: #8c8c8c; width: 32px; height: 32px; }
+.modal .body { padding: 16px 24px 4px; }
+.account { background: #fafafa; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; }
+.account .cap { color: #8c8c8c; margin-bottom: 8px; line-height: 20px; }
+.account .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; line-height: 22px; }
+.modal .field { margin-bottom: 12px; }
+.req::before { content: "*"; color: var(--danger); margin-right: 4px; }
+.label-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .count span { font-size: 12px; line-height: 20px; }
+.label-row label { margin-bottom: 6px; }
+.radios { display: flex; align-items: center; gap: 16px; height: 32px; }
+.radios label {
+  display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 0;
+  height: 22px; line-height: 22px; width: auto; cursor: pointer; font-weight: 400;
+}
+.err { color: var(--danger); font-size: 12px; line-height: 18px; }
+.err:empty { display: none; }
+.count { color: #bfbfbf; font-size: 12px; line-height: 20px; }
+.upload {
+  display: flex; width: 100%; justify-content: center; align-items: center; gap: 6px;
+  height: 32px; background: var(--blue); color: #fff; border: 0; border-radius: 6px;
+}
+.files { margin: 8px 0 0; padding: 0; list-style: none; color: #595959; }
+.files li { display: flex; justify-content: space-between; align-items: center; height: 28px; }
+.footer { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 24px 16px; }
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: #fff; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.12);
+  padding: 10px 16px; z-index: 30; display: none; line-height: 22px;
+}
+.toast.show { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="sider" id="sider"></aside>
+  <section class="main">
+    <header class="top">
+      <div class="crumb" id="crumb"></div>
+      <div class="spacer"></div>
+      <div class="who">当前账号 黄银冰（huangyinbing@bestfulfill.com）</div>
+    </header>
+    <div class="tabs" id="tabs"></div>
+    <div class="content" id="content"></div>
+  </section>
+</div>
+<div id="mask"></div>
+<div class="toast" id="toast"></div>
+<script>
+const OPERATOR = "黄银冰（huangyinbing@bestfulfill.com）";
+const REMOVED = {
+  manual_adjust_add: "系统调整-增加",
+  manual_adjust_sub: "系统调整-减少"
+};
+const TYPES = [
+  ["online_recharge", "线上充值"],
+  ["offline_recharge", "线下充值（转账"],
+  ["recover_recharge", "恢复充值"],
+  ["pre_hold", "预扣费"],
+  ["pre_hold_debit", "预扣费扣款"],
+  ["pre_hold_cancel", "预扣费取消"],
+  ["direct_debit", "直接扣款"],
+  ["patch_debit", "补差扣款"],
+  ["refund", "退款"],
+  ["compensation", "赔付"],
+  ["credit_cfg_init", "信用配置初始化"],
+  ["credit_cfg_update", "信用配置更新"],
+  ["credit_cfg_close", "信用配置关闭"],
+  ["credit_settlement", "信用结算还款"],
+  ["credit_deduct", "信用抵扣"],
+  ["loc_fee_prepaid_rel", "预收回退钱包"],
+  ["commission_grant", "佣金发放"],
+  ["pre_recharge", "预充"],
+  ["pre_recharge_recover", "预充回收"],
+  ["or_rollback", "线下充值（转账退回"],
+  ["opening_balance_apply", "期初余额生效"],
+  ["opening_balance_update", "期初余额更新"],
+  ["opening_balance_rollback", "期初余额停用"],
+  ["fee_cover", "手续费补足"],
+  ["fx_cover", "汇损补足"],
+  ["cover_reverse", "补足冲正"],
+  ["transfer_reserve", "调拨占用"],
+  ["transfer_release", "调拨释放"],
+  ["transfer_out", "调拨转出"],
+  ["transfer_in", "调拨转入"],
+  ["pre_hold_release", "预扣费足额释放"],
+  ["pre_hold_expired", "预扣费过期释放"]
+];
+const LIST_LABEL = {
+  online_recharge: "在线充值",
+  offline_recharge: "线下充值"
+};
+const TYPE_MAP = Object.fromEntries(TYPES);
+
+function listLabel(code) {
+  if (REMOVED[code]) return REMOVED[code];
+  return LIST_LABEL[code] || TYPE_MAP[code] || code;
+}
+
+const seedMerchants = [
+  { id: "15327", name: "—", accountId: "", currency: "USD", attr: "主币种", balance: 0, opening: "未设置", status: "启用", biz: "履约" },
+  { id: "20044", name: "—", accountId: "", currency: "USD", attr: "主币种", balance: 0, opening: "未设置", status: "启用", biz: "履约" },
+  { id: "19817", name: "Wassil", accountId: "", currency: "USD", attr: "主币种", balance: 1200, opening: "已设置", status: "启用", biz: "广告" },
+  { id: "16903", name: "Nico Cazacu", accountId: "", currency: "USD", attr: "主币种", balance: 114932.65, opening: "已设置", status: "启用", biz: "履约" },
+  { id: "16902", name: "Nico Cazacu", accountId: "", currency: "EUR", attr: "主币种", balance: 77943.22, opening: "已设置", status: "启用", biz: "履约" },
+  { id: "14714", name: "Nicu Auris", accountId: "", currency: "USD", attr: "主币种", balance: 860, opening: "已设置", status: "启用", biz: "履约" }
+];
+
+const seedTxns = [
+  row("19817", "2026-10-08 11:50:40", "manual_adjust_add", "增加", "人工", "USD", 58.21, 58.21, "", "", 1, "—", []),
+  row("16903", "2026-10-08 09:59:09", "manual_adjust_add", "增加", "人工", "USD", 40000, 40000, "", "", 1, "—", []),
+  row("16902", "2026-10-08 09:58:10", "manual_adjust_add", "增加", "人工", "USD", 40000, 40000, "", "", 1, "—", []),
+  row("14714", "2026-10-08 09:55:24", "manual_adjust_add", "增加", "人工", "USD", 29.41, 29.41, "", "", 1, "—", []),
+  row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "系统", "USD", 11, 11, 1141.90, 1141.90, 1, "dHiL1PYR@moemail.app", []),
+  row("16903", "2026-10-08 15:02:40", "recover_recharge", "增加", "系统", "USD", 5000, 5000, 104932.65, 114932.65, 1, "3472", []),
+  row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "系统", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "黄银冰（huangyinbing@bestfulfill.com）", []),
+  row("16902", "2026-10-08 13:40:18", "online_recharge", "增加", "系统", "EUR", 100, 87.79, 528.62, 528.62, 0.87791, "19b8a77c-d3fc-45da-9520-4a07463123df", []),
+  row("16902", "2026-10-08 11:12:33", "offline_recharge", "增加", "系统", "EUR", 4.79, 4.79, 77943.22, 77943.22, 1, "李彦（liyan@bestfulfill.com）", []),
+  row("16903", "2026-10-08 10:06:51", "transfer_release", "增加", "系统", "USD", 10, 10, 15, 15, 1, "欧伟权（ouweiquan@bestfulfill.com）", [])
+];
+
+function row(merchantId, time, code, direction, method, currency, amount, change, afterCurrent, afterAvailable, rate, source, files) {
+  const m = seedMerchants.find(x => x.id === merchantId);
+  return {
+    id: "T" + Math.random().toString(36).slice(2, 8),
+    merchantId, merchantName: m ? m.name : "—", biz: m ? m.biz : "—",
+    time, code, direction, method, currency, amount, change,
+    afterCurrent, afterAvailable, rate, source, files,
+    orderNo: "", flowId: "", transferNo: "", uniqueId: ""
+  };
+}
+
+const state = load();
+function basePath() {
+  return location.pathname.indexOf("/lilith-s-prototype") === 0 ? "/lilith-s-prototype" : "";
+}
+function pageFromLocation() {
+  const rest = location.pathname.slice(basePath().length);
+  return rest.indexOf("transaction") >= 0 ? "transactions" : "merchants";
+}
+let page = pageFromLocation();
+let focusId = new URLSearchParams(location.search).get("focus") || "";
+let merchantQuery = { id: "", accountId: "", opening: "", status: "" };
+let txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
+let modal = null;
+let files = [];
+
+function load() {
+  try {
+    const raw = sessionStorage.getItem("aa-proto-v2");
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { merchants: seedMerchants.map(m => Object.assign({}, m)), txns: seedTxns.slice() };
+}
+function save() { sessionStorage.setItem("aa-proto-v2", JSON.stringify(state)); }
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function money(n) {
+  if (n === "" || n == null) return "—";
+  const v = Number(n);
+  return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function displayAmount(t) {
+  const n = Number(t.amount);
+  if (t.direction === "减少") return -Math.abs(n);
+  if (t.direction === "增加") return Math.abs(n);
+  return n;
+}
+function displayChange(t) {
+  const n = Number(t.change);
+  if (t.direction === "减少") return -Math.abs(n);
+  if (t.direction === "增加") return Math.abs(n);
+  return n;
+}
+function signedMoney(n) {
+  const v = Number(n);
+  if (!isFinite(v)) return "—";
+  const text = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (v < 0 ? "-" : "+") + text;
+}
+function toast(text) {
+  const el = document.getElementById("toast");
+  el.textContent = text;
+  el.className = "toast show";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.className = "toast"; }, 2200);
+}
+function go(next, query) {
+  page = next;
+  focusId = query && query.focus || "";
+  const path = basePath() + (next === "transactions" ? "/transactions" : "/merchants");
+  const url = path + (focusId ? "?focus=" + encodeURIComponent(focusId) : "");
+  if (location.protocol !== "file:") history.pushState({}, "", url);
+  render();
+}
+window.addEventListener("popstate", () => {
+  page = pageFromLocation();
+  focusId = new URLSearchParams(location.search).get("focus") || "";
+  render();
+});
+
+function shell() {
+  document.getElementById("rail").innerHTML = [
+    ["OMS", "OMS"], ["CIS", "CIS"], ["库", "产品库"], ["PIM", "PIMS"], ["Ads", "Ads"],
+    ["Fund", "Fund"], ["BPS", "BPS"], ["EDM", "EDM"], ["抖", "抖份"], ["票", "Ticket"]
+  ].map(([k, name]) => `<button class="${name === "Fund" ? "active" : ""}" type="button"><b>${esc(k)}</b><span>${esc(name)}</span></button>`).join("");
+  document.getElementById("sider").innerHTML = `
+    <h4>商户管理</h4>
+    <a class="${page === "merchants" ? "active" : ""}" id="nav-merchants">商户管理</a>
+    <span class="item">期初余额记录</span>
+    <span class="item">账户调拨列表</span>
+    <h4>交易管理</h4>
+    <a class="${page === "transactions" ? "active" : ""}" id="nav-txns">交易详情</a>
+    <span class="item">业务入账</span>
+    <span class="item">在线充值</span>
+    <span class="item">转账审核</span>
+    <span class="item">预充追踪</span>
+    <span class="item">预充管理</span>
+    <span class="item">Paypal 账单管理</span>
+    <span class="item">收款明细</span>
+    <h4>额度管理</h4>
+    <span class="item">额度账单</span>`;
+  document.getElementById("nav-merchants").onclick = () => go("merchants");
+  document.getElementById("nav-txns").onclick = () => go("transactions");
+  document.getElementById("sider").querySelectorAll("span.item").forEach(el => {
+    el.style.cursor = "pointer";
+    el.onclick = () => toast("本期不改动此页面");
+  });
+  const tab = (id, label, on) => `<button type="button" class="${on ? "on" : ""}" data-tab="${id}">${label}</button>`;
+  document.getElementById("tabs").innerHTML =
+    tab("merchants", "商户管理", page === "merchants") +
+    tab("transactions", "交易详情", page === "transactions");
+  document.getElementById("tabs").onclick = (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.tab === "merchants") go("merchants");
+    else if (b.dataset.tab === "transactions") go("transactions");
+  };
+  document.getElementById("crumb").innerHTML = page === "transactions"
+    ? `Fund &gt; 交易管理 &gt; <b>交易详情</b>`
+    : `Fund &gt; 商户管理 &gt; <b>商户管理</b>`;
+}
+
+function render() {
+  shell();
+  if (page === "transactions") renderTxns();
+  else renderMerchants();
+  renderMask();
+}
+
+function renderMerchants() {
+  const q = merchantQuery;
+  const rows = state.merchants.filter(m => {
+    if (q.id && m.id.indexOf(q.id.trim()) < 0) return false;
+    if (q.accountId && String(m.accountId).indexOf(q.accountId.trim()) < 0) return false;
+    if (q.opening && m.opening !== q.opening) return false;
+    if (q.status && m.status !== q.status) return false;
+    return true;
+  });
+  document.getElementById("content").innerHTML = `
+    <div class="panel">
+      <div class="filters">
+        <div class="field"><label>商户ID</label><input id="mq-id" placeholder="请输入商户ID" value="${esc(q.id)}" /></div>
+        <div class="field"><label>资金账户ID</label><input id="mq-acc" placeholder="请输入子账户ID" value="${esc(q.accountId)}" /></div>
+        <div class="field"><label>期初设置</label>
+          <select id="mq-open"><option value="">请选择期初设置</option><option ${q.opening === "已设置" ? "selected" : ""}>已设置</option><option ${q.opening === "未设置" ? "selected" : ""}>未设置</option></select>
+        </div>
+        <div class="field"><label>状态</label>
+          <select id="mq-st"><option value="">请选择状态</option><option ${q.status === "启用" ? "selected" : ""}>启用</option><option ${q.status === "禁用" ? "selected" : ""}>禁用</option></select>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="mq-search" type="button">搜索</button>
+        <button class="btn" id="mq-reset" type="button">重置</button>
+        </div>
+    </div>
+    <div class="toolbar"><button class="btn primary" id="mq-export" type="button">导出数据</button></div>
+    <div class="panel table-panel">
+      <div class="table-wrap"><table class="fixed">
+        <colgroup><col style="width:12%"><col style="width:18%"><col style="width:12%"><col style="width:8%"><col style="width:12%"><col style="width:16%"><col style="width:22%"></colgroup>
+        <thead><tr>
+          <th>商户ID</th><th>商户名称</th><th>所属业务</th><th>币种</th><th>币种属性</th><th>可用余额</th><th>操作</th>
+        </tr></thead>
+        <tbody>${rows.map(m => `<tr>
+          <td>${esc(m.id)}</td><td>${esc(m.name)}</td><td>${esc(m.biz)}</td><td>${esc(m.currency)}</td>
+          <td><span class="tag">${esc(m.attr)}</span></td><td>${money(m.balance)}</td>
+          <td><div class="ops">
+            <button class="btn link" data-adjust="${esc(m.id)}" type="button">调整金额</button>
+            <button class="btn link" data-frozen="日志" type="button">日志</button>
+            <button class="btn link" data-frozen="期初设置" type="button">期初设置</button>
+            <button class="btn link danger" data-frozen="禁用" type="button">禁用</button>
+          </div></td>
+        </tr>`).join("")}</tbody>
+      </table></div>
+      <div class="pager">共 ${rows.length} 条记录　20条/页</div>
+    </div>`;
+  document.getElementById("mq-search").onclick = () => {
+    merchantQuery = {
+      id: document.getElementById("mq-id").value,
+      accountId: document.getElementById("mq-acc").value,
+      opening: document.getElementById("mq-open").value,
+      status: document.getElementById("mq-st").value
+    };
+    render();
+  };
+  document.getElementById("mq-reset").onclick = () => { merchantQuery = { id: "", accountId: "", opening: "", status: "" }; render(); };
+  document.getElementById("mq-export").onclick = () => toast("商户列表导出保持现网，本期不改");
+  document.getElementById("content").onclick = (e) => {
+    const a = e.target.closest("[data-adjust]");
+    const f = e.target.closest("[data-frozen]");
+    if (a) openModal(a.dataset.adjust);
+    if (f) toast("「" + f.dataset.frozen + "」本期不改动");
+  };
+}
+
+function openModal(id) {
+  const m = state.merchants.find(x => x.id === id);
+  if (!m) return;
+  modal = { merchantId: id, code: "", direction: "增加", amount: "", reason: "", errors: {} };
+  files = [];
+  renderMask();
+}
+
+function renderMask() {
+  const host = document.getElementById("mask");
+  if (!modal) { host.innerHTML = ""; return; }
+  const m = state.merchants.find(x => x.id === modal.merchantId);
+  const opts = TYPES.map(([code, label]) => `<option value="${esc(code)}" ${modal.code === code ? "selected" : ""}>${esc(label)}</option>`).join("");
+  host.innerHTML = `<div class="mask"><div class="modal" role="dialog" aria-label="金额调整">
+    <h3>金额调整 <button type="button" id="modal-x">×</button></h3>
+    <div class="body">
+      <div class="account">
+        <div class="cap">账户信息</div>
+        <div class="grid">
+          <div>商户ID：${esc(m.id)}</div>
+          <div>币种：${esc(m.currency)}</div>
+          <div>可用余额：${money(m.balance)}</div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="req">变动类型</label>
+        <select id="f-code"><option value="">请选择变动类型</option>${opts}</select>
+        <div class="err">${esc(modal.errors.code || "")}</div>
+      </div>
+      <div class="field">
+        <label class="req">资金方向</label>
+        <div class="radios">
+          <label class="radio"><input type="radio" name="dir" value="增加" ${modal.direction === "增加" ? "checked" : ""} /><span>增加金额</span></label>
+          <label class="radio"><input type="radio" name="dir" value="减少" ${modal.direction === "减少" ? "checked" : ""} /><span>减少金额</span></label>
+        </div>
+        <div class="err">${esc(modal.errors.direction || "")}</div>
+      </div>
+      <div class="field">
+        <label class="req">调整金额</label>
+        <input id="f-amount" placeholder="请输入调整金额" value="${esc(modal.amount)}" />
+        <div class="err">${esc(modal.errors.amount || "")}</div>
+      </div>
+      <div class="field">
+        <div class="label-row"><label class="req">调整原因</label><span class="count"><span id="reason-n">${modal.reason.length}</span> / 200</span></div>
+        <textarea id="f-reason" rows="3" maxlength="200" placeholder="请输入调整原因">${esc(modal.reason)}</textarea>
+        <div class="err">${esc(modal.errors.reason || "")}</div>
+      </div>
+      <div class="field">
+        <label>相关附件（最多10张）</label>
+        <button class="upload" id="pick-file" type="button">↑ 选择文件</button>
+        <input id="file-input" type="file" multiple hidden />
+        <ul class="files">${files.map((name, i) => `<li><span>${esc(name)}</span><button class="btn link" data-rm="${i}" type="button">移除</button></li>`).join("")}</ul>
+        <div class="err">${esc(modal.errors.files || "")}</div>
+      </div>
+    </div>
+    <div class="footer">
+      <button class="btn" id="modal-cancel" type="button">取消</button>
+      <button class="btn primary" id="modal-ok" type="button">确认</button>
+    </div>
+  </div></div>`;
+  document.getElementById("f-code").onchange = (e) => { modal.code = e.target.value; };
+  document.querySelectorAll("input[name=dir]").forEach(r => r.onchange = () => { modal.direction = r.value; });
+  document.getElementById("f-amount").oninput = (e) => { modal.amount = e.target.value; };
+  document.getElementById("f-reason").oninput = (e) => {
+    modal.reason = e.target.value.slice(0, 200);
+    document.getElementById("reason-n").textContent = modal.reason.length;
+  };
+  document.getElementById("pick-file").onclick = () => document.getElementById("file-input").click();
+  document.getElementById("file-input").onchange = (e) => {
+    const next = files.concat(Array.from(e.target.files).map(f => f.name));
+    if (next.length > 10) {
+      modal.errors.files = "最多 10 张";
+      files = next.slice(0, 10);
+    } else {
+      modal.errors.files = "";
+      files = next;
+    }
+    renderMask();
+  };
+  host.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { files.splice(Number(b.dataset.rm), 1); renderMask(); });
+  document.getElementById("modal-x").onclick = closeModal;
+  document.getElementById("modal-cancel").onclick = closeModal;
+  document.getElementById("modal-ok").onclick = submitAdjust;
+}
+
+function closeModal() { modal = null; files = []; renderMask(); }
+
+function submitAdjust() {
+  const code = document.getElementById("f-code").value;
+  const direction = (document.querySelector("input[name=dir]:checked") || {}).value || "";
+  const amountText = document.getElementById("f-amount").value.trim();
+  const reason = document.getElementById("f-reason").value.trim();
+  const errors = {};
+  if (!code) errors.code = "请选择变动类型";
+  if (code === "manual_adjust_add" || code === "manual_adjust_sub") errors.code = "不能写入已删除的变动类型";
+  if (!TYPE_MAP[code] && !errors.code) errors.code = "变动类型不在可选的 32 个编码里";
+  if (direction !== "增加" && direction !== "减少") errors.direction = "请选择资金方向";
+  if (!amountText) errors.amount = "请输入调整金额";
+  else if (!/^\d+(\.\d{1,2})?$/.test(amountText) || Number(amountText) <= 0) errors.amount = "请输入大于 0 的金额，最多两位小数";
+  if (!reason) errors.reason = "请输入调整原因";
+  else if (reason.length > 200) errors.reason = "调整原因最多 200 字";
+  if (files.length > 10) errors.files = "最多 10 张";
+  modal.code = code; modal.direction = direction; modal.amount = amountText; modal.reason = reason; modal.errors = errors;
+  if (Object.keys(errors).length) { renderMask(); return; }
+
+  const result = acceptAdjustment({
+    merchantId: modal.merchantId,
+    code,
+    direction,
+    amount: Number(amountText),
+    reason,
+    files: files.slice(),
+    operationMethod: "系统"
+  });
+  if (!result.ok) {
+    modal.errors.code = result.message;
+    renderMask();
+    return;
+  }
+  const id = result.txn.id;
+  closeModal();
+  toast("已提交");
+  go("transactions", { focus: id });
+}
+
+function acceptAdjustment(input) {
+  if (input.code === "manual_adjust_add" || input.code === "manual_adjust_sub" || !TYPE_MAP[input.code]) {
+    return { ok: false, message: "提交被拒绝：不能写入 manual_adjust_add 或 manual_adjust_sub" };
+  }
+  if (input.direction !== "增加" && input.direction !== "减少") {
+    return { ok: false, message: "资金方向只能是增加或减少" };
+  }
+  const merchant = state.merchants.find(m => m.id === input.merchantId);
+  if (!merchant) return { ok: false, message: "商户不存在" };
+  const signed = input.direction === "增加" ? input.amount : -input.amount;
+  const next = Math.round((Number(merchant.balance) + signed) * 100) / 100;
+  merchant.balance = next;
+  const now = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  const time = now.getFullYear() + "-" + p(now.getMonth() + 1) + "-" + p(now.getDate()) + " " + p(now.getHours()) + ":" + p(now.getMinutes()) + ":" + p(now.getSeconds());
+  const txn = {
+    id: "T" + Date.now().toString(36),
+    merchantId: merchant.id,
+    merchantName: merchant.name,
+    biz: merchant.biz,
+    time,
+    code: input.code,
+    direction: input.direction,
+    method: "人工",
+    currency: merchant.currency,
+    amount: signed,
+    change: signed,
+    afterCurrent: next,
+    afterAvailable: next,
+    rate: 1,
+    source: OPERATOR,
+    files: input.files,
+    orderNo: "", flowId: "", transferNo: "", uniqueId: "",
+    reason: input.reason
+  };
+  state.txns.unshift(txn);
+  save();
+  return { ok: true, txn };
+}
+
+function filteredTxns() {
+  const q = txnQuery;
+  return state.txns.filter(t => {
+    if (q.id && t.merchantId.indexOf(q.id.trim()) < 0) return false;
+    if (q.name && t.merchantName.indexOf(q.name.trim()) < 0) return false;
+    if (q.uniqueId && String(t.uniqueId).indexOf(q.uniqueId.trim()) < 0) return false;
+    if (q.biz && t.biz !== q.biz) return false;
+    if (q.code && t.code !== q.code) return false;
+    if (q.from && t.time.slice(0, 10) < q.from) return false;
+    if (q.to && t.time.slice(0, 10) > q.to) return false;
+    if (q.orderNo && String(t.orderNo).indexOf(q.orderNo.trim()) < 0) return false;
+    if (q.flowId && String(t.flowId).indexOf(q.flowId.trim()) < 0) return false;
+    if (q.transferNo && String(t.transferNo).indexOf(q.transferNo.trim()) < 0) return false;
+    if (q.source && String(t.source).indexOf(q.source.trim()) < 0) return false;
+    return true;
+  });
+}
+
+function renderTxns() {
+  const q = txnQuery;
+  const rows = filteredTxns();
+  const typeOptions = `<option value="">请选择变动类型</option>` + TYPES.map(([code, label]) =>
+    `<option value="${esc(code)}" ${q.code === code ? "selected" : ""}>${esc(label)}</option>`).join("");
+  document.getElementById("content").innerHTML = `
+    <div class="panel">
+      <div class="filters">
+        <div class="field"><label>商户ID</label><input id="tq-id" placeholder="请输入商户ID" value="${esc(q.id)}" /></div>
+        <div class="field"><label>商户名称</label><input id="tq-name" placeholder="请输入商户名称" value="${esc(q.name)}" /></div>
+        <div class="field"><label>商户唯一标识</label><input id="tq-uid" placeholder="请输入商户唯一标识" value="${esc(q.uniqueId)}" /></div>
+        <div class="field"><label>所属业务</label>
+          <select id="tq-biz"><option value="">请选择所属业务</option><option ${q.biz === "广告" ? "selected" : ""}>广告</option><option ${q.biz === "履约" ? "selected" : ""}>履约</option></select>
+        </div>
+        <div class="field"><label>变动类型</label><select id="tq-code">${typeOptions}</select></div>
+        <div class="field span2"><label>交易时间</label>
+          <div class="range">
+            <input id="tq-from" type="date" value="${esc(q.from)}" />
+            <span>→</span>
+            <input id="tq-to" type="date" value="${esc(q.to)}" />
+          </div>
+        </div>
+        <div class="field"><label>交易单号</label><input id="tq-order" placeholder="请输入交易单号" value="${esc(q.orderNo)}" /></div>
+        <div class="field"><label>流水交易ID</label><input id="tq-flow" placeholder="请输入流水交易ID" value="${esc(q.flowId)}" /></div>
+        <div class="field"><label>调拨单号</label><input id="tq-tr" placeholder="请输入调拨单号" value="${esc(q.transferNo)}" /></div>
+        <div class="field"><label>操作来源</label><input id="tq-src" placeholder="邮箱、姓名、id" value="${esc(q.source)}" /></div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="tq-search" type="button">搜索</button>
+        <button class="btn" id="tq-reset" type="button">重置</button>
+      </div>
+    </div>
+    <div class="toolbar"><button class="btn primary" id="tq-export" type="button">导出数据</button></div>
+    <div class="panel table-panel">
+      <div class="table-wrap"><table class="tx">
+        <thead><tr>
+          <th>商户ID</th><th>商户名称</th><th>交易时间</th><th>所属业务</th><th>变动类型</th>
+          <th>操作方式</th><th>交易币种</th><th>交易金额</th><th>默认币种</th>
+          <th>变动金额</th><th>变动后当前余额</th><th>变动后的可用余额</th><th>汇率</th><th>操作来源</th><th>操作</th>
+        </tr></thead>
+        <tbody>${rows.map(t => {
+          const amt = displayAmount(t);
+          const delta = displayChange(t);
+          const sign = amt < 0 ? "minus" : "plus";
+          const flow = amt < 0 ? "付款" : "收款";
+          const method = t.method === "人工" || t.method === "系统" ? t.method : "—";
+          return `<tr class="${t.id === focusId ? "hit" : ""}">
+            <td>${esc(t.merchantId)}</td><td>${esc(t.merchantName)}</td><td>${esc(t.time)}</td><td>${esc(t.biz)}</td>
+            <td>${esc(listLabel(t.code))}</td><td>${esc(method)}</td>
+            <td>${esc(t.currency)}</td><td class="money ${sign}">${signedMoney(amt)} ${flow}</td><td>${esc(t.currency)}</td>
+            <td class="money ${sign}">${signedMoney(delta)}</td><td>${money(t.afterCurrent)}</td><td>${money(t.afterAvailable)}</td>
+            <td>${esc(t.rate)}</td><td>${esc(t.source || "—")}</td>
+            <td><button class="btn link" data-files="${esc(t.id)}" type="button">查看附件</button></td>
+          </tr>`;
+        }).join("")}${rows.length ? "" : `<tr class="empty"><td colspan="15">暂无数据</td></tr>`}</tbody>
+      </table></div>
+      <div class="pager">共 ${rows.length} 条记录　20条/页</div>
+    </div>`;
+  const read = () => ({
+    id: document.getElementById("tq-id").value,
+    name: document.getElementById("tq-name").value,
+    uniqueId: document.getElementById("tq-uid").value,
+    biz: document.getElementById("tq-biz").value,
+    code: document.getElementById("tq-code").value,
+    from: document.getElementById("tq-from").value,
+    to: document.getElementById("tq-to").value,
+    orderNo: document.getElementById("tq-order").value,
+    flowId: document.getElementById("tq-flow").value,
+    transferNo: document.getElementById("tq-tr").value,
+    source: document.getElementById("tq-src").value
+  });
+  document.getElementById("tq-search").onclick = () => { txnQuery = read(); focusId = ""; render(); };
+  document.getElementById("tq-reset").onclick = () => {
+    txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
+    focusId = ""; render();
+  };
+  document.getElementById("tq-export").onclick = () => exportTxns(filteredTxns());
+  document.getElementById("content").onclick = (e) => {
+    const b = e.target.closest("[data-files]");
+    if (!b) return;
+    const t = state.txns.find(x => x.id === b.dataset.files);
+    const list = (t && t.files && t.files.length) ? t.files.map(esc).join("<br>") : "无附件";
+    document.getElementById("mask").innerHTML = `<div class="mask"><div class="modal" style="width:420px">
+      <h3>查看附件 <button type="button" id="file-x">×</button></h3>
+      <div class="body">${list}</div>
+      <div class="footer"><button class="btn primary" id="file-ok" type="button">关闭</button></div>
+    </div></div>`;
+    const close = () => { document.getElementById("mask").innerHTML = ""; };
+    document.getElementById("file-x").onclick = close;
+    document.getElementById("file-ok").onclick = close;
+  };
+}
+
+function exportTxns(rows) {
+  const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "操作方式", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源"];
+  const lines = [header.join(",")];
+  rows.forEach(t => {
+    const cells = [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.method, t.currency, displayAmount(t), t.currency, displayChange(t), t.afterCurrent, t.afterAvailable, t.rate, t.source];
+    lines.push(cells.map(c => `"${String(c == null ? "" : c).replace(/"/g, '""')}"`).join(","));
+  });
+  const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "交易详情.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if (modal) closeModal();
+    else document.getElementById("mask").innerHTML = "";
+  }
+});
+
+render();
+
+</script>
+</body>
+</html>

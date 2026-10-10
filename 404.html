@@ -163,6 +163,9 @@ th.desc .caret i.down { border-top-color: #1677ff; }
 .ops .line { display: flex; align-items: center; gap: 12px; }
 table.merchants { min-width: 2860px; }
 .toolbar { display: flex; justify-content: flex-end; margin-top: 12px; }
+.card-bar { display: flex; justify-content: flex-end; align-items: center; padding: 12px 16px; }
+.btn.download { display: inline-flex; align-items: center; gap: 6px; }
+.btn.download svg { display: block; }
 .table-wrap { overflow: auto; }
 table { width: 100%; border-collapse: collapse; }
 table.fixed { table-layout: fixed; }
@@ -502,6 +505,7 @@ function renderMerchants() {
       </div>
     </div>
     <div class="panel table-panel">
+      <div class="card-bar"><button class="btn primary download" id="mq-export" type="button"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.2v7.2M4.1 5.6 7 8.6l2.9-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.2 11.6h9.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>导出数据</button></div>
       <div class="table-wrap"><table class="merchants">
         <thead><tr>
           <th class="stick-l">商户ID</th><th>商户名称</th><th>商户唯一标识</th><th>ERP代码</th><th>子业务</th><th>币种</th><th>币种属性</th>
@@ -532,7 +536,8 @@ function renderMerchants() {
       </table></div>
       <div class="pager">共 9335 条记录　20条/页</div>
     </div>`;
-  document.getElementById("mq-search").onclick = () => {
+  document.getElementById("mq-export").onclick = () => exportMerchants(rows);
+    document.getElementById("mq-search").onclick = () => {
     merchantQuery = {
       id: document.getElementById("mq-id").value,
       name: document.getElementById("mq-name").value,
@@ -786,6 +791,7 @@ function renderTxns() {
       </div>
     </div>
     <div class="panel table-panel">
+      <div class="card-bar"><button class="btn primary download" id="tq-export" type="button"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.2v7.2M4.1 5.6 7 8.6l2.9-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.2 11.6h9.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>导出数据</button></div>
       <div class="table-wrap"><table class="tx">
         <thead><tr>
           <th>商户ID</th><th>商户名称</th><th>交易时间</th><th>所属业务</th><th>变动类型</th>
@@ -823,7 +829,8 @@ function renderTxns() {
     transferNo: document.getElementById("tq-tr").value,
     source: ""
   });
-  document.getElementById("tq-search").onclick = () => { txnQuery = read(); focusId = ""; render(); };
+  document.getElementById("tq-export").onclick = () => exportTxns(rows);
+    document.getElementById("tq-search").onclick = () => { txnQuery = read(); focusId = ""; render(); };
   document.getElementById("tq-reset").onclick = () => {
     txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
     focusId = ""; render();
@@ -845,19 +852,30 @@ function renderTxns() {
   };
 }
 
-function exportTxns(rows) {
-  const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "操作方式", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源", "交易单号", "流水交易ID", "调拨单号", "描述/备注"];
+function downloadCsv(name, header, body) {
   const lines = [header.join(",")];
-  rows.forEach(t => {
-    const cells = [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.method, t.currency, displayAmount(t), t.currency, displayChange(t), t.afterCurrent, t.afterAvailable, t.rate, t.source, t.orderNo, t.flowId, t.transferNo, t.remark];
-    lines.push(cells.map(c => `"${String(c == null ? "" : c).replace(/"/g, '""')}"`).join(","));
+  body.forEach(cells => {
+    lines.push(cells.map(c => '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"').join(","));
   });
   const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "交易详情.csv";
+  a.download = name;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+function exportMerchants(list) {
+  const header = ["商户ID", "商户名称", "商户唯一标识", "ERP代码", "子业务", "币种", "币种属性", "账户状态", "当前金额", "可用余额", "真实金额", "冻结金额", "信用额度", "已用额度", "剩余额度", "额度状态", "期初设置", "期初时点", "资金账户ID", "创建时间"];
+  const shown = (currency, n) => currency + " " + money(n);
+  downloadCsv("商户管理.csv", header, list.map(m => [
+    m.id, m.name, m.uniqueId, m.erp, m.biz, m.currency, m.attr, m.status,
+    shown(m.currency, m.current), shown(m.currency, m.balance), shown(m.currency, m.realAmount), shown(m.currency, m.frozen),
+    "-", shown(m.currency, m.creditUsed), shown(m.currency, m.creditLeft), "-", m.opening, "-", m.accountId, m.createdAt
+  ]));
+}
+function exportTxns(rows) {
+  const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "操作方式", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源", "交易单号", "流水交易ID", "调拨单号", "描述/备注"];
+  downloadCsv("交易详情.csv", header, rows.map(t => [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.method, t.currency, displayAmount(t), t.currency, displayChange(t), t.afterCurrent, t.afterAvailable, t.rate, t.source, t.orderNo, t.flowId, t.transferNo, t.remark]));
 }
 
 document.addEventListener("keydown", (e) => {

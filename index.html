@@ -261,10 +261,10 @@ const seedMerchants = [
 ];
 
 const seedTxns = [
-  row("19817", "2026-10-08 11:50:40", "manual_adjust_add", "增加", "", "USD", 58.21, 58.21, "", "", 1, "—", []),
-  row("16903", "2026-10-08 09:59:09", "manual_adjust_add", "增加", "", "USD", 40000, 40000, "", "", 1, "—", []),
-  row("16902", "2026-10-08 09:58:10", "manual_adjust_add", "增加", "", "USD", 40000, 40000, "", "", 1, "—", []),
-  row("14714", "2026-10-08 09:55:24", "manual_adjust_add", "增加", "", "USD", 29.41, 29.41, "", "", 1, "—", []),
+  row("19817", "2026-10-08 11:50:40", "manual_adjust_add", "增加", "人工", "USD", 58.21, 58.21, "", "", 1, "—", []),
+  row("16903", "2026-10-08 09:59:09", "manual_adjust_add", "增加", "人工", "USD", 40000, 40000, "", "", 1, "—", []),
+  row("16902", "2026-10-08 09:58:10", "manual_adjust_add", "增加", "人工", "USD", 40000, 40000, "", "", 1, "—", []),
+  row("14714", "2026-10-08 09:55:24", "manual_adjust_add", "增加", "人工", "USD", 29.41, 29.41, "", "", 1, "—", []),
   row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "系统", "USD", 11, 11, 1141.90, 1141.90, 1, "dHiL1PYR@moemail.app", []),
   row("16903", "2026-10-08 15:02:40", "recover_recharge", "增加", "系统", "USD", 5000, 5000, 104932.65, 114932.65, 1, "3472", []),
   row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "系统", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "黄银冰（huangyinbing@bestfulfill.com）", []),
@@ -288,18 +288,18 @@ const state = load();
 let page = location.pathname.indexOf("transaction") >= 0 ? "transactions" : "merchants";
 let focusId = new URLSearchParams(location.search).get("focus") || "";
 let merchantQuery = { id: "", accountId: "", opening: "", status: "" };
-let txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", method: "", direction: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
+let txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
 let modal = null;
 let files = [];
 
 function load() {
   try {
-    const raw = sessionStorage.getItem("aa-proto-v1");
+    const raw = sessionStorage.getItem("aa-proto-v2");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return { merchants: seedMerchants.map(m => Object.assign({}, m)), txns: seedTxns.slice() };
 }
-function save() { sessionStorage.setItem("aa-proto-v1", JSON.stringify(state)); }
+function save() { sessionStorage.setItem("aa-proto-v2", JSON.stringify(state)); }
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -308,6 +308,24 @@ function money(n) {
   if (n === "" || n == null) return "—";
   const v = Number(n);
   return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function displayAmount(t) {
+  const n = Number(t.amount);
+  if (t.direction === "减少") return -Math.abs(n);
+  if (t.direction === "增加") return Math.abs(n);
+  return n;
+}
+function displayChange(t) {
+  const n = Number(t.change);
+  if (t.direction === "减少") return -Math.abs(n);
+  if (t.direction === "增加") return Math.abs(n);
+  return n;
+}
+function signedMoney(n) {
+  const v = Number(n);
+  if (!isFinite(v)) return "—";
+  const text = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (v < 0 ? "-" : "+") + text;
 }
 function toast(text) {
   const el = document.getElementById("toast");
@@ -594,8 +612,8 @@ function acceptAdjustment(input) {
     direction: input.direction,
     method: "人工",
     currency: merchant.currency,
-    amount: input.amount,
-    change: input.amount,
+    amount: signed,
+    change: signed,
     afterCurrent: next,
     afterAvailable: next,
     rate: 1,
@@ -617,7 +635,6 @@ function filteredTxns() {
     if (q.uniqueId && String(t.uniqueId).indexOf(q.uniqueId.trim()) < 0) return false;
     if (q.biz && t.biz !== q.biz) return false;
     if (q.code && t.code !== q.code) return false;
-    if (q.direction && t.direction !== q.direction) return false;
     if (q.from && t.time.slice(0, 10) < q.from) return false;
     if (q.to && t.time.slice(0, 10) > q.to) return false;
     if (q.orderNo && String(t.orderNo).indexOf(q.orderNo.trim()) < 0) return false;
@@ -653,13 +670,6 @@ function renderTxns() {
         <div class="field"><label>交易单号</label><input id="tq-order" placeholder="请输入交易单号" value="${esc(q.orderNo)}" /></div>
         <div class="field"><label>流水交易ID</label><input id="tq-flow" placeholder="请输入流水交易ID" value="${esc(q.flowId)}" /></div>
         <div class="field"><label>调拨单号</label><input id="tq-tr" placeholder="请输入调拨单号" value="${esc(q.transferNo)}" /></div>
-        <div class="field"><label>资金方向</label>
-          <select id="tq-dir">
-            <option value="">请选择资金方向</option>
-            <option value="增加" ${q.direction === "增加" ? "selected" : ""}>增加</option>
-            <option value="减少" ${q.direction === "减少" ? "selected" : ""}>减少</option>
-          </select>
-        </div>
         <div class="field"><label>操作来源</label><input id="tq-src" placeholder="邮箱、姓名、id" value="${esc(q.source)}" /></div>
       </div>
       <div class="actions">
@@ -672,17 +682,20 @@ function renderTxns() {
       <div class="table-wrap"><table class="tx">
         <thead><tr>
           <th>商户ID</th><th>商户名称</th><th>交易时间</th><th>所属业务</th><th>变动类型</th>
-          <th>资金方向</th><th>交易币种</th><th>交易金额</th><th>默认币种</th>
+          <th>操作方式</th><th>交易币种</th><th>交易金额</th><th>默认币种</th>
           <th>变动金额</th><th>变动后当前余额</th><th>变动后的可用余额</th><th>汇率</th><th>操作来源</th><th>操作</th>
         </tr></thead>
         <tbody>${rows.map(t => {
-          const sign = t.direction === "减少" ? "minus" : "plus";
-          const shown = t.direction === "减少" ? -Math.abs(Number(t.change)) : Number(t.change);
+          const amt = displayAmount(t);
+          const delta = displayChange(t);
+          const sign = amt < 0 ? "minus" : "plus";
+          const flow = amt < 0 ? "付款" : "收款";
+          const method = t.method === "人工" || t.method === "系统" ? t.method : "—";
           return `<tr class="${t.id === focusId ? "hit" : ""}">
             <td>${esc(t.merchantId)}</td><td>${esc(t.merchantName)}</td><td>${esc(t.time)}</td><td>${esc(t.biz)}</td>
-            <td>${esc(listLabel(t.code))}</td><td>${esc(t.direction || "—")}</td>
-            <td>${esc(t.currency)}</td><td class="money ${sign}">${money(t.amount)}</td><td>${esc(t.currency)}</td>
-            <td class="money ${sign}">${money(shown)}</td><td>${money(t.afterCurrent)}</td><td>${money(t.afterAvailable)}</td>
+            <td>${esc(listLabel(t.code))}</td><td>${esc(method)}</td>
+            <td>${esc(t.currency)}</td><td class="money ${sign}">${signedMoney(amt)} ${flow}</td><td>${esc(t.currency)}</td>
+            <td class="money ${sign}">${signedMoney(delta)}</td><td>${money(t.afterCurrent)}</td><td>${money(t.afterAvailable)}</td>
             <td>${esc(t.rate)}</td><td>${esc(t.source || "—")}</td>
             <td><button class="btn link" data-files="${esc(t.id)}" type="button">查看附件</button></td>
           </tr>`;
@@ -696,7 +709,6 @@ function renderTxns() {
     uniqueId: document.getElementById("tq-uid").value,
     biz: document.getElementById("tq-biz").value,
     code: document.getElementById("tq-code").value,
-    direction: document.getElementById("tq-dir").value,
     from: document.getElementById("tq-from").value,
     to: document.getElementById("tq-to").value,
     orderNo: document.getElementById("tq-order").value,
@@ -706,7 +718,7 @@ function renderTxns() {
   });
   document.getElementById("tq-search").onclick = () => { txnQuery = read(); focusId = ""; render(); };
   document.getElementById("tq-reset").onclick = () => {
-    txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", method: "", direction: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
+    txnQuery = { id: "", name: "", uniqueId: "", biz: "", code: "", from: "", to: "", orderNo: "", flowId: "", transferNo: "", source: "" };
     focusId = ""; render();
   };
   document.getElementById("tq-export").onclick = () => exportTxns(filteredTxns());
@@ -727,10 +739,10 @@ function renderTxns() {
 }
 
 function exportTxns(rows) {
-  const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "资金方向", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源"];
+  const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "操作方式", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源"];
   const lines = [header.join(",")];
   rows.forEach(t => {
-    const cells = [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.direction, t.currency, t.amount, t.currency, t.change, t.afterCurrent, t.afterAvailable, t.rate, t.source];
+    const cells = [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.method, t.currency, displayAmount(t), t.currency, displayChange(t), t.afterCurrent, t.afterAvailable, t.rate, t.source];
     lines.push(cells.map(c => `"${String(c == null ? "" : c).replace(/"/g, '""')}"`).join(","));
   });
   const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });

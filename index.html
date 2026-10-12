@@ -307,10 +307,10 @@ const txnParty = {
   "14714": ["Nicu Auris", "履约"]
 };
 const seedTxns = [
-  row("19817", "2026-10-08 11:50:40", "manual_adjust_add", "增加", "", "USD", 58.21, 58.21, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008115040001", "a3c1e8f0-4b21-4d7a-9c55-1f6e2a8b0d11", "-", "", "", "赔付"),
-  row("16903", "2026-10-08 09:59:09", "manual_adjust_add", "增加", "", "USD", 40000, 40000, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095909002", "7b2d4e19-8c33-4a61-b0e4-5d9f1c2a6e70", "-", "", "", "手续费补足"),
-  row("16902", "2026-10-08 09:58:10", "manual_adjust_add", "增加", "", "USD", 40000, 40000, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095810003", "c91f0a55-2e74-4b18-8d3c-6a0b7e4f1d22", "-", "", "", "调拨转入"),
-  row("14714", "2026-10-08 09:55:24", "manual_adjust_sub", "减少", "", "USD", 29.41, 29.41, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095524004", "e4a8c0d2-6f15-4c9b-a271-3b5d8e0c7f43", "-", "", "拒付", "汇损补足"),
+  row("19817", "2026-10-08 11:50:40", "manual_adjust_add", "增加", "", "USD", 58.21, 58.21, 58.21, 58.21, 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008115040001", "a3c1e8f0-4b21-4d7a-9c55-1f6e2a8b0d11", "-", "", "", "赔付"),
+  row("16903", "2026-10-08 09:59:09", "manual_adjust_add", "增加", "", "USD", 40000, 40000, 40000, 40000, 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095909002", "7b2d4e19-8c33-4a61-b0e4-5d9f1c2a6e70", "-", "", "", "手续费补足"),
+  row("16902", "2026-10-08 09:58:10", "manual_adjust_add", "增加", "", "USD", 40000, 40000, 40000, 40000, 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095810003", "c91f0a55-2e74-4b18-8d3c-6a0b7e4f1d22", "-", "", "", "调拨转入"),
+  row("14714", "2026-10-08 09:55:24", "manual_adjust_sub", "减少", "", "USD", 29.41, 29.41, -29.41, -29.41, 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095524004", "e4a8c0d2-6f15-4c9b-a271-3b5d8e0c7f43", "-", "", "拒付", "汇损补足"),
   row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "", "USD", 11, 11, 1141.90, 1141.90, 1, "oms_system", [], "TXFULFILL20261008162011005", "1d6b9e33-0a47-4f82-9c15-8e2a4b7d0c56", "-", ""),
   row("16903", "2026-10-08 15:02:40", "recover_recharge", "增加", "", "USD", 5000, 5000, 104932.65, 114932.65, 1, "oms_system", [], "TXFULFILL20261008150240006", "5c0e7a91-3b28-4d64-8f0a-2c6e9b1d4a77", "-", ""),
   row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008141802007", "9f3a1c68-7d05-4e2b-b184-0a5c6d8e2f88", "-", ""),
@@ -350,20 +350,32 @@ let files = [];
 
 function load() {
   try {
-    const raw = sessionStorage.getItem("aa-proto-v7");
+    const raw = sessionStorage.getItem("aa-proto-v8");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return { merchants: seedMerchants.map(m => Object.assign({}, m)), txns: seedTxns.slice() };
 }
-function save() { sessionStorage.setItem("aa-proto-v7", JSON.stringify(state)); }
+function save() { sessionStorage.setItem("aa-proto-v8", JSON.stringify(state)); }
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 function money(n) {
-  if (n === "" || n == null) return "—";
+  if (n === "" || n == null || !isFinite(Number(n))) return "0.00";
   const v = Number(n);
   return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function round2(n) { return Math.round(Number(n) * 100) / 100; }
+function fillBalances(list) {
+  (list || []).forEach(t => {
+    const signed = displayAmount(t);
+    const book = (typeof state !== "undefined" && state.merchants ? state.merchants : seedMerchants);
+    const m = book.find(x => x.id === t.merchantId && x.currency === t.currency);
+    const current = m ? Number(m.current) || 0 : 0;
+    const available = m ? Number(m.balance) || 0 : 0;
+    if (t.afterCurrent === "" || t.afterCurrent == null || !isFinite(Number(t.afterCurrent))) t.afterCurrent = round2(current + signed);
+    if (t.afterAvailable === "" || t.afterAvailable == null || !isFinite(Number(t.afterAvailable))) t.afterAvailable = round2(available + signed);
+  });
 }
 function displayAmount(t) {
   const n = Number(t.amount);
@@ -396,7 +408,8 @@ function go(next, query) {
   const path = basePath() + (next === "transactions" ? "/transactions" : "/merchants");
   const url = path + (focusId ? "?focus=" + encodeURIComponent(focusId) : "");
   if (location.protocol !== "file:") history.pushState({}, "", url);
-  render();
+  fillBalances(state.txns);
+render();
 }
 window.addEventListener("popstate", () => {
   page = pageFromLocation();
@@ -721,10 +734,11 @@ function acceptAdjustment(input) {
   const merchant = state.merchants.find(m => m.id === input.merchantId && (!input.currency || m.currency === input.currency));
   if (!merchant) return { ok: false, message: "商户不存在" };
   const signed = input.direction === "增加" ? input.amount : -input.amount;
-  const next = Math.round((Number(merchant.balance) + signed) * 100) / 100;
-  merchant.balance = next;
-  merchant.current = Math.round((Number(merchant.current) + signed) * 100) / 100;
-  merchant.realAmount = Math.round((Number(merchant.realAmount) + signed) * 100) / 100;
+  const nextCurrent = round2((Number(merchant.current) || 0) + signed);
+  const nextAvailable = round2((Number(merchant.balance) || 0) + signed);
+  merchant.current = nextCurrent;
+  merchant.balance = nextAvailable;
+  merchant.realAmount = round2((Number(merchant.realAmount) || 0) + signed);
   const now = new Date();
   const p = (n) => String(n).padStart(2, "0");
   const time = now.getFullYear() + "-" + p(now.getMonth() + 1) + "-" + p(now.getDate()) + " " + p(now.getHours()) + ":" + p(now.getMinutes()) + ":" + p(now.getSeconds());
@@ -740,8 +754,8 @@ function acceptAdjustment(input) {
     currency: merchant.currency,
     amount: signed,
     change: signed,
-    afterCurrent: next,
-    afterAvailable: next,
+    afterCurrent: nextCurrent,
+    afterAvailable: nextAvailable,
     rate: 1,
     source: OPERATOR,
     files: input.files,
@@ -824,7 +838,7 @@ function renderTxns() {
             <td>${esc(t.merchantId)}</td><td>${esc(t.merchantName)}</td><td>${esc(t.time)}</td><td>${esc(t.biz)}</td>
             <td>${esc(listLabel(t.code))}</td><td>${esc(t.changeReason || "")}</td>
             <td>${esc(t.currency)}</td><td class="money ${sign}">${signedMoney(amt)}</td><td>${esc(t.currency)}</td>
-            <td class="money ${sign}">${signedMoney(delta)}</td><td>${money(t.afterCurrent)}</td><td>${money(t.afterAvailable)}</td>
+            <td class="money ${sign}">${signedMoney(delta)}</td><td>${esc(t.currency)} ${money(t.afterCurrent)}</td><td>${esc(t.currency)} ${money(t.afterAvailable)}</td>
             <td>${esc(t.rate)}</td><td>${esc(t.source || "—")}</td>
             <td>${esc(t.orderNo || "")}</td><td>${esc(t.flowId || "")}</td><td>${esc(t.transferNo || "-")}</td><td>${esc(t.remark || "")}</td>
             <td class="stick-r"><button class="btn link" data-files="${esc(t.id)}" type="button">查看附件</button></td>
@@ -892,7 +906,7 @@ function exportMerchants(list) {
 }
 function exportTxns(rows) {
   const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "变动原因", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源", "交易单号", "流水交易ID", "调拨单号", "描述/备注"];
-  downloadCsv("交易详情.csv", header, rows.map(t => [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.changeReason || "", t.currency, displayAmount(t), t.currency, displayChange(t), t.afterCurrent, t.afterAvailable, t.rate, t.source, t.orderNo, t.flowId, t.transferNo, t.remark]));
+  downloadCsv("交易详情.csv", header, rows.map(t => [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.changeReason || "", t.currency, displayAmount(t), t.currency, displayChange(t), money(t.afterCurrent).replace(/,/g, ""), money(t.afterAvailable).replace(/,/g, ""), t.rate, t.source, t.orderNo, t.flowId, t.transferNo, t.remark]));
 }
 
 document.addEventListener("keydown", (e) => {
@@ -903,6 +917,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+fillBalances(state.txns);
 render();
 
 </script>

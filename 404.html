@@ -834,11 +834,13 @@ function renderTxns() {
           const amt = displayAmount(t);
           const delta = displayChange(t);
           const sign = amt < 0 ? "minus" : "plus";
+          const curSign = Number(t.afterCurrent) < 0 ? "minus" : "plus";
+          const availSign = Number(t.afterAvailable) < 0 ? "minus" : "plus";
           return `<tr class="${t.id === focusId ? "hit" : ""}">
             <td>${esc(t.merchantId)}</td><td>${esc(t.merchantName)}</td><td>${esc(t.time)}</td><td>${esc(t.biz)}</td>
             <td>${esc(listLabel(t.code))}</td><td>${esc(t.changeReason || "")}</td>
             <td>${esc(t.currency)}</td><td class="money ${sign}">${signedMoney(amt)}</td><td>${esc(t.currency)}</td>
-            <td class="money ${sign}">${signedMoney(delta)}</td><td>${esc(t.currency)} ${money(t.afterCurrent)}</td><td>${esc(t.currency)} ${money(t.afterAvailable)}</td>
+            <td class="money ${sign}">${signedMoney(delta)}</td><td class="money ${curSign}">${esc(t.currency)} ${money(t.afterCurrent)}</td><td class="money ${availSign}">${esc(t.currency)} ${money(t.afterAvailable)}</td>
             <td>${esc(t.rate)}</td><td>${esc(t.source || "—")}</td>
             <td>${esc(t.orderNo || "")}</td><td>${esc(t.flowId || "")}</td><td>${esc(t.transferNo || "-")}</td><td>${esc(t.remark || "")}</td>
             <td class="stick-r"><button class="btn link" data-files="${esc(t.id)}" type="button">查看附件</button></td>

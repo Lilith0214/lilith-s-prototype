@@ -279,8 +279,11 @@ const TYPES = [
   ["transfer_out", "调拨转出"],
   ["transfer_in", "调拨转入"],
   ["pre_hold_release", "预扣费足额释放"],
-  ["pre_hold_expired", "预扣费过期释放"]
+  ["pre_hold_expired", "预扣费过期释放"],
+  ["manual_adjust_add", "系统调整-增加"],
+  ["manual_adjust_sub", "系统调整-减少"]
 ];
+const REASONS = ["赔付", "手续费补足", "调拨转入", "汇损补足"];
 const LIST_LABEL = {
   online_recharge: "在线充值",
   offline_recharge: "线下充值"
@@ -304,19 +307,19 @@ const txnParty = {
   "14714": ["Nicu Auris", "履约"]
 };
 const seedTxns = [
-  row("19817", "2026-10-08 11:50:40", "online_recharge", "增加", "人工", "USD", 58.21, 58.21, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008115040001", "a3c1e8f0-4b21-4d7a-9c55-1f6e2a8b0d11", "-", ""),
-  row("16903", "2026-10-08 09:59:09", "offline_recharge", "增加", "人工", "USD", 40000, 40000, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095909002", "7b2d4e19-8c33-4a61-b0e4-5d9f1c2a6e70", "-", ""),
-  row("16902", "2026-10-08 09:58:10", "compensation", "增加", "人工", "USD", 40000, 40000, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095810003", "c91f0a55-2e74-4b18-8d3c-6a0b7e4f1d22", "-", ""),
-  row("14714", "2026-10-08 09:55:24", "fee_cover", "减少", "人工", "USD", 29.41, 29.41, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095524004", "e4a8c0d2-6f15-4c9b-a271-3b5d8e0c7f43", "-", "", "拒付"),
-  row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "系统", "USD", 11, 11, 1141.90, 1141.90, 1, "oms_system", [], "TXFULFILL20261008162011005", "1d6b9e33-0a47-4f82-9c15-8e2a4b7d0c56", "-", ""),
-  row("16903", "2026-10-08 15:02:40", "recover_recharge", "增加", "系统", "USD", 5000, 5000, 104932.65, 114932.65, 1, "oms_system", [], "TXFULFILL20261008150240006", "5c0e7a91-3b28-4d64-8f0a-2c6e9b1d4a77", "-", ""),
-  row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "系统", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008141802007", "9f3a1c68-7d05-4e2b-b184-0a5c6d8e2f88", "-", ""),
-  row("16902", "2026-10-08 13:40:18", "online_recharge", "增加", "系统", "EUR", 100, 87.79, 528.62, 528.62, 0.91, "oms_system", [], "TXFULFILL20261008134018008", "19b8a77c-d3fc-45da-9520-4a07463123df", "-", ""),
-  row("16902", "2026-10-08 11:12:33", "offline_recharge", "增加", "系统", "EUR", 4.79, 4.79, 77943.22, 77943.22, 1, "oms_system", [], "TXFULFILL20261008111233009", "2e7c4b80-1a96-4f53-9d28-6b0c5a3e8f19", "-", ""),
-  row("16903", "2026-10-08 10:06:51", "transfer_release", "增加", "系统", "USD", 10, 10, 15, 15, 1, "oms_system", [], "TXFULFILL20261008100651010", "8a1d5f24-6c30-4b97-a0e5-3d7c2b9f4e60", "-", "")
+  row("19817", "2026-10-08 11:50:40", "manual_adjust_add", "增加", "", "USD", 58.21, 58.21, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008115040001", "a3c1e8f0-4b21-4d7a-9c55-1f6e2a8b0d11", "-", "", "", "赔付"),
+  row("16903", "2026-10-08 09:59:09", "manual_adjust_add", "增加", "", "USD", 40000, 40000, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095909002", "7b2d4e19-8c33-4a61-b0e4-5d9f1c2a6e70", "-", "", "", "手续费补足"),
+  row("16902", "2026-10-08 09:58:10", "manual_adjust_add", "增加", "", "USD", 40000, 40000, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095810003", "c91f0a55-2e74-4b18-8d3c-6a0b7e4f1d22", "-", "", "", "调拨转入"),
+  row("14714", "2026-10-08 09:55:24", "manual_adjust_sub", "减少", "", "USD", 29.41, 29.41, "", "", 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008095524004", "e4a8c0d2-6f15-4c9b-a271-3b5d8e0c7f43", "-", "", "拒付", "汇损补足"),
+  row("16903", "2026-10-08 16:20:11", "online_recharge", "增加", "", "USD", 11, 11, 1141.90, 1141.90, 1, "oms_system", [], "TXFULFILL20261008162011005", "1d6b9e33-0a47-4f82-9c15-8e2a4b7d0c56", "-", ""),
+  row("16903", "2026-10-08 15:02:40", "recover_recharge", "增加", "", "USD", 5000, 5000, 104932.65, 114932.65, 1, "oms_system", [], "TXFULFILL20261008150240006", "5c0e7a91-3b28-4d64-8f0a-2c6e9b1d4a77", "-", ""),
+  row("16902", "2026-10-08 14:18:02", "offline_recharge", "增加", "", "EUR", 1000, 1000, 1528.62, 1528.62, 1, "王婧娴(wangjingxian@bestfulfill.com)", [], "TXFULFILL20261008141802007", "9f3a1c68-7d05-4e2b-b184-0a5c6d8e2f88", "-", ""),
+  row("16902", "2026-10-08 13:40:18", "online_recharge", "增加", "", "EUR", 100, 87.79, 528.62, 528.62, 0.91, "oms_system", [], "TXFULFILL20261008134018008", "19b8a77c-d3fc-45da-9520-4a07463123df", "-", ""),
+  row("16902", "2026-10-08 11:12:33", "offline_recharge", "增加", "", "EUR", 4.79, 4.79, 77943.22, 77943.22, 1, "oms_system", [], "TXFULFILL20261008111233009", "2e7c4b80-1a96-4f53-9d28-6b0c5a3e8f19", "-", ""),
+  row("16903", "2026-10-08 10:06:51", "transfer_release", "增加", "", "USD", 10, 10, 15, 15, 1, "oms_system", [], "TXFULFILL20261008100651010", "8a1d5f24-6c30-4b97-a0e5-3d7c2b9f4e60", "-", "")
 ];
 
-function row(merchantId, time, code, direction, method, currency, amount, change, afterCurrent, afterAvailable, rate, source, files, orderNo, flowId, transferNo, remark, bizName) {
+function row(merchantId, time, code, direction, method, currency, amount, change, afterCurrent, afterAvailable, rate, source, files, orderNo, flowId, transferNo, remark, bizName, changeReason) {
   const m = seedMerchants.find(x => x.id === merchantId && x.currency === currency) || seedMerchants.find(x => x.id === merchantId);
   const known = txnParty[merchantId];
   return {
@@ -324,7 +327,7 @@ function row(merchantId, time, code, direction, method, currency, amount, change
     merchantId, merchantName: m ? m.name : (known ? known[0] : "—"), biz: bizName || (m ? m.biz : (known ? known[1] : "—")),
     time, code, direction, method, currency, amount, change,
     afterCurrent, afterAvailable, rate, source, files,
-    orderNo: orderNo || "", flowId: flowId || "", transferNo: transferNo || "-", remark: remark || "", uniqueId: ""
+    orderNo: orderNo || "", flowId: flowId || "", transferNo: transferNo || "-", remark: remark || "", changeReason: changeReason || "", uniqueId: ""
   };
 }
 
@@ -347,12 +350,12 @@ let files = [];
 
 function load() {
   try {
-    const raw = sessionStorage.getItem("aa-proto-v6");
+    const raw = sessionStorage.getItem("aa-proto-v7");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return { merchants: seedMerchants.map(m => Object.assign({}, m)), txns: seedTxns.slice() };
 }
-function save() { sessionStorage.setItem("aa-proto-v6", JSON.stringify(state)); }
+function save() { sessionStorage.setItem("aa-proto-v7", JSON.stringify(state)); }
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -568,7 +571,7 @@ function renderMerchants() {
 function openModal(id, currency) {
   const m = state.merchants.find(x => x.id === id && (!currency || x.currency === currency));
   if (!m) return;
-  modal = { merchantId: id, currency: m.currency, code: "", direction: "增加", amount: "", reason: "", errors: {} };
+  modal = { merchantId: id, currency: m.currency, cause: "", direction: "增加", amount: "", reason: "", errors: {} };
   files = [];
   renderMask();
 }
@@ -577,7 +580,6 @@ function renderMask() {
   const host = document.getElementById("mask");
   if (!modal) { host.innerHTML = ""; return; }
   const m = state.merchants.find(x => x.id === modal.merchantId && x.currency === modal.currency);
-  const opts = TYPES.map(([code, label]) => `<option value="${esc(code)}" ${modal.code === code ? "selected" : ""}>${esc(label)}</option>`).join("");
   host.innerHTML = `<div class="mask"><div class="modal" role="dialog" aria-label="金额调整">
     <h3>金额调整 <button type="button" id="modal-x">×</button></h3>
     <div class="body">
@@ -590,9 +592,9 @@ function renderMask() {
         </div>
       </div>
       <div class="field">
-        <label class="req">变动类型</label>
-        <select id="f-code"><option value="">请选择变动类型</option>${opts}</select>
-        <div class="err">${esc(modal.errors.code || "")}</div>
+        <label class="req">变动原因</label>
+        <select id="f-cause"><option value="">请选择变动原因</option>${REASONS.map(name => `<option value="${esc(name)}" ${modal.cause === name ? "selected" : ""}>${esc(name)}</option>`).join("")}</select>
+        <div class="err">${esc(modal.errors.cause || "")}</div>
       </div>
       <div class="field">
         <label class="req">资金方向</label>
@@ -631,7 +633,7 @@ function renderMask() {
         <button class="btn primary" id="confirm-ok" type="button">确认</button>
       </div>
     </div></div>` : "");
-  document.getElementById("f-code").onchange = (e) => { modal.code = e.target.value; };
+  document.getElementById("f-cause").onchange = (e) => { modal.cause = e.target.value; };
   document.querySelectorAll("input[name=dir]").forEach(r => r.onchange = () => { modal.direction = r.value; });
   document.getElementById("f-amount").oninput = (e) => { modal.amount = e.target.value; };
   document.getElementById("f-reason").oninput = (e) => {
@@ -663,21 +665,19 @@ function renderMask() {
 function closeModal() { modal = null; files = []; renderMask(); }
 
 function submitAdjust() {
-  const code = document.getElementById("f-code").value;
+  const cause = document.getElementById("f-cause").value;
   const direction = (document.querySelector("input[name=dir]:checked") || {}).value || "";
   const amountText = document.getElementById("f-amount").value.trim();
   const reason = document.getElementById("f-reason").value.trim();
   const errors = {};
-  if (!code) errors.code = "请选择变动类型";
-  if (code === "manual_adjust_add" || code === "manual_adjust_sub") errors.code = "不能写入已删除的变动类型";
-  if (!TYPE_MAP[code] && !errors.code) errors.code = "变动类型不在可选的 32 个编码里";
+  if (!REASONS.includes(cause)) errors.cause = "请选择变动原因";
   if (direction !== "增加" && direction !== "减少") errors.direction = "请选择资金方向";
   if (!amountText) errors.amount = "请输入调整金额";
   else if (!/^\d+(\.\d{1,2})?$/.test(amountText) || Number(amountText) <= 0) errors.amount = "请输入大于 0 的金额，最多两位小数";
   if (!reason) errors.reason = "请输入调整原因";
   else if (reason.length > 200) errors.reason = "调整原因最多 200 字";
   if (files.length > 10) errors.files = "最多 10 张";
-  modal.code = code; modal.direction = direction; modal.amount = amountText; modal.reason = reason; modal.errors = errors;
+  modal.cause = cause; modal.direction = direction; modal.amount = amountText; modal.reason = reason; modal.errors = errors;
   if (Object.keys(errors).length) { modal.confirming = false; renderMask(); return; }
   modal.confirming = true;
   renderMask();
@@ -693,7 +693,7 @@ function confirmAdjust() {
   const result = acceptAdjustment({
     merchantId: modal.merchantId,
     currency: modal.currency,
-    code: modal.code,
+    cause: modal.cause,
     direction: modal.direction,
     amount: Number(modal.amount),
     reason: modal.reason,
@@ -702,7 +702,7 @@ function confirmAdjust() {
   });
   if (!result.ok) {
     modal.confirming = false;
-    modal.errors.code = result.message;
+    modal.errors.cause = result.message;
     renderMask();
     return;
   }
@@ -713,12 +713,11 @@ function confirmAdjust() {
 }
 
 function acceptAdjustment(input) {
-  if (input.code === "manual_adjust_add" || input.code === "manual_adjust_sub" || !TYPE_MAP[input.code]) {
-    return { ok: false, message: "提交被拒绝：不能写入 manual_adjust_add 或 manual_adjust_sub" };
-  }
   if (input.direction !== "增加" && input.direction !== "减少") {
     return { ok: false, message: "资金方向只能是增加或减少" };
   }
+  if (!REASONS.includes(input.cause)) return { ok: false, message: "请选择变动原因" };
+  const code = input.direction === "减少" ? "manual_adjust_sub" : "manual_adjust_add";
   const merchant = state.merchants.find(m => m.id === input.merchantId && (!input.currency || m.currency === input.currency));
   if (!merchant) return { ok: false, message: "商户不存在" };
   const signed = input.direction === "增加" ? input.amount : -input.amount;
@@ -735,9 +734,9 @@ function acceptAdjustment(input) {
     merchantName: merchant.name,
     biz: merchant.biz,
     time,
-    code: input.code,
+    code,
     direction: input.direction,
-    method: "人工",
+    changeReason: input.cause,
     currency: merchant.currency,
     amount: signed,
     change: signed,
@@ -791,7 +790,7 @@ function renderTxns() {
         <div class="field"><label>所属业务</label>
           <select id="tq-biz"><option value="">请选择所属业务</option><option ${q.biz === "广告" ? "selected" : ""}>广告</option><option ${q.biz === "履约" ? "selected" : ""}>履约</option><option ${q.biz === "拒付" ? "selected" : ""}>拒付</option></select>
         </div>
-        <div class="field"><label>变动类型</label><div class="fake-select" id="tq-code">请选择变动类型</div></div>
+        <div class="field"><label>变动类型</label><select id="tq-code"><option value="">请选择变动类型</option>${TYPES.map(([code]) => `<option value="${esc(code)}" ${q.code === code ? "selected" : ""}>${esc(listLabel(code))}</option>`).join("")}</select></div>
         <div class="field"><label>交易时间</label>
           <div class="range">
             <input id="tq-from" placeholder="开始日期" value="${esc(q.from)}" />
@@ -814,17 +813,16 @@ function renderTxns() {
       <div class="table-wrap"><table class="tx">
         <thead><tr>
           <th>商户ID</th><th>商户名称</th><th>交易时间</th><th>所属业务</th><th>变动类型</th>
-          <th>操作方式</th><th>交易币种</th><th>交易金额</th><th>默认币种</th>
+          <th>变动原因</th><th>交易币种</th><th>交易金额</th><th>默认币种</th>
           <th>变动金额</th><th>变动后当前余额</th><th>变动后的可用余额</th><th>汇率</th><th>操作来源</th><th>交易单号</th><th>流水交易ID</th><th>调拨单号</th><th>描述/备注</th><th class="stick-r">操作</th>
         </tr></thead>
         <tbody>${rows.map(t => {
           const amt = displayAmount(t);
           const delta = displayChange(t);
           const sign = amt < 0 ? "minus" : "plus";
-          const method = t.method === "人工" || t.method === "系统" ? t.method : "—";
           return `<tr class="${t.id === focusId ? "hit" : ""}">
             <td>${esc(t.merchantId)}</td><td>${esc(t.merchantName)}</td><td>${esc(t.time)}</td><td>${esc(t.biz)}</td>
-            <td>${esc(listLabel(t.code))}</td><td>${esc(method)}</td>
+            <td>${esc(listLabel(t.code))}</td><td>${esc(t.changeReason || "")}</td>
             <td>${esc(t.currency)}</td><td class="money ${sign}">${signedMoney(amt)}</td><td>${esc(t.currency)}</td>
             <td class="money ${sign}">${signedMoney(delta)}</td><td>${money(t.afterCurrent)}</td><td>${money(t.afterAvailable)}</td>
             <td>${esc(t.rate)}</td><td>${esc(t.source || "—")}</td>
@@ -893,8 +891,8 @@ function exportMerchants(list) {
   ]));
 }
 function exportTxns(rows) {
-  const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "操作方式", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源", "交易单号", "流水交易ID", "调拨单号", "描述/备注"];
-  downloadCsv("交易详情.csv", header, rows.map(t => [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.method, t.currency, displayAmount(t), t.currency, displayChange(t), t.afterCurrent, t.afterAvailable, t.rate, t.source, t.orderNo, t.flowId, t.transferNo, t.remark]));
+  const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "变动原因", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源", "交易单号", "流水交易ID", "调拨单号", "描述/备注"];
+  downloadCsv("交易详情.csv", header, rows.map(t => [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.changeReason || "", t.currency, displayAmount(t), t.currency, displayChange(t), t.afterCurrent, t.afterAvailable, t.rate, t.source, t.orderNo, t.flowId, t.transferNo, t.remark]));
 }
 
 document.addEventListener("keydown", (e) => {

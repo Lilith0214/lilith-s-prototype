@@ -283,7 +283,35 @@ const TYPES = [
   ["manual_adjust_add", "系统调整-增加"],
   ["manual_adjust_sub", "系统调整-减少"]
 ];
-const REASONS = ["赔付", "手续费补足", "调拨转入", "汇损补足"];
+const FUND_REASONS = ["手续费补足", "汇损补足"];
+// 原型字典：广告枚举由需求方提供；代发枚举来自需求文档 3.2。
+const AD_REASONS = ["佣金", "调拨转入"];
+const FULFILL_REASONS = [
+  "备货采购", "订单扣款冲回", "订单履约扣款", "对账差额", "广告账户充值",
+  "加工杂费", "客户转账退回", "临时额度发放", "临时额度收回", "履约计价调整",
+  "赔付退款", "入账纠错", "收款充值", "佣金入账", "余额划出", "余额划入",
+  "运费调整", "重复认领扣回", "其他"
+];
+const REASON_CATALOG = { ad: AD_REASONS, fulfill: FULFILL_REASONS, fund: FUND_REASONS };
+const REASON_PREFIX = { "广告": "ad", "履约": "fulfill", "代发": "fulfill" };
+
+function prefixForBiz(biz) { return REASON_PREFIX[biz] || String(biz || "").toLowerCase() || "fund"; }
+function reasonOptionsForBiz(biz) {
+  const ownPrefix = prefixForBiz(biz);
+  const own = (ownPrefix === "fund" ? [] : (REASON_CATALOG[ownPrefix] || [])).map(label => ({ value: ownPrefix + "-" + label, label: ownPrefix + "-" + label }));
+  const fund = FUND_REASONS.map(label => ({ value: "fund-" + label, label: "fund-" + label }));
+  return own.concat(fund);
+}
+function formatChangeReason(reason, biz) {
+  if (!reason) return "";
+  const value = String(reason);
+  if (/^(ad|fulfill|fund)-/.test(value)) return value;
+  if (FUND_REASONS.includes(value)) return "fund-" + value;
+  // 旧版四个演示原因按实际来源补前缀，不能按交易所属业务误判来源。
+  if (value === "赔付") return "fulfill-赔付";
+  if (value === "调拨转入") return "ad-调拨转入";
+  return prefixForBiz(biz) + "-" + value;
+}
 const LIST_LABEL = {
   online_recharge: "在线充值",
   offline_recharge: "线下充值"
@@ -299,6 +327,9 @@ const seedMerchants = [
   { id: "20158", name: "mathy@bestfulfill.com", uniqueId: "mat***@bestfulfill.com", erp: "-", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: "-", creditUsed: 0, creditLeft: 0, creditStatus: "-", opening: "未设置", openingAt: "-", accountId: "FBJCEMBPHQLJ4PEG", createdAt: "2026-10-10 15:10:47" },
   { id: "20157", name: "idalla18a347@r4.pointnexus.org", uniqueId: "ida***@r4.pointnexus.org", erp: "-", biz: "履约", currency: "USD", attr: "主币种", status: "正常", current: 0, balance: 0, realAmount: 0, frozen: 0, credit: "-", creditUsed: 0, creditLeft: 0, creditStatus: "-", opening: "未设置", openingAt: "-", accountId: "FBXID1R0D6NJ7RYT", createdAt: "2026-10-10 14:59:56" }
 ];
+
+// 增加广告演示账户以验证子业务线隔离，原履约账户保持原样。
+seedMerchants.push({ ...seedMerchants[1], id: "19817", name: "Wassil", uniqueId: "Wassil", biz: "广告", accountId: "DEMO-AD-19817-USD" });
 
 const txnParty = {
   "19817": ["Wassil", "广告"],
@@ -351,7 +382,12 @@ let files = [];
 function load() {
   try {
     const raw = sessionStorage.getItem("aa-proto-v8");
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      const adDemo = seedMerchants.find(m => m.accountId === "DEMO-AD-19817-USD");
+      if (!saved.merchants.some(m => m.accountId === adDemo.accountId)) saved.merchants.push({ ...adDemo });
+      return saved;
+    }
   } catch (e) {}
   return { merchants: seedMerchants.map(m => Object.assign({}, m)), txns: seedTxns.slice() };
 }
@@ -601,12 +637,13 @@ function renderMask() {
         <div class="grid">
           <div>商户ID：${esc(m.id)}</div>
           <div>币种：${esc(m.currency)}</div>
+          <div>子业务线：${esc(m.biz)}</div>
           <div>可用余额：${money(m.balance)}</div>
         </div>
       </div>
       <div class="field">
-        <label class="req">变动原因</label>
-        <select id="f-cause"><option value="">请选择变动原因</option>${REASONS.map(name => `<option value="${esc(name)}" ${modal.cause === name ? "selected" : ""}>${esc(name)}</option>`).join("")}</select>
+        <label class="req" for="f-cause">变动原因</label>
+        <select id="f-cause"><option value="">请选择变动原因</option>${reasonOptionsForBiz(m.biz).map(item => `<option value="${esc(item.value)}" ${modal.cause === item.value ? "selected" : ""}>${esc(item.label)}</option>`).join("")}</select>
         <div class="err">${esc(modal.errors.cause || "")}</div>
       </div>
       <div class="field">
@@ -683,7 +720,9 @@ function submitAdjust() {
   const amountText = document.getElementById("f-amount").value.trim();
   const reason = document.getElementById("f-reason").value.trim();
   const errors = {};
-  if (!REASONS.includes(cause)) errors.cause = "请选择变动原因";
+  const account = state.merchants.find(x => x.id === modal.merchantId && x.currency === modal.currency);
+  const availableCauses = reasonOptionsForBiz(account ? account.biz : "");
+  if (!availableCauses.some(item => item.value === cause)) errors.cause = "请选择变动原因";
   if (direction !== "增加" && direction !== "减少") errors.direction = "请选择资金方向";
   if (!amountText) errors.amount = "请输入调整金额";
   else if (!/^\d+(\.\d{1,2})?$/.test(amountText) || Number(amountText) <= 0) errors.amount = "请输入大于 0 的金额，最多两位小数";
@@ -729,10 +768,11 @@ function acceptAdjustment(input) {
   if (input.direction !== "增加" && input.direction !== "减少") {
     return { ok: false, message: "资金方向只能是增加或减少" };
   }
-  if (!REASONS.includes(input.cause)) return { ok: false, message: "请选择变动原因" };
   const code = input.direction === "减少" ? "manual_adjust_sub" : "manual_adjust_add";
   const merchant = state.merchants.find(m => m.id === input.merchantId && (!input.currency || m.currency === input.currency));
   if (!merchant) return { ok: false, message: "商户不存在" };
+  const availableCauses = reasonOptionsForBiz(merchant.biz);
+  if (!availableCauses.some(item => item.value === input.cause)) return { ok: false, message: "请选择变动原因" };
   const signed = input.direction === "增加" ? input.amount : -input.amount;
   const nextCurrent = round2((Number(merchant.current) || 0) + signed);
   const nextAvailable = round2((Number(merchant.balance) || 0) + signed);
@@ -750,7 +790,7 @@ function acceptAdjustment(input) {
     time,
     code,
     direction: input.direction,
-    changeReason: input.cause,
+    changeReason: formatChangeReason(input.cause, merchant.biz),
     currency: merchant.currency,
     amount: signed,
     change: signed,
@@ -838,7 +878,7 @@ function renderTxns() {
           const availSign = Number(t.afterAvailable) < 0 ? "minus" : "plus";
           return `<tr class="${t.id === focusId ? "hit" : ""}">
             <td>${esc(t.merchantId)}</td><td>${esc(t.merchantName)}</td><td>${esc(t.time)}</td><td>${esc(t.biz)}</td>
-            <td>${esc(listLabel(t.code))}</td><td>${esc(t.changeReason || "")}</td>
+            <td>${esc(listLabel(t.code))}</td><td>${esc(formatChangeReason(t.changeReason, t.biz))}</td>
             <td>${esc(t.currency)}</td><td class="money ${sign}">${signedMoney(amt)}</td><td>${esc(t.currency)}</td>
             <td class="money ${sign}">${signedMoney(delta)}</td><td class="money ${curSign}">${esc(t.currency)} ${money(t.afterCurrent)}</td><td class="money ${availSign}">${esc(t.currency)} ${money(t.afterAvailable)}</td>
             <td>${esc(t.rate)}</td><td>${esc(t.source || "—")}</td>
@@ -908,7 +948,7 @@ function exportMerchants(list) {
 }
 function exportTxns(rows) {
   const header = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动类型编码", "变动原因", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源", "交易单号", "流水交易ID", "调拨单号", "描述/备注"];
-  downloadCsv("交易详情.csv", header, rows.map(t => [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, t.changeReason || "", t.currency, displayAmount(t), t.currency, displayChange(t), money(t.afterCurrent).replace(/,/g, ""), money(t.afterAvailable).replace(/,/g, ""), t.rate, t.source, t.orderNo, t.flowId, t.transferNo, t.remark]));
+  downloadCsv("交易详情.csv", header, rows.map(t => [t.merchantId, t.merchantName, t.time, t.biz, listLabel(t.code), t.code, formatChangeReason(t.changeReason, t.biz), t.currency, displayAmount(t), t.currency, displayChange(t), money(t.afterCurrent).replace(/,/g, ""), money(t.afterAvailable).replace(/,/g, ""), t.rate, t.source, t.orderNo, t.flowId, t.transferNo, t.remark]));
 }
 
 document.addEventListener("keydown", (e) => {

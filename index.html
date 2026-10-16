@@ -229,6 +229,91 @@ tr.empty td { text-align: center; color: #8c8c8c; padding: 48px 12px; }
   padding: 10px 16px; z-index: 30; display: none; line-height: 22px;
 }
 .toast.show { display: block; }
+
+/* 飞书审批原型 */
+.approval-stage {
+  min-height: 100%; padding: 20px; display: flex; flex-direction: column; align-items: center;
+  background: #eef0f3;
+}
+.approval-demo-bar {
+  width: min(100%, 620px); display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; color: #646a73;
+}
+.approval-demo-bar strong { color: #1f2329; font-size: 14px; }
+.approval-demo-tabs { display: flex; gap: 8px; }
+.approval-demo-tabs button {
+  height: 30px; padding: 0 12px; border: 1px solid #d0d3d8; border-radius: 16px;
+  background: #fff; color: #646a73;
+}
+.approval-demo-tabs button.on { color: #3370ff; border-color: #8fb1ff; background: #f0f5ff; }
+.feishu-phone {
+  width: min(100%, 620px); background: #fff; border: 1px solid #d9dce1; border-radius: 42px;
+  box-shadow: 0 10px 32px rgba(31,35,41,.14); padding: 22px; overflow: hidden;
+}
+.feishu-screen { overflow: hidden; border: 1px solid #d9dce1; border-radius: 30px; background: #f5f6f7; }
+.approval-title {
+  height: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #fff; border-bottom: 1px solid #dee0e3;
+}
+.approval-title h2 { margin: 0; font-size: 24px; line-height: 34px; color: #1f2329; }
+.approval-title .sub { margin-top: 4px; color: #8f959e; font-size: 12px; }
+.approval-status {
+  margin: 14px 18px; padding: 12px 14px; border-radius: 10px; background: #f0f5ff;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.approval-status b { color: #245bdb; font-size: 14px; }
+.approval-status span { color: #646a73; font-size: 12px; }
+.approval-section-title { padding: 14px 26px 10px; color: #646a73; font-size: 17px; font-weight: 600; }
+.approval-group { background: #fff; border-top: 1px solid #eff0f1; border-bottom: 1px solid #eff0f1; }
+.approval-row {
+  min-height: 64px; margin: 0 22px; padding: 12px 4px; display: grid;
+  grid-template-columns: 154px minmax(0, 1fr); align-items: center; gap: 18px;
+  border-bottom: 1px solid #eff0f1;
+}
+.approval-row:last-child { border-bottom: 0; }
+.approval-row .label { color: #1f2329; font-size: 15px; line-height: 22px; }
+.approval-row .required::after { content: "*"; color: #f54a45; margin-left: 2px; }
+.approval-row .value { color: #646a73; font-size: 15px; line-height: 22px; text-align: right; word-break: break-word; }
+.approval-row .value.money-value { color: #1f2329; font-variant-numeric: tabular-nums; }
+.approval-row .value.plus-value { color: #00a870; font-weight: 600; }
+.approval-row.multiline { align-items: start; }
+.approval-row.multiline .value { text-align: left; }
+.approval-files { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.approval-file { color: #3370ff; font-size: 13px; }
+.approval-path { margin: 0 18px 14px; padding: 15px; border-radius: 10px; background: #fff; }
+.approval-path-note { color: #8f959e; font-size: 12px; margin-bottom: 12px; }
+.approval-node { display: flex; align-items: center; min-height: 38px; position: relative; }
+.approval-node:not(:last-child)::after {
+  content: ""; position: absolute; left: 13px; top: 31px; width: 1px; height: 14px; background: #c9cdd4;
+}
+.approval-dot {
+  width: 27px; height: 27px; border-radius: 50%; background: #e8eaed; color: #646a73;
+  display: grid; place-items: center; flex: none; font-size: 12px; margin-right: 10px;
+}
+.approval-node.current .approval-dot { background: #3370ff; color: #fff; }
+.approval-node.done .approval-dot { background: #00b578; color: #fff; }
+.approval-node b { font-size: 14px; font-weight: 500; color: #1f2329; }
+.approval-node small { color: #8f959e; margin-left: 7px; }
+.approval-actions {
+  position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  padding: 14px 18px 18px; background: rgba(255,255,255,.96); border-top: 1px solid #eff0f1;
+}
+.approval-actions button { height: 44px; border-radius: 8px; font-size: 15px; }
+.approval-actions .reject { background: #fff; border: 1px solid #d0d3d8; color: #1f2329; }
+.approval-actions .approve { background: #3370ff; border: 1px solid #3370ff; color: #fff; }
+.approval-result {
+  position: fixed; left: 50%; top: 70px; transform: translateX(-50%); z-index: 50;
+  padding: 10px 16px; border-radius: 8px; background: #1f2329; color: #fff; display: none;
+}
+.approval-result.show { display: block; }
+@media (max-width: 760px) {
+  .approval-stage { padding: 0; }
+  .approval-demo-bar { padding: 12px 14px; margin: 0; background: #eef0f3; }
+  .approval-demo-bar strong { display: none; }
+  .feishu-phone { width: 100%; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+  .feishu-screen { border: 0; border-radius: 0; }
+  .approval-row { grid-template-columns: 124px minmax(0, 1fr); margin: 0 16px; }
+}
 </style>
 </head>
 <body>
@@ -368,9 +453,11 @@ function basePath() {
 }
 function pageFromLocation() {
   const rest = location.pathname.slice(basePath().length);
+  if (rest.indexOf("approval") >= 0) return "approval";
   return rest.indexOf("transaction") >= 0 ? "transactions" : "merchants";
 }
 let page = pageFromLocation();
+let approvalDemo = "high";
 let focusId = new URLSearchParams(location.search).get("focus") || "";
 let merchantQuery = { id: "", name: "", uniqueId: "", erp: "", accountId: "", amount: "", currency: "", attr: "", status: "", opening: "" };
 let merchantSort = { key: "", dir: 1 };
@@ -441,7 +528,7 @@ function toast(text) {
 function go(next, query) {
   page = next;
   focusId = query && query.focus || "";
-  const path = basePath() + (next === "transactions" ? "/transactions" : "/merchants");
+  const path = basePath() + (next === "approval" ? "/approval" : (next === "transactions" ? "/transactions" : "/merchants"));
   const url = path + (focusId ? "?focus=" + encodeURIComponent(focusId) : "");
   if (location.protocol !== "file:") history.pushState({}, "", url);
   fillBalances(state.txns);
@@ -462,6 +549,7 @@ function shell() {
     <span class="item">账户调拨列表</span>
     <h4>交易管理</h4>
     <a class="${page === "transactions" ? "active" : ""}" id="nav-txns">交易详情</a>
+    <a class="${page === "approval" ? "active" : ""}" id="nav-approval">飞书审批原型</a>
     <span class="item">业务入账</span>
     <span class="item">在线充值</span>
     <span class="item">转账审核</span>
@@ -473,20 +561,126 @@ function shell() {
     <span class="item">额度账单</span>`;
   document.getElementById("nav-merchants").onclick = () => go("merchants");
   document.getElementById("nav-txns").onclick = () => go("transactions");
+  document.getElementById("nav-approval").onclick = () => go("approval");
   const tab = (id, label, on) => `<button type="button" class="${on ? "on" : ""}" data-tab="${id}">${label}</button>`;
-  document.getElementById("tabs").innerHTML = page === "transactions"
-    ? tab("transactions", "交易详情", true)
-    : tab("merchants", "商户管理", true);
-    document.getElementById("crumb").innerHTML = page === "transactions"
-    ? `Fund &gt; 交易管理 &gt; <b>交易详情</b>`
-    : `Fund &gt; 商户管理 &gt; <b>商户管理</b>`;
+  document.getElementById("tabs").innerHTML = page === "approval"
+    ? tab("approval", "飞书审批原型", true)
+    : (page === "transactions" ? tab("transactions", "交易详情", true) : tab("merchants", "商户管理", true));
+  document.getElementById("crumb").innerHTML = page === "approval"
+    ? `Fund &gt; 交易管理 &gt; <b>飞书审批原型</b>`
+    : (page === "transactions" ? `Fund &gt; 交易管理 &gt; <b>交易详情</b>` : `Fund &gt; 商户管理 &gt; <b>商户管理</b>`);
 }
 
 function render() {
   shell();
-  if (page === "transactions") renderTxns();
+  if (page === "approval") renderApproval();
+  else if (page === "transactions") renderTxns();
   else renderMerchants();
   renderMask();
+}
+
+function approvalRow(label, value, options) {
+  const opts = options || {};
+  const labelClass = opts.required === false ? "label" : "label required";
+  const valueClass = "value" + (opts.money ? " money-value" : "") + (opts.plus ? " plus-value" : "");
+  return `<div class="approval-row ${opts.multiline ? "multiline" : ""}">
+    <div class="${labelClass}">${esc(label)}</div><div class="${valueClass}">${value}</div>
+  </div>`;
+}
+
+function renderApproval() {
+  const isHigh = approvalDemo === "high";
+  const data = {
+    requestNo: isHigh ? "FUND-ADJ-20261016-00027" : "FUND-ADJ-20261016-00028",
+    merchantId: "19817",
+    accountId: "DEMO-AD-19817-USD",
+    accountName: "Wassil 广告资金账户",
+    biz: "广告",
+    currency: "USD",
+    current: 24800,
+    available: 24620,
+    direction: "增加",
+    amount: isHigh ? 6800 : 3200,
+    changeReason: "ad-调拨转入",
+    note: isHigh ? "广告账户季度预算补充，已附业务确认单。" : "广告账户日常预算补充，已附业务确认单。",
+    applicant: "王婧娴（充值组）",
+    submittedAt: "2026-10-16 10:28:34",
+    snapshotAt: "2026-10-16 10:28:34",
+    files: ["业务确认单.pdf", "预算测算表.xlsx"]
+  };
+  const afterCurrent = round2(data.current + data.amount);
+  const afterAvailable = round2(data.available + data.amount);
+  const path = isHigh
+    ? [{ name: "刘汉威", state: "current", desc: "当前审批" }, { name: "沈亚婷", state: "", desc: "下一节点" }, { name: "肖雁方（Vanna）", state: "", desc: "最终节点" }]
+    : [{ name: "张鹏飞", state: "current", desc: "当前审批" }, { name: "沈雅婷", state: "", desc: "最终节点" }];
+  const nodes = path.map((node, index) => `<div class="approval-node ${node.state}">
+    <span class="approval-dot">${index + 1}</span><b>${esc(node.name)}</b><small>${esc(node.desc)}</small>
+  </div>`).join("");
+  document.getElementById("content").innerHTML = `<div class="approval-stage">
+    <div class="approval-demo-bar">
+      <strong>审批路径演示</strong>
+      <div class="approval-demo-tabs">
+        <button type="button" data-approval-demo="low" class="${isHigh ? "" : "on"}">调增 &lt; 5000</button>
+        <button type="button" data-approval-demo="high" class="${isHigh ? "on" : ""}">调增 ≥ 5000</button>
+      </div>
+    </div>
+    <div class="feishu-phone"><div class="feishu-screen">
+      <div class="approval-title"><h2>资金账户手工调额</h2><div class="sub">${esc(data.requestNo)}</div></div>
+      <div class="approval-status"><b>待${esc(path[0].name)}审批</b><span>由 Fund 自动发起</span></div>
+
+      <div class="approval-section-title">商户与账户信息</div>
+      <div class="approval-group">
+        ${approvalRow("商户 ID", esc(data.merchantId))}
+        ${approvalRow("资金账户 ID", esc(data.accountId))}
+        ${approvalRow("账户名称", esc(data.accountName))}
+        ${approvalRow("业务线", esc(data.biz))}
+      </div>
+
+      <div class="approval-section-title">资金调整信息</div>
+      <div class="approval-group">
+        ${approvalRow("币种", esc(data.currency))}
+        ${approvalRow("当前金额", esc(data.currency + " " + money(data.current)), { money: true })}
+        ${approvalRow("可用余额", esc(data.currency + " " + money(data.available)), { money: true })}
+        ${approvalRow("调整方向", `<span class="tag green">${esc(data.direction)}</span>`)}
+        ${approvalRow("调整金额", esc("+ " + data.currency + " " + money(data.amount)), { money: true, plus: true })}
+        ${approvalRow("调整后当前金额", esc(data.currency + " " + money(afterCurrent)), { money: true })}
+        ${approvalRow("调整后可用余额", esc(data.currency + " " + money(afterAvailable)), { money: true })}
+      </div>
+
+      <div class="approval-section-title">申请说明</div>
+      <div class="approval-group">
+        ${approvalRow("变动原因", esc(data.changeReason))}
+        ${approvalRow("调整说明", esc(data.note), { multiline: true })}
+        ${approvalRow("附件", `<div class="approval-files">${data.files.map(f => `<span class="approval-file">▣ ${esc(f)}</span>`).join("")}</div>`, { required: false })}
+      </div>
+
+      <div class="approval-section-title">系统信息</div>
+      <div class="approval-group">
+        ${approvalRow("Fund 申请单号", esc(data.requestNo), { required: false })}
+        ${approvalRow("Fund 发起人", esc(data.applicant), { required: false })}
+        ${approvalRow("提交时间", esc(data.submittedAt), { required: false })}
+        ${approvalRow("余额快照时间", esc(data.snapshotAt), { required: false })}
+      </div>
+
+      <div class="approval-section-title">审批流程</div>
+      <div class="approval-path">
+        <div class="approval-path-note">原币金额 ${money(data.amount)} ${isHigh ? "≥" : "<"} 5000，系统自动匹配审批路径</div>
+        ${nodes}
+      </div>
+      <div class="approval-actions"><button class="reject" type="button" data-approval-action="reject">拒绝</button><button class="approve" type="button" data-approval-action="approve">通过</button></div>
+    </div></div>
+    <div class="approval-result" id="approval-result"></div>
+  </div>`;
+  document.querySelectorAll("[data-approval-demo]").forEach(btn => btn.onclick = () => {
+    approvalDemo = btn.dataset.approvalDemo;
+    renderApproval();
+  });
+  document.querySelectorAll("[data-approval-action]").forEach(btn => btn.onclick = () => {
+    const result = document.getElementById("approval-result");
+    result.textContent = btn.dataset.approvalAction === "approve" ? "原型演示：已通过当前审批节点" : "原型演示：已拒绝申请";
+    result.className = "approval-result show";
+    setTimeout(() => { result.className = "approval-result"; }, 1800);
+  });
 }
 
 function fieldValue(id) {

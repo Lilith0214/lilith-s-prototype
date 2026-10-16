@@ -257,12 +257,6 @@ tr.empty td { text-align: center; color: #8c8c8c; padding: 48px 12px; }
 }
 .approval-title h2 { margin: 0; font-size: 24px; line-height: 34px; color: #1f2329; }
 .approval-title .sub { margin-top: 4px; color: #8f959e; font-size: 12px; }
-.approval-status {
-  margin: 14px 18px; padding: 12px 14px; border-radius: 10px; background: #f0f5ff;
-  display: flex; justify-content: space-between; align-items: center; gap: 12px;
-}
-.approval-status b { color: #245bdb; font-size: 14px; }
-.approval-status span { color: #646a73; font-size: 12px; }
 .approval-section-title { padding: 14px 26px 10px; color: #646a73; font-size: 17px; font-weight: 600; }
 .approval-group { background: #fff; border-top: 1px solid #eff0f1; border-bottom: 1px solid #eff0f1; }
 .approval-row {
@@ -611,11 +605,8 @@ function renderApproval() {
     note: isHigh ? "广告账户季度预算补充，已附业务确认单。" : "广告账户日常预算补充，已附业务确认单。",
     applicant: "张三",
     submittedAt: "2026-10-16 10:28:34",
-    snapshotAt: "2026-10-16 10:28:34",
     files: ["业务确认单.pdf", "预算测算表.xlsx"]
   };
-  const afterCurrent = round2(data.current + data.amount);
-  const afterAvailable = round2(data.available + data.amount);
   const path = isHigh
     ? [{ name: "刘汉威", state: "current", desc: "当前审批" }, { name: "沈雅婷", state: "", desc: "下一节点" }, { name: "肖雁方（Vanna）", state: "", desc: "最终节点" }]
     : [{ name: "张鹏飞", state: "current", desc: "当前审批" }, { name: "沈雅婷", state: "", desc: "最终节点" }];
@@ -632,14 +623,13 @@ function renderApproval() {
     </div>
     <div class="feishu-phone"><div class="feishu-screen">
       <div class="approval-title"><h2>资金账户手工调额</h2><div class="sub">${esc(data.requestNo)}</div></div>
-      <div class="approval-status"><b>待${esc(path[0].name)}审批</b><span>由 Fund 自动发起</span></div>
 
       <div class="approval-section-title">商户与账户信息</div>
       <div class="approval-group">
-        ${approvalRow("商户 ID", esc(data.merchantId))}
-        ${approvalRow("资金账户 ID", esc(data.accountId))}
         ${approvalRow("账户名称", esc(data.accountName))}
-        ${approvalRow("业务线", esc(data.biz))}
+        ${approvalRow("账户 ID", esc(data.accountId))}
+        ${approvalRow("商户 ID", esc(data.merchantId))}
+        ${approvalRow("账户业务线", esc(data.biz))}
       </div>
 
       <div class="approval-section-title">资金调整信息</div>
@@ -647,17 +637,11 @@ function renderApproval() {
         ${approvalRow("币种", esc(data.currency))}
         ${approvalRow("当前金额", esc(data.currency + " " + money(data.current)), { money: true })}
         ${approvalRow("可用余额", esc(data.currency + " " + money(data.available)), { money: true })}
-        ${approvalRow("调整方向", `<span class="tag green">${esc(data.direction)}</span>`)}
+        ${approvalRow("本次调整的变动原因", esc(data.changeReason))}
         ${approvalRow("调整金额", esc("+ " + data.currency + " " + money(data.amount)), { money: true, plus: true })}
-        ${approvalRow("调整后当前金额", esc(data.currency + " " + money(afterCurrent)), { money: true })}
-        ${approvalRow("调整后可用余额", esc(data.currency + " " + money(afterAvailable)), { money: true })}
-      </div>
-
-      <div class="approval-section-title">申请说明</div>
-      <div class="approval-group">
-        ${approvalRow("变动原因", esc(data.changeReason))}
-        ${approvalRow("调整说明", esc(data.note), { multiline: true })}
-        ${approvalRow("附件", `<div class="approval-files">${data.files.map(f => `<span class="approval-file">▣ ${esc(f)}</span>`).join("")}</div>`, { required: false })}
+        ${approvalRow("资金变动方向", `<span class="tag green">${esc(data.direction)}</span>`)}
+        ${approvalRow("本次调整的备注", esc(data.note), { multiline: true })}
+        ${approvalRow("上传的附件", `<div class="approval-files">${data.files.map(f => `<span class="approval-file">▣ ${esc(f)}</span>`).join("")}</div>`, { required: false })}
       </div>
 
       <div class="approval-section-title">系统信息</div>
@@ -665,7 +649,6 @@ function renderApproval() {
         ${approvalRow("Fund 申请单号", esc(data.requestNo), { required: false })}
         ${approvalRow("发起人", esc(data.applicant), { required: false })}
         ${approvalRow("提交时间", esc(data.submittedAt), { required: false })}
-        ${approvalRow("余额快照时间", esc(data.snapshotAt), { required: false })}
       </div>
 
       <div class="approval-section-title">审批流程</div>
@@ -683,7 +666,7 @@ function renderApproval() {
   });
   document.querySelectorAll("[data-approval-action]").forEach(btn => btn.onclick = () => {
     const result = document.getElementById("approval-result");
-    result.textContent = btn.dataset.approvalAction === "approve" ? "原型演示：已通过当前审批节点" : "原型演示：已拒绝申请";
+    result.textContent = btn.dataset.approvalAction === "approve" ? "原型演示：已通过当前审批节点" : "原型演示：已驳回申请";
     result.className = "approval-result show";
     setTimeout(() => { result.className = "approval-result"; }, 1800);
   });

@@ -306,6 +306,12 @@ tr.empty td { text-align: center; color: #8c8c8c; padding: 48px 12px; }
   padding: 10px 16px; border-radius: 8px; background: #1f2329; color: #fff; display: none;
 }
 .approval-result.show { display: block; }
+body.approval-standalone .sider,
+body.approval-standalone .top,
+body.approval-standalone .tabs { display: none; }
+body.approval-standalone .main { width: 100%; }
+body.approval-standalone .content { padding: 0; }
+body.approval-standalone .approval-stage { min-height: 100vh; }
 @media (max-width: 760px) {
   .approval-stage { padding: 0; }
   .approval-demo-bar { padding: 12px 14px; margin: 0; background: #eef0f3; }
@@ -541,6 +547,8 @@ window.addEventListener("popstate", () => {
 });
 
 function shell() {
+  document.body.classList.toggle("approval-standalone", page === "approval");
+  document.title = page === "approval" ? "飞书 · 资金账户手工调额审批" : "Fund · 金额调整";
   document.getElementById("sider").innerHTML = `
     <span class="item">Fund</span>
     <h4>商户管理</h4>
@@ -549,7 +557,6 @@ function shell() {
     <span class="item">账户调拨列表</span>
     <h4>交易管理</h4>
     <a class="${page === "transactions" ? "active" : ""}" id="nav-txns">交易详情</a>
-    <a class="${page === "approval" ? "active" : ""}" id="nav-approval">飞书审批原型</a>
     <span class="item">业务入账</span>
     <span class="item">在线充值</span>
     <span class="item">转账审核</span>
@@ -561,13 +568,12 @@ function shell() {
     <span class="item">额度账单</span>`;
   document.getElementById("nav-merchants").onclick = () => go("merchants");
   document.getElementById("nav-txns").onclick = () => go("transactions");
-  document.getElementById("nav-approval").onclick = () => go("approval");
   const tab = (id, label, on) => `<button type="button" class="${on ? "on" : ""}" data-tab="${id}">${label}</button>`;
   document.getElementById("tabs").innerHTML = page === "approval"
-    ? tab("approval", "飞书审批原型", true)
+    ? ""
     : (page === "transactions" ? tab("transactions", "交易详情", true) : tab("merchants", "商户管理", true));
   document.getElementById("crumb").innerHTML = page === "approval"
-    ? `Fund &gt; 交易管理 &gt; <b>飞书审批原型</b>`
+    ? ""
     : (page === "transactions" ? `Fund &gt; 交易管理 &gt; <b>交易详情</b>` : `Fund &gt; 商户管理 &gt; <b>商户管理</b>`);
 }
 
@@ -603,7 +609,7 @@ function renderApproval() {
     amount: isHigh ? 6800 : 3200,
     changeReason: "ad-调拨转入",
     note: isHigh ? "广告账户季度预算补充，已附业务确认单。" : "广告账户日常预算补充，已附业务确认单。",
-    applicant: "王婧娴（充值组）",
+    applicant: "张三",
     submittedAt: "2026-10-16 10:28:34",
     snapshotAt: "2026-10-16 10:28:34",
     files: ["业务确认单.pdf", "预算测算表.xlsx"]
@@ -611,7 +617,7 @@ function renderApproval() {
   const afterCurrent = round2(data.current + data.amount);
   const afterAvailable = round2(data.available + data.amount);
   const path = isHigh
-    ? [{ name: "刘汉威", state: "current", desc: "当前审批" }, { name: "沈亚婷", state: "", desc: "下一节点" }, { name: "肖雁方（Vanna）", state: "", desc: "最终节点" }]
+    ? [{ name: "刘汉威", state: "current", desc: "当前审批" }, { name: "沈雅婷", state: "", desc: "下一节点" }, { name: "肖雁方（Vanna）", state: "", desc: "最终节点" }]
     : [{ name: "张鹏飞", state: "current", desc: "当前审批" }, { name: "沈雅婷", state: "", desc: "最终节点" }];
   const nodes = path.map((node, index) => `<div class="approval-node ${node.state}">
     <span class="approval-dot">${index + 1}</span><b>${esc(node.name)}</b><small>${esc(node.desc)}</small>
@@ -657,7 +663,7 @@ function renderApproval() {
       <div class="approval-section-title">系统信息</div>
       <div class="approval-group">
         ${approvalRow("Fund 申请单号", esc(data.requestNo), { required: false })}
-        ${approvalRow("Fund 发起人", esc(data.applicant), { required: false })}
+        ${approvalRow("发起人", esc(data.applicant), { required: false })}
         ${approvalRow("提交时间", esc(data.submittedAt), { required: false })}
         ${approvalRow("余额快照时间", esc(data.snapshotAt), { required: false })}
       </div>

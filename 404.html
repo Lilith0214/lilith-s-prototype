@@ -240,7 +240,7 @@ tr.empty td { text-align: center; color: #8c8c8c; padding: 48px 12px; }
   margin-bottom: 12px; color: #646a73;
 }
 .approval-demo-bar strong { color: #1f2329; font-size: 14px; }
-.approval-demo-tabs { display: flex; gap: 8px; }
+.approval-demo-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
 .approval-demo-tabs button {
   height: 30px; padding: 0 12px; border: 1px solid #d0d3d8; border-radius: 16px;
   background: #fff; color: #646a73;
@@ -589,6 +589,7 @@ function approvalRow(label, value, options) {
 }
 
 function renderApproval() {
+  const isFulfill = approvalDemo === "fulfill";
   const isHigh = approvalDemo === "high";
   const data = {
     requestNo: isHigh ? "FUND-ADJ-20261016-00027" : "FUND-ADJ-20261016-00028",
@@ -607,7 +608,20 @@ function renderApproval() {
     submittedAt: "2026-10-16 10:28:34",
     files: ["业务确认单.pdf", "预算测算表.xlsx"]
   };
-  const path = isHigh
+  if (isFulfill) Object.assign(data, {
+    requestNo: "FUND-ADJ-20261020-00029",
+    accountId: "DEMO-FULFILL-19817-USD",
+    accountName: "示例商户代发资金账户",
+    biz: "代发（履约）",
+    amount: 6800,
+    changeReason: "fulfill-订单扣款冲回",
+    note: "订单扣款冲回申请，已附业务确认单（演示数据）。",
+    applicant: "张三（财务）",
+    submittedAt: "2026-10-20 10:28:34"
+  });
+  const path = isFulfill
+    ? [{ name: "高阳", state: "current", desc: "代发财务 BP · 唯一审批节点" }]
+    : isHigh
     ? [{ name: "刘汉威", state: "current", desc: "当前审批" }, { name: "沈雅婷", state: "", desc: "下一节点" }, { name: "肖雁方（Vanna）", state: "", desc: "最终节点" }]
     : [{ name: "张鹏飞", state: "current", desc: "当前审批" }, { name: "沈雅婷", state: "", desc: "最终节点" }];
   const nodes = path.map((node, index) => `<div class="approval-node ${node.state}">
@@ -617,8 +631,9 @@ function renderApproval() {
     <div class="approval-demo-bar">
       <strong>审批路径演示</strong>
       <div class="approval-demo-tabs">
-        <button type="button" data-approval-demo="low" class="${isHigh ? "" : "on"}">调增 &lt; 5000</button>
-        <button type="button" data-approval-demo="high" class="${isHigh ? "on" : ""}">调增 ≥ 5000</button>
+        <button type="button" data-approval-demo="low" class="${approvalDemo === "low" ? "on" : ""}">广告调增 &lt; 5000</button>
+        <button type="button" data-approval-demo="high" class="${isHigh ? "on" : ""}">广告调增 ≥ 5000</button>
+        <button type="button" data-approval-demo="fulfill" class="${isFulfill ? "on" : ""}">代发调增 · 不限金额</button>
       </div>
     </div>
     <div class="feishu-phone"><div class="feishu-screen">
@@ -653,7 +668,7 @@ function renderApproval() {
 
       <div class="approval-section-title">审批流程</div>
       <div class="approval-path">
-        <div class="approval-path-note">原币金额 ${money(data.amount)} ${isHigh ? "≥" : "<"} 5000，系统自动匹配审批路径</div>
+        <div class="approval-path-note">${isFulfill ? "调增不区分金额和币种，统一由高阳审批；通过后由 Fund 执行账户调额。调减无需审批。" : `原币金额 ${money(data.amount)} ${isHigh ? "≥" : "<"} 5000，系统自动匹配审批路径`}</div>
         ${nodes}
       </div>
       <div class="approval-actions"><button class="reject" type="button" data-approval-action="reject">驳回</button><button class="approve" type="button" data-approval-action="approve">通过</button></div>
@@ -666,7 +681,9 @@ function renderApproval() {
   });
   document.querySelectorAll("[data-approval-action]").forEach(btn => btn.onclick = () => {
     const result = document.getElementById("approval-result");
-    result.textContent = btn.dataset.approvalAction === "approve" ? "原型演示：已通过当前审批节点" : "原型演示：已驳回申请";
+    result.textContent = btn.dataset.approvalAction === "approve"
+      ? (isFulfill ? "原型演示：高阳审批通过，Fund 执行账户调额（不产生真实资金变动）" : "原型演示：已通过当前审批节点")
+      : "原型演示：已驳回申请";
     result.className = "approval-result show";
     setTimeout(() => { result.className = "approval-result"; }, 1800);
   });

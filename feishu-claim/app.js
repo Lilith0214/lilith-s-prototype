@@ -1,27 +1,162 @@
-const receipts=[
- {id:'2c3e6e7e-7a3c-41d7-8c12-0a91c8e11a01',channel:'Airwallex',currency:'USD',amount:320,payer:'SHENZHEN STARLINK E-COMMERCE CO LTD',merchant:'星辰出海-广告主账户',merchantId:'14229',biz:'广告',owner:'林晓',confidence:98,reason:'付款账号 GB29NWBK60161331926819：历史 100 次中 98 次认领至 星辰出海-广告主账户',status:'待认领',stop:false,account:'ACC-14229-ADS-USD'},
- {id:'wf-rec-multi-7701',channel:'Airwallex',currency:'USD',amount:1860,payer:'HANGZHOU RETAIL TRADE CO',merchant:'万里汇零售测试中',merchantId:'17701',biz:'履约',owner:'王敏（主维护人）',confidence:91,reason:'付款账号 6222021000001234567：历史主要认领至 万里汇零售测试中',status:'待认领',stop:false,account:'ACC-17701-FUL-USD'},
- {id:'c80d11e2-12ab-4f20-a111-55e0cc900031',channel:'Airwallex',currency:'EUR',amount:860.5,payer:'EURO BUYER GMBH',merchant:'北辰广告-欧洲账户',merchantId:'15301',biz:'广告',owner:'陈悦',confidence:72,reason:'付款人名称及收款账户历史记录关联至 北辰广告-欧洲账户',status:'待认领',stop:false,account:'ACC-15301-ADS-EUR'},
- {id:'e21aa09c-88c1-4aa2-b333-0144dd200044',channel:'Airwallex',currency:'USD',amount:6000,payer:'—',merchant:'',merchantId:'',biz:'',owner:'',status:'待认领',stop:false,account:''}
+const receipts = [
+  {id:'2c3e6e7e-7a3c-41d7-8c12-0a91c8e11a01',time:'2026-10-20 11:24:00',channel:'Airwallex',currency:'USD',amount:320,payer:'SHENZHEN STARLINK E-COMMERCE CO LTD',merchant:'星辰出海-广告主账户',merchantId:'14229',biz:'广告',owner:'林晓',confidence:98,reason:'付款账号 GB29NWBK60161331926819：历史 100 次中 98 次认领至星辰出海-广告主账户',status:'待认领',stop:false},
+  {id:'c80d11e2-12ab-4f20-a111-55e0cc900031',time:'2026-10-20 10:45:10',channel:'Airwallex',currency:'EUR',amount:860.5,payer:'EURO BUYER GMBH',merchant:'北辰广告-欧洲账户',merchantId:'15301',biz:'广告',owner:'林晓',confidence:72,reason:'付款人名称及收款账户历史记录关联至北辰广告-欧洲账户',status:'待认领',stop:false}
 ];
-const accounts=[{id:'ACC-14229-ADS-USD',name:'星辰出海-广告主账户',currency:'USD',balance:12800},{id:'ACC-17701-FUL-USD',name:'万里汇零售测试中',currency:'USD',balance:6400},{id:'ACC-15301-ADS-EUR',name:'北辰广告-欧洲账户',currency:'EUR',balance:2200}];
-const ledger=[];let page='messages',focusId='',config={enabled:true,count:3,first:'09:00',interval:180},toastTimer;
-const $=s=>document.querySelector(s),money=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function toast(s){$('#toast').textContent=s;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4000)}
-function head(title,sub,extra=''){return `<div class="page-head"><div><h1>${title}</h1><p class="subtitle">${sub}</p></div>${extra}</div>`}
-function schedule(c){if(!Number.isInteger(c.count)||c.count<1||c.count>24)return{error:'每日提醒次数请输入 1～24 的整数（本版建议范围）。'};if(!/^\d{2}:\d{2}$/.test(c.first))return{error:'请选择首次提醒时间。'};const [h,m]=c.first.split(':').map(Number);if(h>23||m>59)return{error:'首次提醒时间无效。'};if(c.count>1&&(!Number.isInteger(c.interval)||c.interval<1))return{error:'提醒间隔请输入正整数分钟。'};const start=h*60+m;if(start+(c.count-1)*c.interval>=1440)return{error:'最后一次提醒不能跨过当天 24:00，请调整次数、首次时间或间隔。'};return{times:Array.from({length:c.count},(_,i)=>{const n=start+i*c.interval;return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`})}}
-function render(){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('#breadcrumb').textContent={messages:'飞书逐笔提醒',receipts:'收款明细',accounts:'客户账户',settings:'推荐配置',guide:'方案说明'}[page];$('#app').innerHTML=({messages:messages,receipts:receiptPage,accounts:accountPage,settings:settingsPage,guide:guidePage}[page])();if(page==='settings')preview()}
-function messages(){const rec=receipts.filter(r=>r.merchant),pending=receipts.filter(r=>r.status==='待认领').length;return head('飞书逐笔提醒','一条推荐流水，一条提醒消息。核对信息后，在飞书内完成认领。','<span class="chip">交互演示 · 无真实入账</span>')+`<div class="stats"><div class="stat"><span>待认领流水</span><strong>${pending}</strong></div><div class="stat"><span>本次可提醒</span><strong>${config.enabled?rec.filter(r=>r.status==='待认领'&&!r.stop).length:0}</strong></div><div class="stat"><span>已确认入账</span><strong>${ledger.length}</strong></div></div><div class="layout"><section><div class="hint">以下为已送达卡片的演示。确认成功后卡片更新为“已认领”；退回后卡片保留处理结果，并停止后续提醒。</div>${rec.map(card).join('')}</section><section class="right-panel"><div class="panel"><h2>今日提醒计划</h2><span class="tag ${config.enabled?'ok':'gray'}">${config.enabled?'提醒已启用':'提醒已关闭'}</span><div class="summary-line"><b>北京时间 · UTC+8</b>每天 ${config.count} 次 · ${config.count===1?'单次发送':`间隔 ${config.interval} 分钟`}</div><div class="times">${schedule(config).times.map(t=>`<span class="time">${t}</span>`).join('')}</div><button class="link" data-page="settings">调整提醒计划 →</button><p class="footnote">示例默认值，可配置；各时点按最新流水状态判断是否发送。</p></div><div class="panel"><h2>飞书内完成认领</h2><div class="step"><i>1</i><span>核对推荐客户、业务线和收款金额</span></div><div class="step"><i>2</i><span>上传转账凭证，确认入账账户</span></div><div class="step"><i>3</i><span>入账成功，收款明细自动移除</span></div><div class="summary-line"><b>认领有误？</b>点击退回，保留待认领，交由人工处理。退回原因选填。</div></div></section></div>`}
-function card(r){let tag=r.status==='已认领'?'<span class="tag ok">已认领</span>':r.stop?'<span class="tag warn">已停止提醒</span>':'<span class="tag">待认领</span>';return `<article class="message"><div class="bot-avatar">F</div><div><div class="sender">Fund 资金助手　·　接收人：${r.owner}</div><div class="card"><div class="card-head">收款流水待认领 ${tag}</div><div class="card-body"><dl class="fields"><dt>收款金额</dt><dd class="amount">${r.currency} ${money(r.amount)}</dd><dt>接收人</dt><dd>${r.owner}</dd><dt>渠道</dt><dd>${r.channel}</dd><dt>交易号</dt><dd>${r.id}</dd><dt>付款人</dt><dd>${r.payer}</dd><dt>推荐商户</dt><dd>${r.merchant}（${r.merchantId}）</dd><dt>推荐业务线</dt><dd>${r.biz}</dd><dt>可信度</dt><dd>${r.confidence}%</dd></dl><div class="reason"><b>简要原因</b><br>${r.reason}</div>${r.status==='已认领'?`<div class="hint">已充值至 ${r.account}<br>入账金额：${r.currency} ${money(r.amount)}<br>该流水已从收款明细移除。</div>`:r.stop?`<div class="hint">${r.returned?'已退回，保持待认领。':'已停止后续提醒，保持待认领。'}<br>${r.returned?`退回原因：${esc(r.returnReason||'未填写')}`:'可前往 Fund 手工处理。'}</div>`:''}<div class="actions"><button class="primary" data-action="claim" data-id="${r.id}" ${r.status!=='待认领'||r.returned?'disabled':''}>确定认领</button><button data-action="return" data-id="${r.id}" ${r.status!=='待认领'||r.returned?'disabled':''}>退回</button><button class="link" data-action="view" data-id="${r.id}">查看流水</button>${r.status==='待认领'&&!r.stop?`<button class="link" data-action="mute" data-id="${r.id}">不再提醒</button>`:''}</div><div class="footnote">系统推荐仅供参考，请核对客户与业务线。确定认领后需在飞书内补齐转账凭证。</div></div></div></div></article>`}
-function receiptPage(){let rows=receipts.filter(r=>r.status==='待认领'&&(!focusId||r.id===focusId));return head('收款明细','仅展示待认领流水。飞书确认入账成功后，该流水从本页移除。','<span class="chip">Airwallex</span>')+`<div class="panel"><div class="row"><h2>待认领流水 <span class="tag gray">${rows.length} 条</span></h2>${focusId?'<button data-action="clear-filter">清除交易号定位</button>':''}</div><div class="table-wrap"><table><thead><tr><th>交易号 / 渠道</th><th>收款金额</th><th>付款人</th><th>推荐商户 / 业务线</th><th>认领状态</th><th>提醒状态</th><th>操作</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.id}<small>${r.channel}</small></td><td>${r.currency} ${money(r.amount)}</td><td>${r.payer}</td><td>${r.merchant||'—'}<small>${r.biz||'—'}</small></td><td><span class="tag gray">待认领</span></td><td>${r.returned?'已退回 · 停止提醒':r.stop?'停止提醒':r.merchant?'按计划提醒':'无推荐'}</td><td><button class="link" data-action="detail" data-id="${r.id}">查看详情</button></td></tr>`).join('')}</tbody></table>${rows.length?'':'<div class="empty">暂无符合条件的待认领流水</div>'}</div></div><p class="notice">退回流水继续保留在这里，由业务人员按现网人工认领流程处理。已认领记录仍保存在认领记录和充值流水中，页面移除不等于删除。</p>`}
-function accountPage(){return head('客户账户','确认认领后的充值结果与记录 · 金额均为演示数据')+`<div class="stats">${accounts.map(a=>`<div class="stat"><span>${a.name}</span><div class="balance">${a.currency} ${money(a.balance)}</div><p class="footnote">${a.id}</p></div>`).join('')}</div><div class="panel"><h2>本次演示充值记录</h2><div class="table-wrap"><table><thead><tr><th>入账时间（北京时间）</th><th>流水交易号</th><th>客户账户</th><th>充值金额</th><th>凭证</th><th>结果</th></tr></thead><tbody>${ledger.map(l=>`<tr><td>${l.time}</td><td>${l.id}</td><td>${l.account}</td><td>${l.currency} ${money(l.amount)}</td><td>${esc(l.file)}</td><td><span class="tag ok">充值成功</span></td></tr>`).join('')}</tbody></table>${ledger.length?'':'<div class="empty">完成一笔飞书认领后，这里将展示充值记录</div>'}</div></div>`}
-function settingsPage(){return head('推荐配置','设置飞书逐笔提醒的每日计划。每个发送时点单独判断每笔流水。')+`<div class="settings"><form id="settings-form"><div class="panel"><div class="row"><div><h2>启用飞书通知</h2><p class="subtitle">关闭后停止发送，列表推荐保持展示。</p></div><input class="switch" aria-label="启用飞书通知" type="checkbox" name="enabled" ${config.enabled?'checked':''}></div></div><div class="panel"><h2>通知频次</h2><p class="subtitle">按固定时间计划逐笔发送 · 时区：北京时间（UTC+8）</p><div class="form-grid"><div><label for="count">每日提醒次数</label><input id="count" name="count" type="number" min="1" max="24" step="1" value="${config.count}" required></div><div><label for="first">首次提醒时间</label><input id="first" name="first" type="time" value="${config.first}" required></div><div><label for="interval">提醒间隔（分钟）</label><input id="interval" name="interval" type="number" min="1" step="1" value="${config.interval}" required></div></div><div class="hint"><b>当天发送时间预览</b><div class="times" id="time-preview"></div><div id="schedule-error" class="error" role="alert"></div></div><p class="notice">每日 1 次时无需配置间隔。发送计划不跨自然日。保存后按新计划的后续时点执行，不补发已错过的时点；每笔流水在同一时点只提醒一次。</p><p class="footnote">演示默认：每天 3 次、09:00 首次、间隔 180 分钟。次数建议范围 1～24 次，作为本版待评审配置约束。</p><button class="primary" type="submit">保存配置</button></div></form></div>`}
-function guidePage(){return head('方案说明','飞书逐笔认领 · 独立新版，不覆盖旧方案')+`<div class="panel guide"><h2>业务闭环</h2><ol><li>已生成有效推荐且有主维护人的待认领流水，按提醒计划逐笔发送。</li><li>卡片保留接收人、渠道、交易号、金额、付款人、推荐商户、推荐业务线、可信度、简要原因。</li><li>新增“确定认领”“退回”；“查看流水”承接原跳转入口，“不再提醒”保留。</li><li>确定认领后打开飞书内表单，核对客户账户、补齐转账凭证；服务端校验权限、当前状态、客户账户与金额后提交充值。</li><li>充值成功才更新为已认领、移出收款明细；充值失败保持待认领，支持重试。</li><li>退回原因选填，退回后不充值、保持待认领、停止该笔后续提醒并交人工处理。</li></ol><h2>重要边界</h2><p>推荐可信度仍在卡片保留展示，不作为通知配置项。实际推荐算法沿用原系统。收款明细只展示待认领，已认领记录仍可通过认领记录/充值流水追溯。修改业务线或商户应进入 Fund 原有人工处理流程。</p><p>每天次数、首次时间、间隔生成明确发送时点。重复回调、旧卡片、并发点击均需服务端幂等校验，一笔收款只能充值一次；退回与认领并发时以服务端先成功提交的结果为准。</p><h2>原型说明</h2><p>全部操作仅修改当前页面的演示数据；刷新后恢复初始示例。凭证只读取文件名，不上传；未接入飞书、Fund、账户或真实转账接口。生产实现需验证飞书内表单/应用上传附件能力。</p><button data-page="messages" class="primary">体验逐笔认领</button></div>`}
-function showModal(title,body,footer){$('#modal').innerHTML=`<div class="modal-head">${title}<button data-action="close" aria-label="关闭">×</button></div>${body}<div class="modal-foot">${footer}</div>`;$('#modal').showModal()}
-function claim(r){if(r.status!=='待认领'||r.returned)return toast('该流水当前不可通过此卡片认领');showModal('确定认领',`<form id="claim-form" data-id="${r.id}"><div class="modal-body"><div class="hint">飞书内认领表单 · 请核对后补齐凭证。提交成功后直接充值至以下客户账户。</div><dl class="fields"><dt>客户 / 商户</dt><dd>${r.merchant}（${r.merchantId}）</dd><dt>业务线</dt><dd>${r.biz}</dd><dt>入账账户</dt><dd>${r.account}</dd><dt>收款金额</dt><dd class="amount">${r.currency} ${money(r.amount)}</dd><dt>交易号</dt><dd>${r.id}</dd><dt>渠道</dt><dd>${r.channel}</dd><dt>付款人</dt><dd>${r.payer}</dd></dl><div class="upload"><label for="voucher">转账凭证 <span style="color:#c14c48">*</span></label><input id="voucher" name="voucher" type="file" accept="image/*,.pdf" required><p class="footnote">原型仅演示选择凭证，不上传文件。生产附件规范沿用现网。</p></div><label class="checkbox-label"><input name="confirm" type="checkbox" required>我已核对业务线、客户账户及收款金额，确认充值。</label><label for="outcome">演示场景</label><select id="outcome" name="outcome"><option value="success">模拟入账成功</option><option value="fail">模拟入账失败</option></select><div class="error" id="claim-error" role="alert"></div></div></form>`,`<button data-action="close">取消</button><button class="primary" type="submit" form="claim-form">提交认领并充值</button>`)}
-function returnModal(r){if(r.status!=='待认领'||r.returned)return toast('该流水已经处理');showModal('退回推荐流水',`<form id="return-form" data-id="${r.id}"><div class="modal-body"><div class="hint">退回后不充值，流水保持待认领并停止后续飞书提醒。业务人员可在 Fund 收款明细中人工处理。</div><p>${r.merchant} · ${r.currency} ${money(r.amount)}</p><label for="return-reason">退回原因（选填）</label><textarea id="return-reason" name="reason" rows="4" placeholder="可填写推荐客户不符等说明"></textarea></div></form>`,`<button data-action="close">取消</button><button class="danger" type="submit" form="return-form">确认退回</button>`)}
-function preview(){const f=$('#settings-form');if(!f)return;const count=Number(f.elements.count.value);f.elements.interval.disabled=count===1;let c={count,first:f.elements.first.value,interval:count===1?config.interval:Number(f.elements.interval.value)},result=schedule(c);$('#time-preview').innerHTML=result.times?result.times.map(t=>`<span class="time">${t}</span>`).join(''):'';$('#schedule-error').textContent=result.error||'';f.querySelector('button[type=submit]').disabled=!!result.error}
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.page){page=b.dataset.page;focusId='';render();return}const action=b.dataset.action,r=receipts.find(x=>x.id===b.dataset.id);if(action==='close')$('#modal').close();if(action==='claim')claim(r);if(action==='return')returnModal(r);if(action==='mute'&&r.status==='待认领'){r.stop=true;render();toast('已停止该笔提醒，流水仍为待认领')}if(action==='view'){if(r.status==='已认领'){page='accounts'}else{page='receipts';focusId=r.id}render()}if(action==='clear-filter'){focusId='';render()}if(action==='detail')showModal('待认领流水详情',`<div class="modal-body"><dl class="fields"><dt>交易号</dt><dd>${r.id}</dd><dt>金额</dt><dd>${r.currency} ${money(r.amount)}</dd><dt>状态</dt><dd>待认领</dd><dt>推荐商户</dt><dd>${r.merchant||'无推荐'}</dd><dt>退回原因</dt><dd>${esc(r.returnReason||'—')}</dd></dl><p class="notice">${r.returned?'已退回，已停止提醒。请按现网人工认领流程处理。':r.merchant?'可从飞书卡片核对并认领。':'无推荐，不生成提醒；按现网人工认领流程处理。'}</p></div>`,'<button data-action="close">关闭</button>')});
-document.addEventListener('input',e=>{if(e.target.closest('#settings-form'))preview()});
-document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;if(f.id==='settings-form'){const c={enabled:f.elements.enabled.checked,count:Number(f.elements.count.value),first:f.elements.first.value,interval:Number(f.elements.interval.value)||config.interval};const result=schedule(c);if(result.error)return;config=c;render();toast('提醒计划已保存（当前演示会话）');return}const r=receipts.find(x=>x.id===f.dataset.id);if(!r||r.status!=='待认领'||r.returned){$('#modal').close();toast('流水已处理，请刷新最新状态');return}if(f.id==='return-form'){r.returned=true;r.returnReason=f.elements.reason.value.trim();r.stop=true;$('#modal').close();render();toast('已退回，保持待认领并停止提醒');return}if(f.id==='claim-form'){const file=f.elements.voucher.files[0];if(!file||!f.elements.confirm.checked)return;const a=accounts.find(x=>x.id===r.account&&x.currency===r.currency);if(!a){$('#claim-error').textContent='入账账户无效，请到 Fund 核对。';return}if(f.elements.outcome.value==='fail'){$('#claim-error').textContent='模拟充值失败：余额未变，流水保持待认领。可切换成功场景后重试。';return}if(ledger.some(x=>x.id===r.id))return; a.balance+=r.amount;r.status='已认领';r.stop=true;ledger.push({id:r.id,account:r.account,amount:r.amount,currency:r.currency,file:file.name,time:new Date().toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false})});$('#modal').close();render();toast(`模拟充值成功：${r.currency} ${money(r.amount)}，流水已移出收款明细`)}});
+// 演示客户；生产从 Fund 读取有权限且具备对应子业务账户的客户。
+const customers = [
+  {id:'14229',name:'星辰出海-广告主账户',lines:['广告']},
+  {id:'15301',name:'北辰广告-欧洲账户',lines:['广告']},
+  {id:'17701',name:'迅达供应链-履约账户',lines:['履约']},
+  {id:'18801',name:'海川-拒付账户（演示）',lines:['拒付']}
+];
+let scene='messages', config={enabled:true,count:3,first:'09:00',interval:180};
+let activeReceipt=null, attachments=[], pendingClaim=null, toastTimer;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+function toast(text) { $('#toast').textContent=text; $('#toast').classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4000); }
+function render() {
+  document.querySelectorAll('[data-scene]').forEach(b=>b.classList.toggle('active',b.dataset.scene===scene));
+  $('#app').innerHTML=scene==='messages'?messages():settingsPage();
+  if(scene==='settings') preview();
+}
+function messages() {
+  return `<div class="feishu-shell">
+  <aside class="app-rail" aria-label="飞书场景装饰"><div class="feishu-mark">✦</div><div class="rail-avatar">林</div><div class="rail-selected">▣<small>消息</small></div><div>▦<small>日历</small></div><div>▤<small>云文档</small></div><div>▧<small>工作台</small></div></aside>
+  <section class="conversation-list"><div class="search">⌕　搜索</div><div class="list-heading">消息 <span>＋</span></div><div class="chat-selected"><div class="bot-avatar">F</div><div><b>Fund 资金助手</b><p>收款流水待认领推荐</p></div></div><div class="chat-explain">来自资金中台的应用通知<br>每张卡片对应一笔收款流水</div></section>
+  <section class="chat"><header class="chat-head"><div class="bot-avatar">F</div><div><h1>Fund 资金助手 <span class="app-tag">应用</span></h1><p>资金中台通知 · 飞书消息</p></div><span class="chat-menu">⌕　⋯</span></header><div class="chat-scroll"><div class="date-line">今天　09:00</div>${receipts.map(card).join('')}<div class="chat-end">以上为演示消息 · 认领及充值由 Fund 后台执行</div></div></section></div>`;
+}
+function card(r) {
+  const inactive=r.status!=='待认领'||r.returned;
+  const state=r.status==='已认领'?'已认领':r.returned?'已退回':r.stop?'已停止提醒':'待认领';
+  return `<article class="message"><div class="bot-avatar">F</div><div class="message-content"><div class="sender">Fund 资金助手 <span>应用</span></div>
+  <div class="message-card"><div class="card-head"><span>收款流水待认领推荐</span><span class="tag ${inactive?'done':''}">${state}</span></div><div class="card-body">
+  <dl class="card-fields"><dt>接收人</dt><dd>${r.owner}</dd><dt>渠道</dt><dd>${r.channel}</dd><dt>交易号</dt><dd class="transaction">${r.id}</dd><dt>金额</dt><dd class="amount">${r.currency} ${money(r.amount)}</dd><dt>付款人</dt><dd>${r.payer}</dd><dt>推荐商户</dt><dd>${r.merchant}（${r.merchantId}）</dd><dt>推荐业务线</dt><dd>${r.biz}</dd><dt>可信度</dt><dd>${r.confidence}%</dd><dt>简要原因</dt><dd>${r.reason}</dd></dl>
+  ${r.status==='已认领'?`<div class="result success"><b>认领成功</b><br>客户：${esc(r.claimedCustomer.name)}（${r.claimedCustomer.id}）<br>子业务：${r.claimedBiz} · 金额：${r.currency} ${money(r.amount)}<br>Fund 已完成充值，后续不再提醒。</div>`:r.returned?`<div class="result">已退回，Fund 流水保持待认领，停止该笔提醒。<br>退回原因：${esc(r.returnReason||'未填写')}</div>`:r.stop?'<div class="result">已停止该笔后续提醒，仍可确定认领或退回。</div>':''}
+  <p class="card-note">系统推荐仅供参考，请核对子业务、客户与金额后认领。</p>
+  <div class="card-actions"><button class="primary" data-action="claim" data-id="${r.id}" ${inactive?'disabled':''}>确定认领</button><button data-action="return" data-id="${r.id}" ${inactive?'disabled':''}>退回</button>${!r.stop&&!inactive?`<button class="text-button" data-action="mute" data-id="${r.id}">不再提醒</button>`:''}</div>
+  </div></div></div></article>`;
+}
+function openModal(title,content,footer) {
+  $('#modal').innerHTML=`<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close" aria-label="关闭认领弹窗">×</button></div>${content}<div class="modal-foot">${footer}</div>`;
+  $('#modal').showModal();
+}
+function beginClaim(r) {
+  if(r.status!=='待认领'||r.returned) return toast('该流水已处理，请查看最新卡片。');
+  activeReceipt=r; attachments=[]; pendingClaim=null;
+  openModal('一键认领',`<form id="claim-form"><div class="modal-body">
+    <div class="transaction-box"><div><span>交易 ID</span><b>${r.id}</b></div><div><span>交易时间（UTC+8）</span><b>${r.time}</b></div><div><span>支付渠道</span><b>${r.channel}</b></div><div><span>金额</span><b>${r.currency} ${money(r.amount)}</b></div></div>
+    <div class="form-grid"><fieldset><legend><em>*</em> 子业务</legend><div class="radios">${['广告','履约','拒付'].map(b=>`<label><input type="radio" name="biz" value="${b}" ${r.biz===b?'checked':''} required> ${b}</label>`).join('')}</div></fieldset>
+    <div><label class="field-label" for="customer"><em>*</em> 客户</label><select id="customer" name="customer" required><option value="">请选择客户</option>${customers.map(c=>`<option value="${c.id}" ${r.merchantId===c.id?'selected':''}>${c.name}（${c.id}）</option>`).join('')}</select></div></div>
+    <p class="form-hint">已按推荐预填，可修改。修改子业务后，请核对客户是否匹配。</p>
+    <label class="field-label" for="voucher"><em>*</em> 上传文件（支持图片/pdf格式文件，最多10个，单个文件20M内）</label>
+    <div class="upload-zone" id="drop-zone" tabindex="0" role="button" aria-label="上传文件区域，支持点击、拖拽或粘贴"><span class="upload-symbol">↥</span><p>点击或拖拽或粘贴文件到此区域上传</p><small>支持图片/pdf格式文件</small><input class="file-input" id="voucher" type="file" accept="image/*,.pdf" multiple aria-label="上传文件"></div>
+    <div id="file-list"></div><div id="claim-error" class="error" role="alert"></div>
+    <p class="prototype-hint">演示：附件仅在本地选择，不上传；此步骤不会入账。</p>
+    </div></form>`, '<button data-action="close">取消</button><button class="primary" type="submit" form="claim-form">确认</button>');
+}
+function fileError(files) {
+  if(files.length>10) return '最多上传 10 个文件，请移除多余附件。';
+  for(const f of files) {
+    if(!(f.type?.startsWith('image/')||f.type==='application/pdf'||/\.(pdf|png|jpe?g|gif|webp|bmp|heic|heif|tiff?|avif|svg)$/i.test(f.name))) return '仅支持图片或 PDF 文件：'+f.name;
+    if(f.size>20*1024*1024) return '单个文件不能超过 20M：'+f.name;
+  }
+  return '';
+}
+function addFiles(newFiles) {
+  const unique=[...attachments];
+  for(const f of newFiles) if(!unique.some(x=>x.name===f.name&&x.size===f.size&&x.lastModified===f.lastModified)) unique.push(f);
+  const err=fileError(unique);
+  $('#claim-error').textContent=err;
+  if(err) return false;
+  attachments=unique; renderFiles(); return true;
+}
+function renderFiles() {
+  $('#file-list').innerHTML=attachments.map((f,i)=>`<div class="file-row"><span>▤　${esc(f.name)} <small>${(f.size/1024/1024).toFixed(2)} MB</small></span><button type="button" class="text-button" data-action="remove-file" data-index="${i}" aria-label="移除附件 ${esc(f.name)}">移除</button></div>`).join('');
+}
+function validateClaim(r,biz,customerId,files) {
+  if(!r||r.status!=='待认领'||r.returned) return '该流水已处理，请刷新最新状态。';
+  if(!['广告','履约','拒付'].includes(biz)) return '请选择子业务。';
+  const customer=customers.find(c=>c.id===customerId);
+  if(!customer) return '请选择客户。';
+  if(!customer.lines.includes(biz)) return '所选客户没有对应子业务的演示账户，请重新选择匹配客户。';
+  if(!files.length) return '请至少上传一个转账凭证。';
+  return fileError(files);
+}
+function showSecondConfirmation() {
+  const form=$('#claim-form'),biz=form.elements.biz.value,customerId=form.elements.customer.value;
+  const error=validateClaim(activeReceipt,biz,customerId,attachments);
+  $('#claim-error').textContent=error;
+  if(error) return;
+  const customer=customers.find(c=>c.id===customerId);
+  pendingClaim={receiptId:activeReceipt.id,biz,customerId,files:[...attachments]};
+  $('#confirm-modal').innerHTML=`<div class="modal-head"><h2 id="confirm-title">确认认领并充值？</h2><button class="icon-button" data-action="back" aria-label="返回修改">×</button></div><div class="modal-body"><div class="confirm-icon">!</div><p class="confirm-intro">请再次核对以下信息，确认后将直接充值至所选客户对应子业务的账户。</p>
+    <dl class="confirm-fields"><dt>交易 ID</dt><dd>${activeReceipt.id}</dd><dt>子业务</dt><dd>${biz}</dd><dt>客户</dt><dd>${customer.name}（${customer.id}）</dd><dt>充值金额</dt><dd class="amount">${activeReceipt.currency} ${money(activeReceipt.amount)}</dd><dt>附件</dt><dd>${attachments.length} 个<br><small>${attachments.map(f=>esc(f.name)).join('<br>')}</small></dd></dl>
+    <p class="confirm-warning">确认后，Fund 流水变为已认领，并停止后续提醒。请勿重复操作。</p><p class="prototype-hint">当前为交互演示，不发生真实充值。</p><div id="confirm-error" class="error" role="alert"></div></div>
+    <div class="modal-foot"><button data-action="back">返回修改</button><button class="primary" data-action="final-confirm">确认认领并充值</button></div>`;
+  $('#confirm-modal').showModal();
+}
+function commitClaim() {
+  if(!pendingClaim) return;
+  const r=receipts.find(x=>x.id===pendingClaim.receiptId);
+  const error=validateClaim(r,pendingClaim.biz,pendingClaim.customerId,pendingClaim.files);
+  if(error) { $('#confirm-error').textContent=error; return; }
+  r.status='已认领'; r.stop=true;
+  r.claimedCustomer=customers.find(c=>c.id===pendingClaim.customerId);
+  r.claimedBiz=pendingClaim.biz; r.vouchers=pendingClaim.files.map(f=>f.name);
+  pendingClaim=null; $('#confirm-modal').close(); $('#modal').close(); render(); toast('认领成功（演示），Fund 已完成充值。');
+}
+function returnModal(r) {
+  if(r.status!=='待认领'||r.returned) return toast('该流水已处理。');
+  activeReceipt=r;
+  openModal('退回推荐流水',`<form id="return-form"><div class="modal-body"><p class="confirm-intro">退回后流水保持待认领，停止该笔提醒，由 Fund 业务人员继续处理。</p><div class="return-summary">${r.merchant} · ${r.currency} ${money(r.amount)}</div><label for="return-reason" class="field-label">退回原因（选填）</label><textarea id="return-reason" name="reason" rows="4" placeholder="可填写推荐客户不符等说明"></textarea></div></form>`, '<button data-action="close">取消</button><button class="primary" type="submit" form="return-form">确认退回</button>');
+}
+function schedule(c) {
+  if(!Number.isInteger(c.count)||c.count<1||c.count>24) return {error:'每日次数请输入 1～24 的整数（建议范围）。'};
+  if(!/^\d{2}:\d{2}$/.test(c.first)) return {error:'请选择首次提醒时间。'};
+  const [h,m]=c.first.split(':').map(Number);
+  if(h>23||m>59) return {error:'首次提醒时间无效。'};
+  if(c.count>1&&(!Number.isInteger(c.interval)||c.interval<1)) return {error:'间隔请输入正整数分钟。'};
+  const start=h*60+m;
+  if(start+(c.count-1)*c.interval>=1440) return {error:'最后一次提醒不能跨过当天 24:00，请调整计划。'};
+  return {times:Array.from({length:c.count},(_,i)=>{const n=start+i*c.interval;return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');})};
+}
+function settingsPage() {
+  return `<main class="settings-scene"><div class="settings-heading"><span class="eyebrow">FUND 端配置示意 · 非飞书聊天功能</span><h1>推荐配置</h1><p>资金中台设置发送计划，飞书仅接收逐笔通知。</p></div>
+  <form id="settings-form"><section class="settings-panel"><div class="switch-row"><div><h2>启用飞书通知</h2><p>关闭后停止发送，不影响 Fund 的推荐结果。</p></div><input type="checkbox" name="enabled" aria-label="启用飞书通知" ${config.enabled?'checked':''}></div></section>
+  <section class="settings-panel"><h2>通知频次</h2><p class="form-hint">北京时间（UTC+8） · 每个计划时点逐笔发送</p><div class="schedule-grid"><div><label for="count">每日提醒次数</label><input id="count" name="count" type="number" value="${config.count}" min="1" max="24" step="1" required></div><div><label for="first">首次提醒时间</label><input id="first" name="first" type="time" value="${config.first}" required></div><div><label for="interval">提醒间隔（分钟）</label><input id="interval" name="interval" type="number" value="${config.interval}" min="1" step="1" required></div></div>
+  <div class="schedule-preview"><b>当天发送时间预览</b><div id="time-preview"></div><div id="schedule-error" class="error" role="alert"></div></div><p class="form-hint">每日一次时无需配置间隔。保存后按后续时点执行，不补发已错过的时点。已认领、退回或停止提醒的流水不再发送。</p><p class="prototype-hint">每日 3 次、09:00、间隔 180 分钟为演示默认值；次数范围 1～24 为待评审建议。</p><button type="submit" class="primary">保存配置</button></section></form></main>`;
+}
+function preview() {
+  const f=$('#settings-form'),count=Number(f.elements.count.value);f.elements.interval.disabled=count===1;
+  const result=schedule({count,first:f.elements.first.value,interval:count===1?config.interval:Number(f.elements.interval.value)});
+  $('#time-preview').innerHTML=result.times?result.times.map(t=>`<span>${t}</span>`).join(''):'';
+  $('#schedule-error').textContent=result.error||'';f.querySelector('button[type="submit"]').disabled=!!result.error;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.scene){scene=b.dataset.scene;render();return;}
+  const action=b.dataset.action,r=receipts.find(x=>x.id===b.dataset.id);
+  if(action==='claim')beginClaim(r);
+  if(action==='return')returnModal(r);
+  if(action==='mute'&&r?.status==='待认领'){r.stop=true;render();toast('已停止该笔后续提醒。');}
+  if(action==='close'){$('#modal').close();pendingClaim=null;}
+  if(action==='back'){$('#confirm-modal').close();pendingClaim=null;}
+  if(action==='final-confirm')commitClaim();
+  if(action==='remove-file'){attachments.splice(Number(b.dataset.index),1);renderFiles();$('#claim-error').textContent='';}
+});
+document.addEventListener('change',e=>{if(e.target.id==='voucher'){addFiles(Array.from(e.target.files));e.target.value='';}if(e.target.closest('#settings-form'))preview();});
+document.addEventListener('input',e=>{if(e.target.closest('#settings-form'))preview();});
+document.addEventListener('keydown',e=>{if(e.target.id==='drop-zone'&&['Enter',' '].includes(e.key)){e.preventDefault();$('#voucher').click();}});
+document.addEventListener('dragover',e=>{if(e.target.closest('#drop-zone')){e.preventDefault();e.dataTransfer.dropEffect='copy';}});
+document.addEventListener('drop',e=>{if($('#modal').open&&$('#claim-form')){e.preventDefault();if(e.target.closest('#drop-zone'))addFiles(Array.from(e.dataTransfer.files));}});
+document.addEventListener('paste',e=>{if($('#modal').open&&$('#claim-form')){const files=Array.from(e.clipboardData?.files||[]);if(files.length){e.preventDefault();addFiles(files);}}});
+document.addEventListener('submit',e=>{
+  e.preventDefault();const f=e.target;
+  if(f.id==='claim-form'){showSecondConfirmation();return;}
+  if(f.id==='return-form'){const r=activeReceipt;if(r.status!=='待认领'||r.returned)return toast('流水已处理。');r.returned=true;r.returnReason=f.elements.reason.value.trim();r.stop=true;$('#modal').close();render();toast('已退回，停止该笔提醒。');return;}
+  if(f.id==='settings-form'){const c={enabled:f.elements.enabled.checked,count:Number(f.elements.count.value),first:f.elements.first.value,interval:Number(f.elements.interval.value)||config.interval};if(schedule(c).error)return;config=c;render();toast('配置已保存（演示）。');}
+});
+$('#confirm-modal').addEventListener('cancel',()=>{pendingClaim=null;});
+$('#modal').addEventListener('close',()=>{activeReceipt=null;attachments=[];pendingClaim=null;});
 render();

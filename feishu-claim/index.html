@@ -1,3 +1,9 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fund · 飞书逐笔认领</title><link rel="stylesheet" href="style.css"></head>
-<body><aside><div class="brand"><b>F</b> Fund <small>资金中台</small></div><div class="nav-label">业务入账</div><button data-page="messages" class="nav active">◈　飞书逐笔提醒</button><button data-page="receipts" class="nav">▤　收款明细</button><button data-page="accounts" class="nav">▥　客户账户</button><div class="nav-label">系统</div><button data-page="settings" class="nav">◷　推荐配置</button><button data-page="guide" class="nav">☷　方案说明</button><div class="aside-foot">独立新版原型 · 2026.10<br>演示数据，不连接真实资金系统</div></aside><div class="workspace"><header><span>Fund　/　<span id="breadcrumb">飞书逐笔提醒</span></span><span class="avatar">梁</span></header><main id="app"></main></div><div id="toast" role="status" aria-live="polite"></div><dialog id="modal"></dialog><script src="app.js"></script></body></html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>飞书 · 收款流水待认领推荐</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<div class="prototype-bar"><span><b>交互原型</b><small>飞书通知与认领</small></span><nav aria-label="原型场景"><button data-scene="messages" class="scene active">飞书消息</button><button data-scene="settings" class="scene">提醒配置示意（Fund 端）</button></nav><span class="demo-note">仅模拟 · 不操作真实资金</span></div>
+<div id="app"></div><div id="toast" role="status" aria-live="polite"></div>
+<dialog id="modal" aria-labelledby="modal-title"></dialog><dialog id="confirm-modal" aria-labelledby="confirm-title"></dialog>
+<script src="app.js"></script>
+</body></html>

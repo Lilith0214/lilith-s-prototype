@@ -86,6 +86,13 @@ function logBadge(label) {
   return `<span class="log-badge ${color}">${esc(label)}</span>`;
 }
 
+function logExecutionHint(r) {
+  if (!r.adjustment) return '';
+  if (r.execution === '执行成功') return '资金已入账';
+  if (r.execution === '执行中') return '入账结果确认中';
+  return r.approval === '已通过' ? '尚未入账' : '资金未变动';
+}
+
 function logRecordDetail(r, m) {
   const pair = (label, value) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`;
   const adjustmentInfo = r.adjustment
@@ -97,7 +104,7 @@ function logRecordDetail(r, m) {
       pair('申请备注', '模拟申请：核对账户调额依据。') + pair('上传的附件', '调额凭证.pdf（示例占位，未上传文件）')
     : pair('操作前状态', r.stateBefore) + pair('操作后状态', r.stateAfter) + pair('操作时可用余额', `0.00 ${m.currency}（示例快照）`);
   return `<div class="log-detail-head"><button class="btn" id="log-back">← 返回列表</button><b>${esc(r.type)}详情</b>${logBadge(r.approval)}${logBadge(r.execution)}</div>
-    <div class="log-notice">${r.execution === '执行成功' ? (r.adjustment ? '调额已完成。以下余额为本次入账时的实际快照，不代表账户当前余额。' : '账户状态已更新。') : (r.approval === '已通过' ? '飞书已通过审批，但 Fund 尚未调额成功。请以执行结果为准。' : '本记录未发生资金变动。')}</div>
+    <div class="log-notice">${r.execution === '执行成功' ? (r.adjustment ? '调额已完成。以下余额为本次入账时的实际快照，不代表账户当前余额。' : '账户状态已更新。') : (r.execution === '执行中' ? '飞书已通过审批，Fund 正在执行或核验入账结果，请勿重复发起调额。' : r.approval === '已通过' ? '飞书已通过审批，但 Fund 尚未调额成功。请以执行结果为准。' : r.adjustment ? '本记录未发生资金变动。' : '本次操作失败，账户状态未变更。')}</div>
     <dl class="log-detail-grid">${pair(r.adjustment ? 'Fund 申请单号' : '日志 ID', r.id)}${pair('发起人 / 操作人', r.operator)}${pair('发起时间', r.submitted)}${pair('最后更新时间', r.updated)}${pair('请求来源', r.source)}${pair('备注 / 处理说明', r.remark || '等待审批，未调整账户资金。')}${adjustmentInfo}</dl>
     <h4>处理轨迹 <span class="log-muted">同一申请持续更新，保留完整事件记录</span></h4>
     <ol class="log-timeline">${r.events.map(e => `<li><span class="log-muted">${esc(e.time)}</span><br>${esc(e.text)}</li>`).join('')}</ol>
@@ -125,7 +132,7 @@ function renderAccountLogs() {
       <button class="btn primary" type="submit">查询</button><button class="btn" type="button" id="log-reset">重置</button>
     </form>
     <div class="log-table-wrap"><table class="log-table"><thead><tr><th>发起时间 / 操作人</th><th>操作类型</th><th>变更内容</th><th>审批状态</th><th>当前审批人</th><th>执行结果</th><th>操作</th></tr></thead>
-    <tbody>${rows.map(r => `<tr><td>${esc(r.submitted)}<span class="log-sub">${esc(r.operator)} · ${esc(r.source)}</span></td><td>${esc(r.type)}<span class="log-sub">${r.adjustment ? '调额申请' : '账户状态变更'}</span></td><td>${r.adjustment ? `<b class="money ${r.type === '调额减少' ? 'minus' : 'plus'}">${r.type === '调额减少' ? '−' : '+'}${money(r.amount)} ${esc(m.currency)}</b><span class="log-sub">${esc(r.reason)}</span>` : `${r.stateBefore} → ${r.stateAfter}<span class="log-sub">${r.execution === '执行失败' ? '未变更' : '状态变更'}</span>`}</td><td>${logBadge(r.approval)}</td><td>${esc(r.approver)}</td><td>${logBadge(r.execution)}<span class="log-sub">${r.adjustment && r.execution === '执行成功' ? '资金已入账' : r.approval === '已通过' ? '尚未入账' : r.adjustment ? '资金未变动' : ''}</span></td><td><button class="btn link" data-log-detail="${esc(r.id)}">详情</button></td></tr>`).join('') || '<tr class="empty"><td colspan="7">暂无符合条件的日志</td></tr>'}</tbody></table></div>
+    <tbody>${rows.map(r => `<tr><td>${esc(r.submitted)}<span class="log-sub">${esc(r.operator)} · ${esc(r.source)}</span></td><td>${esc(r.type)}<span class="log-sub">${r.adjustment ? '调额申请' : '账户状态变更'}</span></td><td>${r.adjustment ? `<b class="money ${r.type === '调额减少' ? 'minus' : 'plus'}">${r.type === '调额减少' ? '−' : '+'}${money(r.amount)} ${esc(m.currency)}</b><span class="log-sub">${esc(r.reason)}</span>` : `${r.stateBefore} → ${r.stateAfter}<span class="log-sub">${r.execution === '执行失败' ? '未变更' : '状态变更'}</span>`}</td><td>${logBadge(r.approval)}</td><td>${esc(r.approver)}</td><td>${logBadge(r.execution)}<span class="log-sub">${logExecutionHint(r)}</span></td><td><button class="btn link" data-log-detail="${esc(r.id)}">详情</button></td></tr>`).join('') || '<tr class="empty"><td colspan="7">暂无符合条件的日志</td></tr>'}</tbody></table></div>
     <div class="log-pager"><span class="log-muted">按发起时间倒序 · 共 ${filtered.length} 条 · 8 条/页</span><button class="btn" id="log-prev" ${v.page <= 1 ? 'disabled' : ''}>上一页</button><span>${v.page} / ${pages}</span><button class="btn" id="log-next" ${v.page >= pages ? 'disabled' : ''}>下一页</button></div>`;
   const host = document.getElementById('mask');
   host.innerHTML = `<div class="mask log-mask"><section class="modal log-modal" role="dialog" aria-modal="true" aria-labelledby="log-title"><h3 id="log-title">账户操作日志 <button id="log-close" aria-label="关闭账户操作日志">×</button></h3><div class="log-body"><div class="log-context"><strong>${esc(m.name)} <span class="log-muted">/ ${esc(m.biz === '履约' ? '代发（履约）' : m.biz)}资金账户</span></strong><span>商户 ID：${esc(m.id)}</span><span>账户 ID：${esc(m.accountId)}</span><span>币种：${esc(m.currency)} · ${esc(m.attr)}</span></div>${detail ? logRecordDetail(detail, m) : table}</div><div class="footer"><span class="log-muted" role="status">交互演示 · 全部为模拟日志，未对接飞书${v.refreshed ? ' · 本地刷新于 ' + esc(v.refreshed) : ''}</span><button class="btn" id="log-refresh">刷新记录</button><button class="btn" id="log-done">关闭</button></div></section></div>`;

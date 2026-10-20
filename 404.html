@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Fund · 金额调整</title>
+<link rel="stylesheet" href="./account-logs.css" />
 <style>
 :root {
   --blue: #1677ff;
@@ -774,7 +775,7 @@ function renderMerchants() {
           <td class="stick-r"><div class="ops">
             <div class="line">
               <button class="btn link" data-adjust="${esc(m.id)}" data-currency="${esc(m.currency)}" type="button">调整金额</button>
-              <button class="btn link" data-act="日志" type="button">日志</button>
+              <button class="btn link" data-account-log="${esc(m.accountId)}" type="button">日志</button>
             </div>
             <div class="line">
               <button class="btn link" data-act="期初设置" type="button">期初设置</button>
@@ -812,6 +813,8 @@ function renderMerchants() {
     };
   });
   document.getElementById("content").onclick = (e) => {
+    const log = e.target.closest("[data-account-log]");
+    if (log) { openAccountLogs(log.dataset.accountLog); return; }
     const a = e.target.closest("[data-adjust]");
     if (a) openModal(a.dataset.adjust, a.dataset.currency);
   };
@@ -1162,6 +1165,14 @@ document.addEventListener("keydown", (e) => {
 fillBalances(state.txns);
 render();
 
+</script>
+<script src="./account-logs.js"></script>
+<script>
+// Shareable preview of the same merchant-row dialog, not a new navigation item.
+if (page === 'merchants') {
+  const logAccountId = new URLSearchParams(location.search).get('logs');
+  if (logAccountId) openAccountLogs(logAccountId);
+}
 </script>
 </body>
 </html>

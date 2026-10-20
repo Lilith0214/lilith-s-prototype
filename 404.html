@@ -598,7 +598,6 @@ function renderApproval() {
     accountName: "Wassil 广告资金账户",
     biz: "广告",
     currency: "USD",
-    current: 24800,
     available: 24620,
     direction: "增加",
     amount: isHigh ? 6800 : 3200,
@@ -619,6 +618,7 @@ function renderApproval() {
     applicant: "张三（财务）",
     submittedAt: "2026-10-20 10:28:34"
   });
+  const afterAvailable = round2(data.available + (data.direction === "减少" ? -data.amount : data.amount));
   const path = isFulfill
     ? [{ name: "高阳", state: "current", desc: "当前节点" }]
     : isHigh
@@ -650,8 +650,8 @@ function renderApproval() {
       <div class="approval-section-title">资金调整信息</div>
       <div class="approval-group">
         ${approvalRow("币种", esc(data.currency))}
-        ${approvalRow("当前金额", esc(data.currency + " " + money(data.current)), { money: true })}
-        ${approvalRow("可用余额", esc(data.currency + " " + money(data.available)), { money: true })}
+        ${approvalRow("调整前可用余额", esc(data.currency + " " + money(data.available)), { money: true })}
+        ${approvalRow("调整后可用余额", esc(data.currency + " " + money(afterAvailable)), { money: true })}
         ${approvalRow("本次调整的变动原因", esc(data.changeReason))}
         ${approvalRow("调整金额", esc("+ " + data.currency + " " + money(data.amount)), { money: true, plus: true })}
         ${approvalRow("资金变动方向", `<span class="tag green">${esc(data.direction)}</span>`)}

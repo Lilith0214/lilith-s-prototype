@@ -546,6 +546,7 @@ function shell() {
   document.title = page === "approval" ? "飞书 · 资金账户手工调额审批" : "Fund · 金额调整";
   document.getElementById("sider").innerHTML = `
     <span class="item">Fund</span>
+    <a href="./approval-center/">审批中心</a>
     <h4>商户管理</h4>
     <a class="${page === "merchants" ? "active" : ""}" id="nav-merchants">商户管理</a>
     <span class="item">期初余额记录</span>

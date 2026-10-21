@@ -22,7 +22,11 @@ const server = http.createServer((req, res) => {
   const full = path.resolve(__dirname, rel);
   const root = path.resolve(__dirname);
   const canRead = full === root || full.startsWith(root + path.sep);
-  const file = canRead && rel && fs.existsSync(full) && fs.statSync(full).isFile() ? full : path.join(root, "index.html");
+  let file = path.join(root, "index.html");
+  if (canRead && rel && fs.existsSync(full)) {
+    if (fs.statSync(full).isFile()) file = full;
+    else if (fs.existsSync(path.join(full, "index.html"))) file = path.join(full, "index.html");
+  }
   res.writeHead(200, {
     "Content-Type": types[path.extname(file)] || "text/html; charset=utf-8",
     "Cache-Control": "no-store",

@@ -2,7 +2,7 @@ const receipts = [
   {id:'2c3e6e7e-7a3c-41d7-8c12-0a91c8e11a01',time:'2026-10-20 11:24:00',channel:'Airwallex',currency:'USD',amount:320,payer:'SHENZHEN STARLINK E-COMMERCE CO LTD',merchant:'星辰出海-广告主账户',merchantId:'14229',biz:'广告',owner:'林晓',confidence:'高',reason:'付款账号 GB29NWBK60161331926819 的历史认领记录主要关联星辰出海-广告主账户',status:'待认领',stop:false},
   {id:'c80d11e2-12ab-4f20-a111-55e0cc900031',time:'2026-10-20 10:45:10',channel:'Airwallex',currency:'EUR',amount:860.5,payer:'EURO BUYER GMBH',merchant:'北辰广告-欧洲账户',merchantId:'15301',biz:'广告',owner:'林晓',confidence:'中',reason:'付款人名称及收款账户历史记录关联至北辰广告-欧洲账户',status:'待认领',stop:false}
 ];
-// 演示客户；生产从 Fund 读取有权限且具备对应子业务账户的客户。
+// 演示商户；生产从 Fund 读取有权限且具备对应子业务账户的商户。
 const customers = [
   {id:'14229',name:'星辰出海-广告主账户',lines:['广告']},
   {id:'15301',name:'北辰广告-欧洲账户',lines:['广告']}
@@ -31,8 +31,8 @@ function card(r) {
   return `<article class="message"><div class="bot-avatar">F</div><div class="message-content"><div class="sender">Fund 资金助手 <span>应用</span></div>
   <div class="message-card"><div class="card-head"><span>收款流水待认领推荐</span><span class="tag ${inactive?'done':''}">${state}</span></div><div class="card-body">
   <dl class="card-fields"><dt>接收人</dt><dd>${r.owner}</dd><dt>渠道</dt><dd>${r.channel}</dd><dt>交易号</dt><dd class="transaction">${r.id}</dd><dt>金额</dt><dd class="amount">${r.currency} ${money(r.amount)}</dd><dt>付款人</dt><dd>${r.payer}</dd><dt>推荐商户</dt><dd>${r.merchant}（${r.merchantId}）</dd><dt>推荐业务线</dt><dd>${r.biz}</dd><dt>可信度</dt><dd>${r.confidence}</dd><dt>简要原因</dt><dd>${r.reason}</dd></dl>
-  ${r.status==='已认领'?`<div class="result success"><b>认领成功</b><br>客户：${esc(r.claimedCustomer.name)}（${r.claimedCustomer.id}）<br>子业务：${r.claimedBiz} · 金额：${r.currency} ${money(r.amount)}<br>Fund 已完成充值，后续不再提醒。</div>`:r.returned?`<div class="result">已退回，Fund 流水保持待认领，停止该笔提醒。<br>退回原因：${esc(r.returnReason||'未填写')}</div>`:r.stop?'<div class="result">已停止该笔后续提醒，仍可确定认领或退回。</div>':''}
-  <p class="card-note">系统推荐仅供参考，请核对子业务、客户与金额后认领。</p>
+  ${r.status==='已认领'?`<div class="result success"><b>认领成功</b><br>商户：${esc(r.claimedCustomer.name)}（${r.claimedCustomer.id}）<br>子业务：${r.claimedBiz} · 金额：${r.currency} ${money(r.amount)}<br>Fund 已完成充值，后续不再提醒。</div>`:r.returned?`<div class="result">已退回，Fund 流水保持待认领，停止该笔提醒。<br>退回原因：${esc(r.returnReason||'未填写')}</div>`:r.stop?'<div class="result">已停止该笔后续提醒，仍可确定认领或退回。</div>':''}
+  <p class="card-note">系统推荐仅供参考，请核对子业务、商户与金额后认领。</p>
   <div class="card-actions"><button class="primary" data-action="claim" data-id="${r.id}" ${inactive?'disabled':''}>确定认领</button><button data-action="return" data-id="${r.id}" ${inactive?'disabled':''}>退回</button>${!r.stop&&!inactive?`<button class="text-button" data-action="mute" data-id="${r.id}">不再提醒</button>`:''}</div>
   </div></div></div></article>`;
 }
@@ -46,8 +46,8 @@ function beginClaim(r) {
   openModal('一键认领',`<form id="claim-form"><div class="modal-body">
     <div class="transaction-box"><div><span>交易 ID</span><b>${r.id}</b></div><div><span>交易时间（UTC+8）</span><b>${r.time}</b></div><div><span>支付渠道</span><b>${r.channel}</b></div><div><span>金额</span><b>${r.currency} ${money(r.amount)}</b></div></div>
     <div class="form-grid"><div><span class="field-label">子业务</span><div class="recommended-value" aria-label="推荐子业务，只读">${r.biz}<span>Fund 推荐</span></div></div>
-    <div><span class="field-label">客户</span><div class="recommended-value" aria-label="推荐客户，只读">${r.merchant}（${r.merchantId}）<span>Fund 推荐</span></div></div></div>
-    <p class="form-hint">子业务与客户由 Fund 推荐，不可修改。请上传附件后确认；推荐不符请取消并退回。</p>
+    <div><span class="field-label">商户</span><div class="recommended-value" aria-label="推荐商户，只读">${r.merchant}（${r.merchantId}）<span>Fund 推荐</span></div></div></div>
+    <p class="form-hint">子业务与商户由 Fund 推荐，不可修改。请上传附件后确认；推荐不符请取消并退回。</p>
     <label class="field-label" for="voucher"><em>*</em> 上传文件（支持图片/pdf格式文件，最多10个，单个文件20M内）</label>
     <div class="upload-zone" id="drop-zone" tabindex="0" role="button" aria-label="上传文件区域，支持点击、拖拽或粘贴"><span class="upload-symbol">↥</span><p>点击或拖拽或粘贴文件到此区域上传</p><small>支持图片/pdf格式文件</small><input class="file-input" id="voucher" type="file" accept="image/*,.pdf" multiple aria-label="上传文件"></div>
     <div id="file-list"></div><div id="claim-error" class="error" role="alert"></div>
@@ -79,8 +79,8 @@ function validateClaim(r,biz,customerId,files) {
   if(biz!==r.biz||customerId!==r.merchantId) return 'Fund 推荐信息已变化，请关闭弹窗并刷新后重新核对。';
   if(!['广告','履约','拒付'].includes(biz)) return '推荐子业务无效，请退回处理。';
   const customer=customers.find(c=>c.id===customerId);
-  if(!customer) return '推荐客户无效，请退回处理。';
-  if(!customer.lines.includes(biz)) return '推荐客户与子业务不匹配，请退回处理。';
+  if(!customer) return '推荐商户无效，请退回处理。';
+  if(!customer.lines.includes(biz)) return '推荐商户与子业务不匹配，请退回处理。';
   if(!files.length) return '请至少上传一个转账凭证。';
   return fileError(files);
 }
@@ -92,8 +92,8 @@ function showSecondConfirmation() {
   if(error) return;
   const customer=customers.find(c=>c.id===customerId);
   pendingClaim={receiptId:activeReceipt.id,biz,customerId,files:[...attachments]};
-  $('#confirm-modal').innerHTML=`<div class="modal-head"><h2 id="confirm-title">确认认领并充值？</h2><button class="icon-button" data-action="back" aria-label="返回修改">×</button></div><div class="modal-body"><div class="confirm-icon">!</div><p class="confirm-intro">请再次核对以下信息，确认后将直接充值至Fund 推荐客户对应子业务的账户。</p>
-    <dl class="confirm-fields"><dt>交易 ID</dt><dd>${activeReceipt.id}</dd><dt>子业务</dt><dd>${biz}</dd><dt>客户</dt><dd>${customer.name}（${customer.id}）</dd><dt>充值金额</dt><dd class="amount">${activeReceipt.currency} ${money(activeReceipt.amount)}</dd><dt>附件</dt><dd>${attachments.length} 个<br><small>${attachments.map(f=>esc(f.name)).join('<br>')}</small></dd></dl>
+  $('#confirm-modal').innerHTML=`<div class="modal-head"><h2 id="confirm-title">确认认领并充值？</h2><button class="icon-button" data-action="back" aria-label="返回修改">×</button></div><div class="modal-body"><div class="confirm-icon">!</div><p class="confirm-intro">请再次核对以下信息，确认后将直接充值至Fund 推荐商户对应子业务的账户。</p>
+    <dl class="confirm-fields"><dt>交易 ID</dt><dd>${activeReceipt.id}</dd><dt>子业务</dt><dd>${biz}</dd><dt>商户</dt><dd>${customer.name}（${customer.id}）</dd><dt>充值金额</dt><dd class="amount">${activeReceipt.currency} ${money(activeReceipt.amount)}</dd><dt>附件</dt><dd>${attachments.length} 个<br><small>${attachments.map(f=>esc(f.name)).join('<br>')}</small></dd></dl>
     <p class="confirm-warning">确认后，Fund 流水变为已认领，并停止后续提醒。请勿重复操作。</p><p class="prototype-hint">当前为交互演示，不发生真实充值。</p><div id="confirm-error" class="error" role="alert"></div></div>
     <div class="modal-foot"><button data-action="back">返回修改</button><button class="primary" data-action="final-confirm">确认认领并充值</button></div>`;
   $('#confirm-modal').showModal();
@@ -111,7 +111,7 @@ function commitClaim() {
 function returnModal(r) {
   if(r.status!=='待认领'||r.returned) return toast('该流水已处理。');
   activeReceipt=r;
-  openModal('退回推荐流水',`<form id="return-form"><div class="modal-body"><p class="confirm-intro">退回后流水保持待认领，停止该笔提醒，由 Fund 业务人员继续处理。</p><div class="return-summary">${r.merchant} · ${r.currency} ${money(r.amount)}</div><label for="return-reason" class="field-label">退回原因（选填）</label><textarea id="return-reason" name="reason" rows="4" placeholder="可填写推荐客户不符等说明"></textarea></div></form>`, '<button data-action="close">取消</button><button class="primary" type="submit" form="return-form">确认退回</button>');
+  openModal('退回推荐流水',`<form id="return-form"><div class="modal-body"><p class="confirm-intro">退回后流水保持待认领，停止该笔提醒，后续可在 Fund 继续认领。</p><div class="return-summary">${r.merchant} · ${r.currency} ${money(r.amount)}</div><label for="return-reason" class="field-label">退回原因（选填）</label><textarea id="return-reason" name="reason" rows="4" placeholder="可填写推荐商户不符等说明"></textarea></div></form>`, '<button data-action="close">取消</button><button class="primary" type="submit" form="return-form">确认退回</button>');
 }
 function schedule(c) {
   if(!Number.isInteger(c.count)||c.count<1||c.count>24) return {error:'每日次数请输入 1～24 的整数（建议范围）。'};

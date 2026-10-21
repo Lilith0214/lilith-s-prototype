@@ -61,7 +61,7 @@ function openAccountLogs(accountId) {
   if (!account) return;
   accountLogTrigger = document.activeElement;
   if (!accountLogSamples.has(accountId)) accountLogSamples.set(accountId, makeAccountLogSamples(account));
-  accountLogView = { account, type: '全部', approval: '', execution: '', query: '', from: '', to: '', page: 1, detail: '', refreshed: '' };
+  accountLogView = { account, type: '全部', page: 1, detail: '', refreshed: '' };
   renderAccountLogs();
   document.getElementById('log-close').focus();
 }
@@ -74,10 +74,7 @@ function closeAccountLogs() {
 
 function filteredAccountLogs(view) {
   return (accountLogSamples.get(view.account.accountId) || []).filter(r =>
-    (view.type === '全部' || (view.type === '调额申请' ? r.adjustment : !r.adjustment)) &&
-    (!view.approval || r.approval === view.approval) && (!view.execution || r.execution === view.execution) &&
-    (!view.from || r.submitted.slice(0, 10) >= view.from) && (!view.to || r.submitted.slice(0, 10) <= view.to) &&
-    (!view.query || [r.id, r.feishuId, r.operator, r.reason, r.remark].join(' ').toLowerCase().includes(view.query.toLowerCase()))
+    (view.type === '全部' || (view.type === '调额申请' ? r.adjustment : !r.adjustment))
   ).sort((a, b) => b.submitted.localeCompare(a.submitted));
 }
 
@@ -121,18 +118,9 @@ function renderAccountLogs() {
   v.page = Math.min(v.page, pages);
   const rows = filtered.slice((v.page - 1) * 8, v.page * 8);
   const detail = all.find(r => r.id === v.detail);
-  const select = (id, label, value, options) => `<label>${label}<select id="${id}"><option value="">全部</option>${options.map(x => `<option ${x === value ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></label>`;
-  const table = `<div class="log-notice">审批状态看飞书，执行结果看 Fund。只有「执行成功」代表调额已入账；「已通过」但待执行 / 执行失败，均不代表到账。</div>
-    <div class="log-tabs" role="tablist" aria-label="日志类型">${['全部', '调额申请', '账户状态变更'].map(t => `<button role="tab" aria-selected="${v.type === t}" class="${v.type === t ? 'on' : ''}" data-log-type="${t}">${t} <span class="log-muted">${all.filter(r => t === '全部' || (t === '调额申请' ? r.adjustment : !r.adjustment)).length}</span></button>`).join('')}</div>
-    <form class="log-filters" id="log-filter-form">
-      ${select('log-approval', '审批状态', v.approval, ['审批中', '已通过', '已驳回', '已撤回', '无需审批', '发起失败', '不适用'])}
-      ${select('log-execution', '执行结果', v.execution, ['未执行', '待执行', '执行中', '执行成功', '执行失败'])}
-      <label>发起日期（起）<input type="date" id="log-from" value="${esc(v.from)}"></label><label>发起日期（止）<input type="date" id="log-to" value="${esc(v.to)}"></label>
-      <label>关键词<input type="search" id="log-query" placeholder="申请单号 / 发起人 / 原因" value="${esc(v.query)}"></label>
-      <button class="btn primary" type="submit">查询</button><button class="btn" type="button" id="log-reset">重置</button>
-    </form>
-    <div class="log-table-wrap"><table class="log-table"><thead><tr><th>发起时间 / 操作人</th><th>操作类型</th><th>变更内容</th><th>审批状态</th><th>当前审批人</th><th>执行结果</th><th>操作</th></tr></thead>
-    <tbody>${rows.map(r => `<tr><td>${esc(r.submitted)}<span class="log-sub">${esc(r.operator)} · ${esc(r.source)}</span></td><td>${esc(r.type)}<span class="log-sub">${r.adjustment ? '调额申请' : '账户状态变更'}</span></td><td>${r.adjustment ? `<b class="money ${r.type === '调额减少' ? 'minus' : 'plus'}">${r.type === '调额减少' ? '−' : '+'}${money(r.amount)} ${esc(m.currency)}</b><span class="log-sub">${esc(r.reason)}</span>` : `${r.stateBefore} → ${r.stateAfter}<span class="log-sub">${r.execution === '执行失败' ? '未变更' : '状态变更'}</span>`}</td><td>${logBadge(r.approval)}</td><td>${esc(r.approver)}</td><td>${logBadge(r.execution)}<span class="log-sub">${logExecutionHint(r)}</span></td><td><button class="btn link" data-log-detail="${esc(r.id)}">详情</button></td></tr>`).join('') || '<tr class="empty"><td colspan="7">暂无符合条件的日志</td></tr>'}</tbody></table></div>
+  const table = `<div class="log-tabs" role="tablist" aria-label="日志类型">${['全部', '调额申请', '账户状态变更'].map(t => `<button role="tab" aria-selected="${v.type === t}" class="${v.type === t ? 'on' : ''}" data-log-type="${t}">${t} <span class="log-muted">${all.filter(r => t === '全部' || (t === '调额申请' ? r.adjustment : !r.adjustment)).length}</span></button>`).join('')}</div>
+    <div class="log-table-wrap"><table class="log-table"><thead><tr><th>发起时间 / 操作人</th><th>操作类型</th><th>变更内容</th><th>操作</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td>${esc(r.submitted)}<span class="log-sub">${esc(r.operator)} · ${esc(r.source)}</span></td><td>${esc(r.type)}<span class="log-sub">${r.adjustment ? '调额申请' : '账户状态变更'}</span></td><td>${r.adjustment ? `<b class="money ${r.type === '调额减少' ? 'minus' : 'plus'}">${r.type === '调额减少' ? '−' : '+'}${money(r.amount)} ${esc(m.currency)}</b><span class="log-sub">${esc(r.reason)}</span>` : `${r.stateBefore} → ${r.stateAfter}<span class="log-sub">${r.execution === '执行失败' ? '未变更' : '状态变更'}</span>`}</td><td><button class="btn link" data-log-detail="${esc(r.id)}">详情</button></td></tr>`).join('') || '<tr class="empty"><td colspan="4">暂无符合条件的日志</td></tr>'}</tbody></table></div>
     <div class="log-pager"><span class="log-muted">按发起时间倒序 · 共 ${filtered.length} 条 · 8 条/页</span><button class="btn" id="log-prev" ${v.page <= 1 ? 'disabled' : ''}>上一页</button><span>${v.page} / ${pages}</span><button class="btn" id="log-next" ${v.page >= pages ? 'disabled' : ''}>下一页</button></div>`;
   const host = document.getElementById('mask');
   host.innerHTML = `<div class="mask log-mask"><section class="modal log-modal" role="dialog" aria-modal="true" aria-labelledby="log-title"><h3 id="log-title">账户操作日志 <button id="log-close" aria-label="关闭账户操作日志">×</button></h3><div class="log-body"><div class="log-context"><strong>${esc(m.name)} <span class="log-muted">/ ${esc(m.biz === '履约' ? '代发（履约）' : m.biz)}资金账户</span></strong><span>商户 ID：${esc(m.id)}</span><span>账户 ID：${esc(m.accountId)}</span><span>币种：${esc(m.currency)} · ${esc(m.attr)}</span></div>${detail ? logRecordDetail(detail, m) : table}</div><div class="footer"><span class="log-muted" role="status">交互演示 · 全部为模拟日志，未对接飞书${v.refreshed ? ' · 本地刷新于 ' + esc(v.refreshed) : ''}</span><button class="btn" id="log-refresh">刷新记录</button><button class="btn" id="log-done">关闭</button></div></section></div>`;
@@ -141,19 +129,8 @@ function renderAccountLogs() {
   document.getElementById('log-done').onclick = closeAccountLogs;
   document.getElementById('log-refresh').onclick = () => { v.refreshed = new Date().toLocaleTimeString('zh-CN', { hour12: false }); renderAccountLogs(); document.getElementById('log-refresh').focus(); };
   if (detail) { document.getElementById('log-back').onclick = () => { v.detail = ''; renderAccountLogs(); }; return; }
-  host.querySelectorAll('[data-log-type]').forEach(b => b.onclick = () => { v.type = b.dataset.logType; v.approval = ''; v.execution = ''; v.page = 1; renderAccountLogs(); });
+  host.querySelectorAll('[data-log-type]').forEach(b => b.onclick = () => { v.type = b.dataset.logType; v.page = 1; renderAccountLogs(); });
   host.querySelectorAll('[data-log-detail]').forEach(b => b.onclick = () => { v.detail = b.dataset.logDetail; renderAccountLogs(); document.getElementById('log-back').focus(); });
-  document.getElementById('log-filter-form').onsubmit = e => {
-    e.preventDefault();
-    const from = document.getElementById('log-from').value, to = document.getElementById('log-to').value;
-    if (from && to && from > to) { toast('开始日期不能晚于结束日期'); return; }
-    v.from = from; v.to = to;
-    v.query = document.getElementById('log-query').value.trim();
-    v.approval = document.getElementById('log-approval').value;
-    v.execution = document.getElementById('log-execution').value;
-    v.page = 1; renderAccountLogs();
-  };
-  document.getElementById('log-reset').onclick = () => { Object.assign(v, { approval: '', execution: '', query: '', from: '', to: '', page: 1 }); renderAccountLogs(); };
   document.getElementById('log-prev').onclick = () => { v.page--; renderAccountLogs(); };
   document.getElementById('log-next').onclick = () => { v.page++; renderAccountLogs(); };
 }

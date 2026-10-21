@@ -21,10 +21,9 @@ assert.equal(run('[...accountLogSamples].every(([id, rows]) => rows.every(r => r
 assert.equal(run('[...accountLogSamples.values()].flat().every(r => r.events.every((e,i) => !i || e.time >= r.events[i-1].time))'), true);
 assert.equal(run("[...accountLogSamples.values()].flat().filter(r => r.adjustment && r.execution !== '执行成功').every(r => r.after === null && !r.flowId)"), true);
 assert.equal(run("[...accountLogSamples.values()].flat().filter(r => r.adjustment && r.execution === '执行成功').every(r => r.flowId && r.after === r.before + (r.type === '调额减少' ? -r.amount : r.amount))"), true);
-run("var view = {account: state.merchants[0], type:'调额申请', approval:'已通过', execution:'执行失败', query:'', from:'', to:''};");
+run("var view = {account: state.merchants[0], type:'调额申请'};");
 assert.equal(run('filteredAccountLogs(view).length'), 1);
-assert.equal(run("filteredAccountLogs({...view, query:'nothing-here'}).length"), 0);
-assert.equal(run("filteredAccountLogs({...view, from:'2026-10-21'}).length"), 0);
+assert.equal(run("filteredAccountLogs({...view, type:'全部'}).length"), 12);
 assert.equal(run("filteredAccountLogs({...view, approval:'', execution:'', type:'账户状态变更'}).length"), 3);
 assert.equal(run('makeAccountLogSamples(state.merchants[2]).length'), 0);
 assert.equal(run("logRecordDetail(filteredAccountLogs(view)[0], view.account).includes('尚未成功执行')"), true);
@@ -32,4 +31,4 @@ assert.equal(run("logRecordDetail(filteredAccountLogs(view)[0], view.account).in
 const before = execFileSync('git', ['show', '6e2df80:index.html'], {encoding:'utf8'});
 const section = text => text.slice(text.indexOf('function approvalRow('), text.indexOf('function renderMerchants('));
 assert.equal(section(html), section(before));
-console.log('PASS: syntax, HTML parity, approval regression, routes, account isolation, timeline order, balance semantics, filters and empty state');
+console.log('PASS: syntax, HTML parity, approval regression, routes, account isolation, timeline order, balance semantics, static log tabs and empty state');

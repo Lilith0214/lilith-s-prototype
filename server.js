@@ -3,18 +3,31 @@ const fs = require("fs");
 const path = require("path");
 
 const host = "127.0.0.1";
-const port = 43123;
+const port = Number(process.env.PORT) || 43123;
+
+const types = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".cjs": "text/javascript; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".json": "application/json; charset=utf-8",
+  ".md": "text/plain; charset=utf-8"
+};
 
 const server = http.createServer((req, res) => {
-  const pathname = new URL(req.url, 'http://localhost').pathname;
-  const assets = { '/account-logs.js': 'text/javascript; charset=utf-8', '/account-logs.css': 'text/css; charset=utf-8' };
-  const assetPath = pathname.replace(/^\/lilith-s-prototype/, '');
-  const file = assets[assetPath] ? assetPath.slice(1) : 'index.html';
+  const pathname = new URL(req.url, "http://localhost").pathname.replace(/^\/lilith-s-prototype/, "");
+  const rel = decodeURIComponent(pathname).replace(/^\/+/, "");
+  const full = path.resolve(__dirname, rel);
+  const root = path.resolve(__dirname);
+  const canRead = full === root || full.startsWith(root + path.sep);
+  const file = canRead && rel && fs.existsSync(full) && fs.statSync(full).isFile() ? full : path.join(root, "index.html");
   res.writeHead(200, {
-    "Content-Type": assets[assetPath] || "text/html; charset=utf-8",
+    "Content-Type": types[path.extname(file)] || "text/html; charset=utf-8",
     "Cache-Control": "no-store",
   });
-  res.end(fs.readFileSync(path.join(__dirname, file)));
+  res.end(fs.readFileSync(file));
 });
 
 server.listen(port, host, () => {

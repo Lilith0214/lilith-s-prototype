@@ -98,7 +98,7 @@ function logRecordDetail(r, m) {
       pair('执行后可用余额', r.after !== null ? `${money(r.after)} ${m.currency}` : '—（尚未成功执行，不展示预计值）') +
       pair('审批路径', r.route.join(' → ') || '无需审批') + pair('当前审批人', r.approver) +
       pair('飞书审批单号', r.feishuId || '—') + pair('Fund 资金流水号', r.flowId || '—（尚未生成）') +
-      pair('申请备注', '模拟申请：核对账户调额依据。') + pair('上传的附件', '调额凭证.pdf（示例占位，未上传文件）')
+      pair('调整原因', '模拟申请：核对账户调额依据。') + pair('上传的附件', '调额凭证.pdf（示例占位，未上传文件）')
     : pair('操作前状态', r.stateBefore) + pair('操作后状态', r.stateAfter) + pair('操作时可用余额', `0.00 ${m.currency}（示例快照）`);
   return `<div class="log-detail-head"><button class="btn" id="log-back">← 返回列表</button><b>${esc(r.type)}详情</b>${logBadge(r.approval)}${logBadge(r.execution)}</div>
     <div class="log-notice">${r.execution === '执行成功' ? (r.adjustment ? '调额已完成。以下余额为本次入账时的实际快照，不代表账户当前余额。' : '账户状态已更新。') : (r.execution === '执行中' ? '飞书已通过审批，Fund 正在执行或核验入账结果，请勿重复发起调额。' : r.approval === '已通过' ? '飞书已通过审批，但 Fund 尚未调额成功。请以执行结果为准。' : r.adjustment ? '本记录未发生资金变动。' : '本次操作失败，账户状态未变更。')}</div>

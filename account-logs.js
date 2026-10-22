@@ -102,7 +102,7 @@ function logRecordDetail(r, m) {
     : pair('操作前状态', r.stateBefore) + pair('操作后状态', r.stateAfter) + pair('操作时可用余额', `0.00 ${m.currency}（示例快照）`);
   return `<div class="log-detail-head"><button class="btn" id="log-back">← 返回列表</button><b>${esc(r.type)}详情</b>${logBadge(r.approval)}${logBadge(r.execution)}</div>
     <div class="log-notice">${r.execution === '执行成功' ? (r.adjustment ? '调额已完成。以下余额为本次入账时的实际快照，不代表账户当前余额。' : '账户状态已更新。') : (r.execution === '执行中' ? '飞书已通过审批，Fund 正在执行或核验入账结果，请勿重复发起调额。' : r.approval === '已通过' ? '飞书已通过审批，但 Fund 尚未调额成功。请以执行结果为准。' : r.adjustment ? '本记录未发生资金变动。' : '本次操作失败，账户状态未变更。')}</div>
-    <dl class="log-detail-grid">${pair(r.adjustment ? 'Fund 申请单号' : '日志 ID', r.id)}${pair('发起人 / 操作人', r.operator)}${pair('发起时间', r.submitted)}${pair('最后更新时间', r.updated)}${pair('请求来源', r.source)}${pair('备注 / 处理说明', r.remark || '等待审批，未调整账户资金。')}${adjustmentInfo}</dl>
+    <dl class="log-detail-grid">${pair(r.adjustment ? 'Fund 申请单号' : '日志 ID', r.id)}${pair('发起人 / 操作人', r.operator)}${pair('发起时间', r.submitted)}${pair('最后更新时间', r.updated)}${pair('请求来源', r.source)}${adjustmentInfo}</dl>
     <h4>处理轨迹 <span class="log-muted">同一申请持续更新，保留完整事件记录</span></h4>
     <ol class="log-timeline">${r.events.map(e => `<li><span class="log-muted">${esc(e.time)}</span><br>${esc(e.text)}</li>`).join('')}</ol>
     ${r.feishuId ? '<p class="log-muted">生产环境「查看飞书审批单」应跳转本条实例的链接，并校验访问权限；本原型未连接飞书，不生成虚假链接。</p>' : ''}`;

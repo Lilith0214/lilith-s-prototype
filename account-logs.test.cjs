@@ -22,11 +22,17 @@ assert.equal(run('[...accountLogSamples.values()].flat().every(r => r.events.eve
 assert.equal(run("[...accountLogSamples.values()].flat().filter(r => r.adjustment && r.execution !== '执行成功').every(r => r.after === null && !r.flowId)"), true);
 assert.equal(run("[...accountLogSamples.values()].flat().filter(r => r.adjustment && r.execution === '执行成功').every(r => r.flowId && r.after === r.before + (r.type === '调额减少' ? -r.amount : r.amount))"), true);
 run("var view = {account: state.merchants[0], type:'调额申请'};");
-assert.equal(run('filteredAccountLogs(view).length'), 1);
+assert.equal(run('filteredAccountLogs(view).length'), 9);
 assert.equal(run("filteredAccountLogs({...view, type:'全部'}).length"), 12);
 assert.equal(run("filteredAccountLogs({...view, approval:'', execution:'', type:'账户状态变更'}).length"), 3);
 assert.equal(run('makeAccountLogSamples(state.merchants[2]).length'), 0);
-assert.equal(run("logRecordDetail(filteredAccountLogs(view)[0], view.account).includes('尚未成功执行')"), true);
+assert.equal(run(`[...accountLogSamples.values()].flat().every(r => {
+  const m = state.merchants.find(x => x.accountId === r.accountId);
+  const detail = logRecordDetail(r, m);
+  const badges = detail.match(/class="log-badge/g) || [];
+  return badges.length === 1 && detail.includes(logBadge(logOutcomeLabel(r))) && !detail.includes('尚未成功执行') && !detail.includes('log-notice') && !detail.includes('本记录未发生资金变动');
+})`), true);
+assert.equal((fs.readFileSync('account-logs.js', 'utf8').match(/logBadge\(logOutcomeLabel\(r\)\)/g) || []).length, 2);
 // Regression guard: the standalone approval-rendering code is unchanged.
 const before = execFileSync('git', ['show', '6e2df80:index.html'], {encoding:'utf8'});
 const section = text => text.slice(text.indexOf('function approvalRow('), text.indexOf('function renderMerchants('));

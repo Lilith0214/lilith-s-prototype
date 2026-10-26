@@ -6,7 +6,6 @@
 .log-context { display: flex; flex-wrap: wrap; gap: 8px 24px; padding: 14px 16px; background: #f7f8fa; border-radius: 6px; line-height: 22px; }
 .log-context strong { width: 100%; font-size: 14px; }
 .log-muted { color: #86909c; font-size: 12px; font-weight: normal; }
-.log-notice { margin: 14px 0; padding: 10px 14px; background: #eff6ff; color: #386292; line-height: 22px; border-radius: 6px; }
 .log-tabs { display: flex; gap: 24px; border-bottom: 1px solid #e8ebef; margin: 16px 0; }
 .log-tabs button { border: 0; background: none; padding: 0 0 12px; color: #646a73; border-bottom: 2px solid transparent; }
 .log-tabs button.on { color: #1677ff; border-bottom-color: #1677ff; font-weight: 600; }

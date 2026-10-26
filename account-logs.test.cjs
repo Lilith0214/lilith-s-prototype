@@ -26,6 +26,10 @@ assert.equal(run('filteredAccountLogs(view).length'), 9);
 assert.equal(run("filteredAccountLogs({...view, type:'全部'}).length"), 12);
 assert.equal(run("filteredAccountLogs({...view, approval:'', execution:'', type:'账户状态变更'}).length"), 3);
 assert.equal(run('makeAccountLogSamples(state.merchants[2]).length'), 0);
+assert.equal(run("logOutcomeLabel(filteredAccountLogs(view)[0])"), '审批中');
+assert.equal(run("logBadge(logOutcomeLabel(filteredAccountLogs(view)[0])).includes('orange')"), true);
+assert.equal(run(`[...accountLogSamples.values()].flat().filter(r => r.approval === '已驳回').every(r => logOutcomeLabel(r) === '已驳回')`), true);
+assert.equal(run(`[...accountLogSamples.values()].flat().filter(r => r.execution === '执行成功').every(r => logOutcomeLabel(r) === '成功')`), true);
 assert.equal(run(`[...accountLogSamples.values()].flat().every(r => {
   const m = state.merchants.find(x => x.accountId === r.accountId);
   const detail = logRecordDetail(r, m);

@@ -79,11 +79,14 @@ function filteredAccountLogs(view) {
 }
 
 function logOutcomeLabel(r) {
-  return r.execution === '执行成功' ? '成功' : '失败';
+  if (r.execution === '执行成功') return '成功';
+  if (r.execution === '执行失败') return '失败';
+  if (r.execution === '执行中' || r.execution === '待执行') return r.execution;
+  return r.approval;
 }
 
 function logBadge(label) {
-  const color = ({ '审批中': 'blue', '已通过': 'green', '执行成功': 'green', '成功': 'green', '失败': 'red', '待执行': 'orange', '执行中': 'blue', '已驳回': 'red', '发起失败': 'red', '执行失败': 'red' })[label] || '';
+  const color = ({ '审批中': 'orange', '待执行': 'orange', '已通过': 'green', '执行成功': 'green', '成功': 'green', '失败': 'red', '执行中': 'blue', '已驳回': 'red', '发起失败': 'red', '执行失败': 'red' })[label] || '';
   return `<span class="log-badge ${color}">${esc(label)}</span>`;
 }
 

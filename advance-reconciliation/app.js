@@ -31,7 +31,7 @@
       <button class="nav ${active==='statements'?'active':''}" data-nav="statements">${icon('单')}对账管理</button>
       <div class="nav-title">垫资资金</div>
       <button class="nav ${active==='fund'?'active':''}" data-nav="fund">${icon('F')}Fund 联动</button>
-      <div class="sidebar-foot">原型演示 · 全部为模拟数据<br><button class="link" id="help">功能与联动说明</button><br><button class="link" id="reset-demo">重置演示</button></div></aside>
+      <div class="sidebar-foot">原型演示 · 全部为模拟数据<br><button class="link" id="reset-demo">重置演示</button></div></aside>
       <main class="main"><header class="topbar"><div class="crumb">垫资对账 &gt; <b>${esc({balances:'余额表',flows:'平台收款明细',matching:'订单匹配',statements:'对账管理',orders:'店铺订单明细',fund:'Fund 联动',customers:'客户管理'}[active]||'余额表')}</b></div><div class="topright"><span>数据源：Fund</span><span>时区：Asia/Shanghai</span><b>演示财务</b></div></header><div class="tabs"><button class="tab on">${esc({balances:'余额表',flows:'平台收款明细',matching:'订单匹配',statements:'对账管理',orders:'店铺订单明细',fund:'Fund 联动',customers:'客户管理'}[active]||'余额表')}</button></div><section class="content" id="content"></section></main>`;
     root.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{if(['upload'].includes(b.dataset.nav)){toast('数据上传已停用：流水改由 Fund 垫资交易明细同步');return;}nav(b.dataset.nav);});
   }
@@ -99,11 +99,6 @@
     document.getElementById('x').onclick=closeModal;document.getElementById('cancel').onclick=closeModal;document.getElementById('x').focus();
   }
   function renderReset(){showDialog('重置演示数据','<p>清除本原型的本地操作，恢复示例客户、周期和 Fund 记录。</p>','<button class="btn primary" id="do-reset">恢复初始演示</button>');document.getElementById('do-reset').onclick=()=>{state=R.seed();view.customer='DEMO-1001';view.currency='EUR';view.period='';view.q='';view.status='';view.channel='';view.page='balances';closeModal();render();toast('已恢复初始演示');};}
-  function openHelp(){showDialog('功能与联动说明',`<p class="notice">交互原型 · 仅浏览器本地演示，不连接真实 Fund、Shopify 或飞书。所有客户、账户和交易均为虚构。</p>
-    <h4>余额表承担什么</h4><p>按商户 ID + 币种查看当前结算余额；按时间展开周期结算和 Fund 变动记录，向下追溯对账单、账户、订单和流水。筛选周期只影响明细，顶部余额为当前累计快照。</p>
-    <h4>现有页面如何联动</h4><ol><li>客户管理：维护默认周期、服务费、保证金，新周期保存参数快照。</li><li>平台收款明细：统一承接 Fund 四渠道流水；PayPal 专属信息在流水详情展示；取消手动上传入口。</li><li>订单匹配：按 payment reference / 账单号关联，支持一单多流水；未匹配流水暂不进入结算。</li><li>对账管理：复核、费用调整、导出对账单并线下发送客户；客户确认后由财务登记确认，确认金额进入余额表并可结算入账。</li><li>Fund 联动：设置期初、审批调拨和手调，执行成功后回传余额和事件；不再次算作销售收入。</li></ol>
-    <h4>已确认与待评审口径</h4><ul><li>已确认：每期对账结果是本期新增结算金额，余额表按周期时间累计，不把上期余额重复计入本期。</li><li>已确认：财务线下发送对账单，客户确认后，财务回系统登记确认，再执行余额结算并入账 Fund。</li><li>待评审：Fund 内部结算余额池按客户、币种及来源账户拆分；渠道实际余额保持独立，只读展示。账户映射和期初基数待确认。</li><li>演示按账户收款毛额计费并四舍五入到分，跨币种折算、费率基数和保证金释放规则待确认。</li><li>已确认周期走更正申请；原型只演示申请留痕，不实施冲正、更正审批和重新入账。</li><li>日期按 Asia/Shanghai、包含首尾日显示；实际接口需统一时间戳及时区。自动周期边界不重叠，单笔可人工跨期并保留原日期。</li></ul>
-    <h4>建议演示路径</h4><p>示例商户 A：费用调整 → 财务复核 → 导出对账单线下发送 → 客户确认 → 财务登记确认 → 同步 Fund；新建下一周期后可改期。示例商户 B：重试失败入账。示例商户 C：未匹配阻断及期初维护。Fund 联动可演示审批、执行失败、重试、回传。</p><p><a href="./requirements.md" target="_blank" rel="noopener">打开完整功能与验收说明</a></p>`);}
   function openCorrection(id){showDialog('已确认周期更正申请',`<p>对账单 ${esc(id)} 已锁定。更正申请会保留历史版本和原入账结果，不直接覆盖余额。</p>${field('cor-reason','更正原因','')}<p class="hint">更正审批与冲正入账规则待确认，本原型仅演示申请记录。</p>`,'<button class="btn primary" id="cor-save">提交更正申请</button>');document.getElementById('cor-save').onclick=()=>{try{R.correction(state,id,val('cor-reason'));closeModal();render();toast('更正申请已记录，原余额保持不变');}catch(e){toast(e.message);}};}
   function auditDialog(object='') {const logs=state.audit.filter(l=>!object||l.object===object);showDialog('操作记录',`<ol class="timeline">${logs.map(l=>`<li><time>${esc(l.time.replace('T',' ').slice(0,19))} UTC</time><b>${esc(l.type)} · ${esc(l.object)}</b><p>${esc(l.detail)}</p><small>${esc(l.operator)}</small></li>`).join('')||'<p>此记录暂无变更</p>'}</ol>`);}
   function balanceHistory(){
@@ -121,7 +116,7 @@
   function enhancePage(){
     document.querySelectorAll('label').forEach(l=>{const next=l.nextElementSibling;if(next?.id&&!l.htmlFor)l.htmlFor=next.id;});
     const content=document.getElementById('content');
-    content.insertAdjacentHTML('afterbegin','<div class="demo-banner">可交互原型 · 全部为模拟数据 <button class="link" id="scope-help">查看口径与待确认项</button></div>');document.getElementById('scope-help').onclick=openHelp;
+    content.insertAdjacentHTML('afterbegin','<div class="demo-banner">可交互原型 · 全部为模拟数据</div>');
     const auditButton=document.createElement('button');auditButton.className='btn';auditButton.textContent='操作记录';auditButton.onclick=()=>auditDialog();document.querySelector('.page-head').append(auditButton);
     if(view.page==='balances'){
       const s=R.summary(state,view.customer),c=customer();
@@ -157,7 +152,7 @@
       const pending=state.operations.filter(o=>o.execution==='执行成功'&&o.callback==='待回传').length;if(pending)document.querySelector('.notice').insertAdjacentHTML('beforeend',`<b class="amber">　${pending} 笔执行成功，等待回传余额。</b>`);
     }
   }
-  function render(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch(_){} shell();document.getElementById('help').onclick=openHelp;document.getElementById('reset-demo').onclick=()=>{modal={type:'reset'};renderReset();};if(view.page==='balances')renderBalances();else if(view.page==='flows')renderFlows();else if(view.page==='matching')renderMatching();else if(view.page==='statements')renderStatements();else if(view.page==='orders')renderOrders();else if(view.page==='customers')renderCustomers();else if(view.page==='fund')renderFund();enhancePage();}
+  function render(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch(_){} shell();document.getElementById('reset-demo').onclick=()=>{modal={type:'reset'};renderReset();};if(view.page==='balances')renderBalances();else if(view.page==='flows')renderFlows();else if(view.page==='matching')renderMatching();else if(view.page==='statements')renderStatements();else if(view.page==='orders')renderOrders();else if(view.page==='customers')renderCustomers();else if(view.page==='fund')renderFund();enhancePage();}
   const hash=location.hash.slice(1); if(['balances','flows','matching','statements','orders','fund','customers'].includes(hash))view.page=hash;
   window.addEventListener('hashchange',()=>{const page=location.hash.slice(1);if(['balances','flows','matching','statements','orders','fund','customers'].includes(page)){view.page=page;render();}});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.key==='Tab'&&overlay.firstChild){const nodes=[...overlay.querySelectorAll('button,input,select,textarea,a')].filter(n=>!n.disabled&&n.offsetParent!==null);const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});

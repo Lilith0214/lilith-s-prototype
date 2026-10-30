@@ -222,8 +222,8 @@
       document.getElementById('export-balance').onclick=()=>exportRows(periods().map(p=>{const x=R.calc(state,p.id);return [c.id,c.name,p.start,p.end,p.currency,x.gross/100,x.refund/100,x.dispute/100,x.fee/100,x.service/100,x.reserve/100,x.manual/100,x.total/100,state.periods.filter(t=>t.customer===p.customer&&t.end<=p.end&&!R.editable(t)).reduce((n,t)=>n+R.calc(state,t.id).total,0)/100,p.status];}),['商户ID','客户','开始日期','结束日期','币种','收款毛额','退款','拒付及追回','渠道费用','服务费','保证金','人工调整','本期结算金额','累计已确认结算','状态']);
     }
     if(view.page==='flows'){
-      const head=document.querySelector('.table-head');head.insertAdjacentHTML('afterend',`<div class="channel-tabs">${['',...R.channels].map(ch=>`<button class="${view.channel===ch?'selected':''}" data-channel="${ch}">${ch||'全部渠道'}</button>`).join('')}</div>`);document.querySelectorAll('[data-channel]').forEach(b=>b.onclick=()=>{view.channel=b.dataset.channel;render();});
-      const status=document.getElementById('status');status.closest('div').style.display='none';
+      const status=document.getElementById('status');
+      if(status?.closest('div')) status.closest('div').style.display='none';
       const lastSync=state.lastSync;if(lastSync?.quarantined)document.querySelector('.sync-line').insertAdjacentHTML('beforeend','<span class="red">　锁定周期或映射缺失的流水待人工核查，未自动入账</span>');
     }
     if(view.page==='orders'){ /* 店铺订单明细使用自身筛选，不再套用余额表筛选增强逻辑。 */ }

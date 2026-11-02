@@ -307,7 +307,7 @@
     approve(s,adjust.id,true);execute(s,adjust.id);
     requestOperation(s,'adjust','A-PP',null,-3000,'待审批的手动调减，不应改变余额');
     s.customers.forEach((c,i)=>s.periods.push({id:`P${i+1}3`,customer:c.id,currency:c.currency,start:'2026-10-27',end:'2026-11-02',status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]}));
-    mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};
+    mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};s.lastUpload={added:8,failed:2};
     return s;
   }
   return {channels,clone,roundRate,addDays,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,createPeriod,configure,saveCyclePlan,correction,audit,seed};

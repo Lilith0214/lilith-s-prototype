@@ -4,7 +4,7 @@
   const storageKey='advance-reconciliation-demo-v1';
   let state;
   try { state=JSON.parse(localStorage.getItem(storageKey)||'null'); } catch(_) {}
-  if(!state||state.schema!==1) state=R.seed();
+  if(!state||state.schema!==2) state=R.seed();
   let view = {page:'balances', customer:'DEMO-1001', currency:'EUR', status:'', from:'2026-10-01', to:'2026-10-31', q:'', period:'', flow:'', detail:'', account:'', syncFail:false, channel:'', balanceTab:'periods', flowCustomer:'', flowPeriod:'', flowPlatform:'', flowMatched:'', flowBill:'', flowTimezone:'UTC+8 北京/上海'};
   let modal = null;
   const root = document.getElementById('app'), overlay = document.getElementById('overlay');
@@ -39,10 +39,97 @@
     document.getElementById('search').onclick=render;document.getElementById('reset').onclick=()=>{view.status='';view.period='';view.from='2026-10-01';view.to='2026-10-31';render();};
   }
   function statCards(){const s=R.summary(state,view.customer), c=customer();return `<div class="cards"><div class="stat"><span>客户当前结算余额</span><strong>${s.expected===null?'待设置期初':money(s.expected,c.currency)}</strong><small>期初 + 已确认结算 + Fund 已执行变动</small></div><div class="stat"><span>Fund 账户余额合计</span><strong>${s.mirrored===null?'待回传':money(s.mirrored,c.currency)}</strong><small>${s.fund===null?'存在未设置期初余额':'已收到的 Fund 余额快照'}</small></div><div class="stat"><span>待同步 Fund</span><strong class="${s.pending?'amber':''}">${money(s.pending,c.currency)}</strong><small>${s.pending?'有已确认或失败记录':'无待处理记录'}</small></div><div class="stat"><span>余额差异</span><strong class="${s.expected!==s.mirrored?'red':''}">${s.expected===null||s.mirrored===null?'待回传':money(s.expected-s.mirrored,c.currency)}</strong><small>${s.expected===s.mirrored&&s.expected!==null?'与 Fund 回传余额一致':'含待入账金额或未回传变动'}</small></div></div>`;}
+  function balanceAccountName(id){
+    return ({'A-PP':'PayPal-HQY 10','A-OP':'Oceanpayment-HUACHAO','B-AW':'Airwallex-try.swellfree.co/p1','B-SP':'ShopifyPayments-volmer-h','C-PP':'PayPal-HQY 14'})[id] || id;
+  }
+  function signedMoney(n, cur){
+    if(n == null) return '—';
+    return (n>0?'+':'') + money(n, cur);
+  }
+  function balanceLedger(a){
+    const lines=[];
+    if(a.opening!==null) lines.push({time:(a.openingAt||'')+' 23:59', source:'Fund', type:'期初余额', delta:a.opening, count:true, note:'Fund 维护的期初余额', ref:'OPENING'});
+    state.events.filter(e=>e.account===a.id && e.kind==='settlement').forEach(e=>{
+      const p=state.periods.find(x=>x.id===e.reference);
+      lines.push({time:(p?p.end+' 18:00':e.time.slice(0,16).replace('T',' ')), source:'垫资对账', type:'对账单结算', delta:e.delta, count:true, note:p?`对账管理已确认 ${p.start} ~ ${p.end}，Fund 执行成功后计入该资金账户`:'对账单结算已入账', ref:e.reference});
+    });
+    state.periods.filter(p=>p.customer===a.customer && p.currency===a.currency && ['confirmed','failed'].includes(p.status)).forEach(p=>{
+      const row=R.calc(state,p.id).byAccount[a.id];
+      if(!row||!row.total) return;
+      lines.push({time:p.end+' 18:00', source:'垫资对账', type:'对账单结算', delta:row.total, count:false, note:`对账管理已确认 ${p.start} ~ ${p.end}，Fund 尚未执行成功，当前余额不变`, ref:p.id});
+    });
+    state.events.filter(e=>e.account===a.id && e.kind!=='settlement').forEach(e=>{
+      const op=state.operations.find(o=>o.id===e.reference);
+      const other=state.events.find(x=>x.reference===e.reference && x.account!==a.id);
+      const where=other?`${e.delta<0?'调往':'来自'} ${balanceAccountName(other.account)}`:'';
+      lines.push({time:e.time.slice(0,16).replace('T',' '), source:'Fund', type:e.kind==='transfer'?(e.delta<0?'调拨转出':'调拨转入'):'手动调额', delta:e.delta, count:true, note:[where, op?.reason||''].filter(Boolean).join(' · '), ref:e.reference});
+    });
+    state.operations.filter(o=>o.source===a.id && o.execution!=='执行成功').forEach(o=>{
+      lines.push({time:o.time.slice(0,16).replace('T',' '), source:'Fund', type:o.type==='transfer'?'调拨转出':'手动调额', delta:o.type==='transfer'?-o.amount:o.amount, count:false, note:`${o.reason} · ${o.approval} / ${o.execution}，不计入当前余额`, ref:o.id});
+    });
+    const rank={期初余额:0,对账单结算:1,调拨转出:2,调拨转入:3,手动调额:4};
+    lines.sort((x,y)=>x.time.localeCompare(y.time)||(rank[x.type]||9)-(rank[y.type]||9));
+    let bal=0;
+    lines.forEach(l=>{if(l.count){l.after=bal+l.delta;bal=l.after;}else l.after=null;});
+    return {lines, balance:a.opening===null?null:bal};
+  }
+  function sumLines(lines, pred){return lines.filter(pred).reduce((n,l)=>n+l.delta,0);}
+  function balanceCustomers(){
+    const q=(view.balanceQuery||'').trim().toLowerCase();
+    return state.customers.filter(c=>!q || [c.id,c.name].join(' ').toLowerCase().includes(q));
+  }
+  function balanceSuggest(q){
+    const text=(q||'').trim().toLowerCase();
+    return state.customers.filter(c=>!text || [c.id,c.name].join(' ').toLowerCase().includes(text)).slice(0,8);
+  }
+  function customerBalanceBlock(c){
+    const accounts=state.accounts.filter(a=>a.customer===c.id).map(a=>({account:a, ledger:balanceLedger(a)}));
+    const currencies=[...new Set(accounts.map(x=>x.account.currency))];
+    const totals=currencies.map(cur=>{
+      const rows=accounts.filter(x=>x.account.currency===cur);
+      const counted=rows.filter(x=>x.ledger.balance!==null);
+      const lines=counted.flatMap(x=>x.ledger.lines);
+      return {
+        cur,
+        missing:rows.some(x=>x.account.opening===null),
+        balance:counted.reduce((n,x)=>n+x.ledger.balance,0),
+        opening:sumLines(lines,l=>l.count&&l.type==='期初余额'),
+        settlement:sumLines(lines,l=>l.count&&l.type==='对账单结算'),
+        transfer:sumLines(lines,l=>l.count&&l.type.startsWith('调拨')),
+        adjust:sumLines(lines,l=>l.count&&l.type==='手动调额'),
+        ready:counted.length>0
+      };
+    });
+    const totalHtml=totals.map(t=>`<div class="balance-total"><span>客户总余额 · ${esc(t.cur)}</span><strong>${t.ready?money(t.balance,t.cur):'待设置期初'}</strong></div>`).join('');
+    const splitHtml=totals.map(t=>`<div class="balance-split"><span>期初<strong>${t.ready?money(t.opening,t.cur):'—'}</strong></span><span>对账单结算<strong>${t.ready?signedMoney(t.settlement,t.cur):'—'}</strong></span><span>调拨净额<strong>${t.ready?signedMoney(t.transfer,t.cur):'—'}</strong></span><span>手动调额<strong>${t.ready?signedMoney(t.adjust,t.cur):'—'}</strong></span></div>`).join('');
+    const accountHtml=accounts.map(({account:a, ledger})=>{
+      const lines=ledger.lines;
+      const part=(pred)=>a.opening==null?null:sumLines(lines,l=>l.count&&pred(l));
+      const rows=lines.map(l=>`<tr class="${l.count?'':'is-idle'}"><td>${esc(l.time)}</td><td>${esc(l.source)}</td><td>${esc(l.type)}</td><td class="money ${l.delta<0?'minus':'plus'}">${signedMoney(l.delta,a.currency)}</td><td class="money">${l.after==null?'—':money(l.after,a.currency)}</td><td>${esc(l.note)}</td><td>${l.count?'<span class="sync-pill ok">已计入</span>':'<span class="sync-pill warn">不计入</span>'}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">还没有计入余额的变动</td></tr>';
+      return `<article class="balance-account"><header><div><b>${esc(a.channel)}</b><span>${esc(balanceAccountName(a.id))} · ${esc(a.id)} · ${esc(a.currency)}</span></div><div class="balance-total"><span>账户余额</span><strong>${ledger.balance==null?'待设置期初':money(ledger.balance,a.currency)}</strong></div></header><div class="balance-split account"><span>期初<strong>${a.opening==null?'—':money(a.opening,a.currency)}</strong></span><span>对账单结算<strong>${signedMoney(part(l=>l.type==='对账单结算'),a.currency)}</strong></span><span>调拨净额<strong>${signedMoney(part(l=>l.type.startsWith('调拨')),a.currency)}</strong></span><span>手动调额<strong>${signedMoney(part(l=>l.type==='手动调额'),a.currency)}</strong></span></div><div class="table-wrap"><table class="balance-lines"><thead><tr><th>时间</th><th>来源</th><th>变动类型</th><th>变动金额</th><th>变动后余额</th><th>说明</th><th>是否计入</th></tr></thead><tbody>${rows}</tbody></table></div></article>`;
+    }).join('')||'<p class="empty">这个客户还没有资金账户</p>';
+    const missing=totals.some(t=>t.missing)?'有资金账户还没设期初，客户总余额不含这些账户。':'';
+    return `<section class="balance-customer"><header><div><b>${esc(c.name)}</b><span>${esc(c.id)}</span></div><div class="balance-totals">${totalHtml}</div></header>${splitHtml}<p class="balance-note">${missing}客户总余额等于下面同币种资金账户的当前余额相加，不跨币种相加。同一客户里的调拨会改变账户余额，客户总额不变。未在对账管理确认的周期不会出现；已确认但 Fund 还没执行成功的，会列出来并标成不计入。</p>${accountHtml}</section>`;
+  }
   function renderBalances(){
-    const ps=periods(), c=customer(), s=R.summary(state,view.customer);
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1><p>按客户、币种和对账周期查看本期新增结算余额。财务线下发送对账单，客户确认后再回系统登记并入账 Fund。</p></div><div class="head-actions"><button class="btn" id="period-config">周期配置</button><button class="btn" id="fund-sync">同步 Fund 余额</button><button class="btn primary" id="new-period">新建对账周期</button></div></div>${statCards()}<div class="panel">${filters()}<div class="notice">${icon('i')} 余额链路：周期结算余额 → 客户确认 → Fund 入账成功 → Fund 余额回传。只有“执行成功”才更新 Fund 余额。</div></div><div class="panel table-panel"><div class="table-head"><div><b>周期余额（按时间累计）</b><span class="sub">${c.name} · ${c.currency}</span></div><button class="btn" id="export-balance">导出余额表</button></div><div class="table-wrap"><table><thead><tr><th>对账周期</th><th>客户</th><th>本期匹配金额</th><th>服务费</th><th>保证金</th><th>人工调整</th><th>本期结算余额</th><th>累计确认结算</th><th>匹配状态</th><th>周期状态</th><th>Fund 同步</th><th>操作</th></tr></thead><tbody>${ps.map(p=>{const x=R.calc(state,p.id), sign=x.total<0?'minus':'plus';return `<tr><td><b>${p.start} ~ ${p.end}</b><span class="sub">${p.id} · V${p.version}${p.override?' · 含人工改期':''}</span></td><td>${esc(c.name)}<span class="sub">${p.currency}</span></td><td class="money">${money(x.gross,p.currency)}<span class="sub">已匹配 ${x.matched} 笔 / 异常 ${x.unresolved} 笔</span></td><td class="money minus">${money(x.service,p.currency)}</td><td class="money minus">${money(x.reserve,p.currency)}</td><td class="money ${x.manual<0?'minus':'plus'}">${money(x.manual,p.currency)}</td><td class="money ${sign}">${x.total>=0?'+':''}${money(x.total,p.currency)}</td><td class="money">${money(state.periods.filter(t=>t.customer===p.customer&&t.end<=p.end&&!R.editable(t)).reduce((n,t)=>n+R.calc(state,t.id).total,0),p.currency)}</td><td>${x.unresolved?badge('需处理'):badge('已匹配')}</td><td>${badge(({draft:'对账中',reviewed:'待客户确认',confirmed:'已确认',synced:'已同步 Fund',failed:'同步失败'})[p.status])}</td><td>${p.status==='synced'?badge('执行成功'):p.status==='failed'?badge('同步失败'):p.status==='confirmed'?badge('待同步'):badge('未发起')}</td><td class="ops"><button class="link" data-period-detail="${p.id}">查看明细</button><button class="link" data-period-edit="${p.id}">周期调整</button>${p.status==='draft'?`<button class="link" data-review="${p.id}">财务复核</button>`:''}${p.status==='reviewed'?`<button class="link" data-confirm="${p.id}">登记客户确认</button>`:''}${['confirmed','failed'].includes(p.status)?`<button class="link" data-sync="${p.id}">同步 Fund</button>`:''}</td></tr>`;}).join('')||`<tr><td colspan="11" class="empty">暂无周期数据</td></tr>`}</tbody></table></div></div>`;
-    bindFilters();document.querySelectorAll('[data-period-detail]').forEach(b=>b.onclick=()=>{view.period=b.dataset.periodDetail;view.page='statements';render();});document.querySelectorAll('[data-period-edit]').forEach(b=>b.onclick=()=>openPeriod(b.dataset.periodEdit));document.querySelectorAll('[data-review]').forEach(b=>b.onclick=()=>{try{R.review(state,b.dataset.review);toast('财务复核完成，请导出对账单并线下发送客户');render();}catch(e){toast(e.message);}});document.querySelectorAll('[data-confirm]').forEach(b=>b.onclick=()=>{try{const p=R.period(state,b.dataset.confirm);if(p.status==='draft')R.review(state,p.id);openConfirm(p.id);}catch(e){toast(e.message);}});document.querySelectorAll('[data-sync]').forEach(b=>b.onclick=()=>{try{toast(R.syncSettlement(state,b.dataset.sync,view.syncFail));view.syncFail=false;render();}catch(e){toast(e.message);}});document.getElementById('new-period').onclick=()=>openPeriod();document.getElementById('period-config').onclick=()=>openConfig();document.getElementById('fund-sync').onclick=()=>{R.mirror(state);toast('已回传 Fund 账户余额快照');render();};document.getElementById('export-balance').onclick=()=>exportRows(ps.map(p=>{const x=R.calc(state,p.id);return [p.start+' ~ '+p.end,c.name,p.currency,x.gross/100,x.service/100,x.reserve/100,x.manual/100,x.total/100,p.status];}),['对账周期','客户','币种','匹配金额','服务费','保证金','人工调整','本期结算余额','周期状态']);
+    const list=balanceCustomers();
+    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1><p>按客户、资金账户、变动明细三层看金额。客户看总余额，账户看各渠道资金账户余额，明细看每一笔对账单结算、调拨和手动调额。</p></div><div class="head-actions"><button class="btn" id="export-balance">导出余额表</button></div></div><div class="panel balance-filter"><div class="balance-search"><label for="balance-q">客户</label><div class="balance-search-box"><input id="balance-q" placeholder="输入客户名称或客户 ID，支持模糊搜索" value="${esc(view.balanceQuery||'')}" autocomplete="off"><div id="balance-suggest" class="balance-suggest" hidden></div></div><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button></div></div><div class="balance-list">${list.map(customerBalanceBlock).join('')||'<div class="panel"><p class="empty">没有匹配的客户</p></div>'}</div>`;
+    const input=document.getElementById('balance-q'), box=document.getElementById('balance-suggest');
+    const paint=()=>{const hits=balanceSuggest(input.value);box.innerHTML=hits.map(c=>`<button type="button" data-pick="${esc(c.id)}">${esc(c.name)}<span>${esc(c.id)}</span></button>`).join('')||'<div class="empty">没有匹配的客户</div>';box.hidden=false;};
+    input.onfocus=paint;input.oninput=paint;
+    input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();document.getElementById('balance-search').click();}};
+    box.onclick=e=>{const b=e.target.closest('[data-pick]');if(!b)return;const picked=R.customer(state,b.dataset.pick);view.balanceQuery=picked.name;view.customer=picked.id;view.currency=picked.currency;render();};
+    document.getElementById('balance-search').onclick=()=>{view.balanceQuery=input.value.trim();render();};
+    document.getElementById('balance-reset').onclick=()=>{view.balanceQuery='';render();};
+    document.getElementById('export-balance').onclick=()=>{
+      const rows=[];
+      list.forEach(c=>state.accounts.filter(a=>a.customer===c.id).forEach(a=>{
+        const ledger=balanceLedger(a);
+        if(!ledger.lines.length) rows.push([c.id,c.name,a.id,balanceAccountName(a.id),a.channel,a.currency,'','','','',ledger.balance==null?'待设置期初':'','','']);
+        ledger.lines.forEach(l=>rows.push([c.id,c.name,a.id,balanceAccountName(a.id),a.channel,a.currency,l.time,l.source,l.type,(l.delta/100).toFixed(2),l.after==null?'':(l.after/100).toFixed(2),l.count?'已计入':'不计入',l.note]));
+      }));
+      exportRows(rows,['客户 ID','客户名称','资金账户','账户别名','渠道','币种','时间','来源','变动类型','变动金额','变动后余额','是否计入','说明']);
+    };
   }
   function renderFlows(){
     const channels=[['','全部渠道'],['Airwallex','Airwallex'],['PayPal','PayPal'],['Oceanpayment','OceanPayment'],['ShopifyPayments','ShopifyPayments']];
@@ -315,14 +402,7 @@
     const content=document.getElementById('content');
 
     if(view.page!=='flows'){const auditButton=document.createElement('button');auditButton.className='btn';auditButton.textContent='操作记录';auditButton.onclick=()=>auditDialog();document.querySelector('.page-head')?.append(auditButton);}
-    if(view.page==='balances'){
-      const s=R.summary(state,view.customer),c=customer();
-      document.querySelector('.cards').insertAdjacentHTML('afterend',`<div class="balance-equation"><span>期初 ${s.opening===null?'未设置':money(s.opening,c.currency)}</span><b>＋</b><span>已确认结算 ${money(s.settled,c.currency)}</span><b>＋</b><span>Fund 已执行变动 ${money(s.movement,c.currency)}</span><span class="sub">未确认周期不计入累计余额 · 顶部为当前快照</span></div>`);
-      const panel=document.querySelector('.table-panel');panel.insertAdjacentHTML('afterend',`<div class="panel table-panel"><div class="table-head"><b>余额变动时间线</b><span class="sub">全部已确认周期及 Fund 已执行事件</span></div>${balanceHistory()}</div>`);
-      const accts=state.accounts.filter(a=>a.customer===c.id);panel.insertAdjacentHTML('afterend',`<div class="panel table-panel"><div class="table-head"><b>账户拆分</b><span class="sub">只在同客户、同币种下汇总，不跨币种抵销</span></div><div class="table-wrap"><table class="accounts"><thead><tr><th>资金账户</th><th>渠道</th><th>期初余额</th><th>已确认结算</th><th>Fund 变动</th><th>客户账面余额</th><th>Fund 最近回传</th><th>操作</th></tr></thead><tbody>${accts.map(a=>{const st=state.periods.filter(p=>p.customer===c.id&&!R.editable(p)).reduce((n,p)=>n+(R.calc(state,p.id).byAccount[a.id]?.total||0),0),op=state.events.filter(e=>e.account===a.id&&e.kind!=='settlement').reduce((n,e)=>n+e.delta,0),m=state.mirrors.find(m=>m.account===a.id);return `<tr><td>${a.id}</td><td>${a.channel}</td><td>${a.opening===null?'未设置':money(a.opening,a.currency)}</td><td>${money(st,a.currency)}</td><td>${money(op,a.currency)}</td><td>${a.opening===null?'—':money(a.opening+st+op,a.currency)}</td><td>${m?.amount==null?'待回传':money(m.amount,a.currency)}</td><td><button class="link" data-ledger="${a.id}">Fund 事件</button></td></tr>`;}).join('')}</tbody></table></div></div>`);
-      document.querySelectorAll('[data-ledger]').forEach(b=>b.onclick=()=>accountLedger(b.dataset.ledger));
-      document.getElementById('export-balance').onclick=()=>exportRows(periods().map(p=>{const x=R.calc(state,p.id);return [c.id,c.name,p.start,p.end,p.currency,x.gross/100,x.refund/100,x.dispute/100,x.fee/100,x.service/100,x.reserve/100,x.manual/100,x.total/100,state.periods.filter(t=>t.customer===p.customer&&t.end<=p.end&&!R.editable(t)).reduce((n,t)=>n+R.calc(state,t.id).total,0)/100,p.status];}),['商户ID','客户','开始日期','结束日期','币种','收款毛额','退款','拒付及追回','渠道费用','服务费','保证金','人工调整','本期结算金额','累计已确认结算','状态']);
-    }
+    if(view.page==='balances'){ /* 余额表自己渲染三层结构，不再追加旧的汇总看板。 */ }
     if(view.page==='flows'){
       const status=document.getElementById('status');
       if(status?.closest('div')) status.closest('div').style.display='none';
@@ -348,6 +428,7 @@
   function render(){ensureSyncBatches();try{localStorage.setItem(storageKey,JSON.stringify(state));}catch(_){} shell();document.getElementById('reset-demo').onclick=()=>{modal={type:'reset'};renderReset();};if(view.page==='balances')renderBalances();else if(view.page==='paypal')renderPaypal();else if(view.page==='flows')renderFlows();else if(view.page==='matching')renderMatching();else if(view.page==='statements')renderStatements();else if(view.page==='orders')renderOrders();else if(view.page==='customers')renderCustomers();else if(view.page==='fund')renderFund();enhancePage();}
   const hash=location.hash.slice(1); if(['balances','paypal','flows','matching','statements','orders','fund','customers'].includes(hash))view.page=hash;
   window.addEventListener('hashchange',()=>{const page=location.hash.slice(1);if(['balances','paypal','flows','matching','statements','orders','fund','customers'].includes(page)){view.page=page;render();}});
+  document.addEventListener('click',e=>{if(!e.target.closest('.balance-search')){const box=document.getElementById('balance-suggest');if(box)box.hidden=true;}});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.key==='Tab'&&overlay.firstChild){const nodes=[...overlay.querySelectorAll('button,input,select,textarea,a')].filter(n=>!n.disabled&&n.offsetParent!==null);const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
   render();
 })();

@@ -227,7 +227,7 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:1,seq:100,customers:[
+    const s={schema:2,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
@@ -250,6 +250,11 @@
     s.flows.push({...clone(s.flows.find(f=>f.id==='FLOW-3')),id:'HOLD-3',eventId:'TX-H-3',type:'reserve_hold',amount:-20000,fee:0});
     ['P11','P21'].forEach(id=>{review(s,id);confirm(s,id,'演示历史确认');syncSettlement(s,id);});
     review(s,'P22');confirm(s,'P22','演示客户确认记录 DEMO-ACK-22');syncSettlement(s,'P22',true);
+    const transfer=requestOperation(s,'transfer','A-PP','A-OP',20000,'PayPal 账户调入 Oceanpayment，同客户同币种');
+    approve(s,transfer.id,true);execute(s,transfer.id);
+    const adjust=requestOperation(s,'adjust','B-AW',null,5000,'Airwallex 账户手动调增');
+    approve(s,adjust.id,true);execute(s,adjust.id);
+    requestOperation(s,'adjust','A-PP',null,-3000,'待审批的手动调减，不应改变余额');
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};
     return s;
   }

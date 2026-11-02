@@ -79,6 +79,19 @@
       reserve:confirmed.reduce((n,p)=>n-calc(s,p.id).reserve,0),drafts:s.periods.filter(p=>p.customer===id&&editable(p)).length};
   }
   function ensureEditable(s,id) { const p=period(s,id); if(!editable(p)) fail('此周期已确认或已入账，禁止直接修改；请在对账管理提交更正申请'); return p; }
+  function moveOrder(s,id,target,reason) {
+    if(!reason.trim()) fail('请填写调整原因');
+    const o=s.orders.find(x=>x.id===id)||fail('订单不存在');
+    const current=o.period?period(s,o.period):s.periods.find(p=>p.customer===o.customer&&p.currency===o.currency&&o.date>=p.start&&o.date<=p.end);
+    const to=ensureEditable(s,target);
+    if(current&&!editable(current)) fail('原对账周期已确认或已入账，不能直接改期');
+    if(current&&current.id===to.id) fail('请选择不同的对账周期');
+    if(to.customer!==o.customer||to.currency!==o.currency) fail('仅允许调整到同客户、同币种周期');
+    if(current) invalidate(s,current.id);
+    invalidate(s,to.id);
+    o.period=to.id; o.override=true; o.originalPeriod=o.originalPeriod||(current?current.id:null);
+    audit(s,'订单改期',id,`${current?current.id:'未归属'} → ${to.id}；${reason}`);
+  }
   function moveFlow(s,id,target,reason) {
     if(!reason.trim()) fail('请填写调整原因');
     const f=s.flows.find(x=>x.id===id)||fail('流水不存在');
@@ -227,7 +240,7 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:2,seq:100,customers:[
+    const s={schema:3,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
@@ -255,8 +268,9 @@
     const adjust=requestOperation(s,'adjust','B-AW',null,5000,'Airwallex 账户手动调增');
     approve(s,adjust.id,true);execute(s,adjust.id);
     requestOperation(s,'adjust','A-PP',null,-3000,'待审批的手动调减，不应改变余额');
+    s.customers.forEach((c,i)=>s.periods.push({id:`P${i+1}3`,customer:c.id,currency:c.currency,start:'2026-10-27',end:'2026-11-02',status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]}));
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};
     return s;
   }
-  return {channels,clone,roundRate,addDays,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,adjustPeriod,addAdjustment,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,createPeriod,configure,correction,audit,seed};
+  return {channels,clone,roundRate,addDays,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,createPeriod,configure,correction,audit,seed};
 });

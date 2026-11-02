@@ -228,6 +228,44 @@
     const p={id:'P-'+(++s.seq),customer:cid,currency:c.currency,start,end,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]};
     s.periods.push(p);audit(s,'生成周期',p.id,`${start} ~ ${end}；${c.days} 天；Asia/Shanghai`);return p;
   }
+  function saveCyclePlan(s,cid,days,rows) {
+    const c=customer(s,cid);
+    if(!Number.isInteger(days)||days<1||days>90) fail('周期天数须为 1–90 的整数（原型输入范围）');
+    const mine=s.periods.filter(p=>p.customer===cid);
+    const byId=Object.fromEntries(mine.map(p=>[p.id,p]));
+    const proposed=mine.map(p=>({id:p.id,start:p.start,end:p.end}));
+    rows.forEach(row=>{
+      if(!dateOK(row.start)||!dateOK(row.end)||row.start>row.end) fail('请填写有效的起止日期');
+      if(row.id&&byId[row.id]){
+        const cur=proposed.find(p=>p.id===row.id);
+        if(!editable(byId[row.id])&&(cur.start!==row.start||cur.end!==row.end)) fail('已对账周期不能直接改日期');
+        cur.start=row.start;cur.end=row.end;
+      }else proposed.push({id:null,start:row.start,end:row.end});
+    });
+    for(let i=0;i<proposed.length;i++) for(let j=i+1;j<proposed.length;j++){
+      const a=proposed[i],b=proposed[j];
+      if(a.start<=b.end&&b.start<=a.end) fail('所含日期与其他周期有重合');
+    }
+    if(days!==c.days) configure(s,cid,days,c.service,c.reserve);
+    proposed.forEach(row=>{
+      if(!row.id){
+        const p={id:'P-'+(++s.seq),customer:cid,currency:c.currency,start:row.start,end:row.end,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]};
+        s.periods.push(p);audit(s,'生成周期',p.id,`${row.start} ~ ${row.end}；${days} 天`);
+        return;
+      }
+      const p=byId[row.id];
+      if(!editable(p)||(p.start===row.start&&p.end===row.end)) return;
+      const old=`${p.start} ~ ${p.end}`;
+      invalidate(s,p.id);p.start=row.start;p.end=row.end;
+      audit(s,'周期日期调整',p.id,`${old} → ${row.start} ~ ${row.end}`);
+    });
+    s.flows.filter(f=>f.customer===cid&&!f.override).forEach(f=>{
+      const from=s.periods.find(p=>p.id===f.period);
+      const next=s.periods.find(p=>p.customer===cid&&p.currency===f.currency&&f.date>=p.start&&f.date<=p.end);
+      if(!from||!next||next.id===f.period||!editable(from)||!editable(next)) return;
+      invalidate(s,from.id);invalidate(s,next.id);f.period=next.id;
+    });
+  }
   function configure(s,cid,days,service,reserve) {
     if(!Number.isInteger(days)||days<1||days>90) fail('周期天数须为 1–90 的整数（原型输入范围）');
     if(![service,reserve].every(x=>Number.isInteger(x)&&x>=0&&x<=10000)) fail('费率须在 0%–100% 范围');
@@ -272,5 +310,5 @@
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};
     return s;
   }
-  return {channels,clone,roundRate,addDays,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,createPeriod,configure,correction,audit,seed};
+  return {channels,clone,roundRate,addDays,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,createPeriod,configure,saveCyclePlan,correction,audit,seed};
 });

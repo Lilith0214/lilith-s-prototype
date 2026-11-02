@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>垫资期初余额原型</title>
+<style>
+:root {
+  --blue: #1677ff;
+  --blue-h: #4096ff;
+  --bg: #f5f6f8;
+  --line: #f0f0f0;
+  --text: #1f1f1f;
+  --muted: #8c8c8c;
+  --danger: #ff4d4f;
+  --green: #389e0d;
+  --orange: #d46b08;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 13px;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.app { display: flex; height: 100%; min-width: 0; }
+.rail {
+  width: 72px; background: #001529; color: rgba(255,255,255,.75);
+  display: flex; flex-direction: column; align-items: center; padding: 8px 0; flex: none; gap: 4px;
+}
+.rail .logo {
+  width: 28px; height: 28px; border-radius: 7px; background: var(--blue);
+  color: #fff; display: grid; place-items: center; font-weight: 700; margin: 4px 0 10px; font-size: 13px;
+}
+.rail button {
+  width: 64px; border: 0; background: transparent; color: rgba(255,255,255,.65);
+  border-radius: 6px; padding: 8px 0; line-height: 1.15;
+}
+.rail button b { display: block; font-size: 12px; font-weight: 600; }
+.rail button span { display: block; font-size: 10px; margin-top: 2px; }
+.rail button.active { background: var(--blue); color: #fff; }
+.sider {
+  width: 196px; background: #fff; border-right: 1px solid var(--line); flex: none;
+  overflow: auto; padding: 8px 0 16px;
+}
+.sider h4 { margin: 14px 16px 6px; font-size: 12px; color: #8c8c8c; font-weight: 500; }
+.sider button.item {
+  display: block; width: calc(100% - 16px); margin: 0 8px; padding: 8px 10px 8px 16px;
+  border: 0; border-radius: 6px; background: transparent; color: #434343; text-align: left; line-height: 20px;
+}
+.sider button.item.active { background: #e6f4ff; color: var(--blue); font-weight: 500; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.top {
+  height: 46px; background: #fff; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; padding: 0 16px; gap: 12px; flex: none;
+}
+.crumb { color: #8c8c8c; white-space: nowrap; }
+.crumb b { color: var(--text); font-weight: 500; }
+.top .spacer { flex: 1; }
+.who { color: #595959; font-size: 12px; white-space: nowrap; }
+.content { padding: 12px 16px 20px; overflow: auto; flex: 1; min-width: 0; }
+.panel { background: #fff; border-radius: 8px; padding: 16px; }
+.panel + .panel { margin-top: 12px; }
+.filters { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 12px 16px; }
+.field label { display: block; margin-bottom: 6px; color: #595959; line-height: 20px; }
+.field input, .field select, .field textarea {
+  width: 100%; height: 32px; border: 1px solid #d9d9d9; border-radius: 6px;
+  padding: 0 10px; background: #fff; outline: none;
+}
+.field textarea { height: 64px; padding: 6px 10px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(22,119,255,.12); }
+.field input[readonly] { background: #fafafa; color: #595959; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.filters .actions { grid-column: 1 / -1; margin: 0; align-items: end; }
+.btn {
+  height: 32px; border: 1px solid #d9d9d9; background: #fff; border-radius: 6px;
+  padding: 0 15px; line-height: 30px;
+}
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary:hover { background: var(--blue-h); }
+.btn.link { height: 22px; border: 0; background: transparent; color: var(--blue); padding: 0 4px; line-height: 22px; }
+.btn.link.danger { color: var(--danger); }
+.btn.tiny { height: 24px; line-height: 22px; padding: 0 8px; font-size: 12px; }
+.toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+.table-wrap { overflow: auto; max-height: calc(100vh - 250px); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+th, td {
+  padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left;
+  vertical-align: middle; white-space: nowrap; line-height: 20px;
+}
+th { background: #fafafa; font-weight: 500; color: #595959; position: sticky; top: 0; z-index: 1; }
+tr.hit td { background: #f6ffed; }
+tr:hover td { background: #fafafa; }
+tr.hit:hover td { background: #f6ffed; }
+td.empty, tr.empty td { text-align: center; color: #8c8c8c; padding: 42px 12px; }
+.num { font-variant-numeric: tabular-nums; }
+.minus { color: var(--danger); }
+.plus { color: var(--green); }
+.tag {
+  display: inline-block; padding: 0 8px; border-radius: 4px; line-height: 20px; font-size: 12px;
+  background: #fafafa; color: #595959; border: 1px solid #d9d9d9;
+}
+.tag.blue { background: #e6f4ff; color: var(--blue); border-color: #91caff; }
+.tag.green { background: #f6ffed; color: var(--green); border-color: #b7eb8f; }
+.tag.orange { background: #fff7e6; color: var(--orange); border-color: #ffd591; }
+.tag.purple { background: #f9f0ff; color: #722ed1; border-color: #d3adf7; }
+.tag.red { background: #fff2f0; color: var(--danger); border-color: #ffccc7; }
+.alert {
+  background: #e6f4ff; border: 1px solid #91caff; color: #0958d9;
+  border-radius: 8px; padding: 10px 12px; line-height: 22px; margin-bottom: 12px;
+}
+.alert b { font-weight: 600; }
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); margin: -4px 0 12px; }
+.tabs button {
+  border: 0; border-bottom: 2px solid transparent; background: transparent;
+  padding: 10px 16px; margin-bottom: -1px; color: #595959;
+}
+.tabs button.on { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+.note { color: #595959; line-height: 22px; }
+.note h3 { margin: 0 0 8px; font-size: 14px; color: var(--text); }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+.cols p { margin: 0; }
+.popover {
+  position: absolute; right: 16px; top: 42px; z-index: 5; width: 220px;
+  background: #fff; border: 1px solid #f0f0f0; border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.12); padding: 8px 12px;
+}
+.popover label { display: flex; align-items: center; gap: 8px; height: 28px; }
+.mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex;
+  align-items: flex-start; justify-content: center; padding: 32px 16px; z-index: 20; overflow: auto;
+}
+.modal { width: 840px; background: #fff; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+.modal.narrow { width: 520px; }
+.modal h3 {
+  margin: 0; height: 52px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 600;
+}
+.modal h3 button { border: 0; background: transparent; font-size: 18px; color: #8c8c8c; width: 32px; height: 32px; }
+.modal .body { padding: 16px 20px 4px; }
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.card { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; }
+.card h4 { margin: 0 0 10px; font-size: 13px; }
+.req::before { content: "*"; color: var(--danger); margin-right: 4px; }
+.err { color: var(--danger); min-height: 18px; line-height: 18px; margin: 6px 0; }
+.fx {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-top: 12px;
+  background: #fff; border: 1px dashed #d9d9d9; border-radius: 8px; padding: 12px;
+}
+.fx span { color: #8c8c8c; display: block; margin-bottom: 4px; }
+.footer { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 20px 16px; }
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: #fff; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.12);
+  padding: 10px 16px; z-index: 40; display: none; line-height: 22px; max-width: min(640px, calc(100% - 32px));
+}
+.toast.show { display: block; }
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 8px; line-height: 22px; }
+.kv i { color: #8c8c8c; font-style: normal; }
+@media (max-width: 1100px) {
+  .filters, .cards, .cols, .fx { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px) {
+  .sider { display: none; }
+  .filters, .cards, .cols, .fx { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="logo">垫</div>
+    <button type="button" data-go="fund-merchants" id="rail-fund"><b>Fund</b><span>资金</span></button>
+    <button type="button" data-go="recon-receipts" id="rail-recon"><b>对账</b><span>垫资</span></button>
+  </aside>
+  <aside class="sider" id="sider"></aside>
+  <section class="main">
+    <header class="top">
+      <div class="crumb" id="crumb"></div>
+      <div class="spacer"></div>
+      <button class="btn" type="button" data-action="reset-demo">恢复示例数据</button>
+      <div class="who">原型操作员</div>
+    </header>
+    <div class="content" id="content"></div>
+  </section>
+</div>
+<div id="modal-root"></div>
+<div class="toast" id="toast"></div>
+<script>
+const PAGES = {
+  "fund-merchants": { sys: "fund", crumb: "Fund / 商户管理 / <b>商户管理</b>", title: "商户管理" },
+  "fund-transfers": { sys: "fund", crumb: "Fund / 账户调拨 / <b>账户调拨列表</b>", title: "账户调拨列表" },
+  "fund-txns": { sys: "fund", crumb: "Fund / 交易管理 / <b>交易详情</b>", title: "交易详情" },
+  "recon-receipts": { sys: "recon", crumb: "垫资对账系统 / <b>平台收款明细</b>", title: "平台收款明细" },
+  "recon-balance": { sys: "recon", crumb: "垫资对账系统 / <b>余额表</b>", title: "余额表" }
+};
+const CHANNELS = ["paypal", "airwallex", "oceanpayment", "shopifypayments"];
+const TX_COLS = [
+  ["merchantId", "商户ID"],
+  ["merchantName", "商户名称"],
+  ["time", "交易时间"],
+  ["biz", "业务线"],
+  ["bizCurrency", "币种业务"],
+  ["type", "交易类型"],
+  ["txnCurrency", "交易货币"],
+  ["txnAmount", "交易金额"],
+  ["accountCurrency", "账户货币"],
+  ["change", "变动金额"],
+  ["afterAvailable", "变动后可用余额"],
+  ["afterTotal", "变动后总余额"],
+  ["rate", "汇率"],
+  ["operator", "操作员"],
+  ["txnNo", "交易号"],
+  ["flowNo", "交易流水号"],
+  ["relatedNo", "关联单号"],
+  ["trace", "跟踪信息"],
+  ["remark", "备注"]
+];
+
+function round2(n) {
+  const v = Number(n);
+  if (!isFinite(v)) return 0;
+  return Math.round((v + Number.EPSILON) * 100) / 100;
+}
+function cents(n) { return Math.round(round2(n) * 100); }
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function money(n) {
+  const v = round2(n);
+  return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function moneyHtml(n, signed) {
+  const v = round2(n);
+  const cls = v < 0 ? "minus" : (signed && v > 0 ? "plus" : "");
+  return `<span class="num ${cls}">${esc(money(v))}</span>`;
+}
+function moneyCcy(n, ccy) {
+  return `<span class="num">${esc(ccy)} ${moneyHtml(n)}</span>`;
+}
+function nowText() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function bizTag(biz) {
+  const cls = biz === "垫资" ? "purple" : biz === "广告" ? "blue" : biz === "履约" ? "green" : biz === "拒付" ? "orange" : "";
+  return `<span class="tag ${cls}">${esc(biz)}</span>`;
+}
+function statusTag(status) {
+  const cls = status === "已通过" ? "green" : status === "待飞书审批" ? "orange" : status === "已驳回" ? "red" : "";
+  return `<span class="tag ${cls}">${esc(status)}</span>`;
+}
+function toast(text) {
+  const el = document.getElementById("toast");
+  el.textContent = text;
+  el.className = "toast show";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.className = "toast"; }, 3200);
+}
+
+function seed() {
+  const accounts = [
+    { accountId: "FBCMXADV0001EUR", merchantId: "88021", name: "CUISAMIX", uniqueId: "cuisamix-store", erp: "CMX", biz: "垫资", currency: "EUR", sales: "示例销售", accountStatus: "正常", fundStatus: "正常", precharge: 0, real: 1431.69, linked: 0, credit: 0, used: 0, unused: 0, related: "—", creditStatus: "未授信", manager: "—", clerk: "—", createdAt: "2026-10-01 09:00:00" },
+    { accountId: "FBCMXFUL0001EUR", merchantId: "88021", name: "CUISAMIX", uniqueId: "cuisamix-store", erp: "CMX", biz: "履约", currency: "EUR", sales: "示例销售", accountStatus: "正常", fundStatus: "正常", precharge: 0, real: 8600, linked: 0, credit: 2000, used: 0, unused: 2000, related: "—", creditStatus: "已授信", manager: "示例店长", clerk: "示例店员", createdAt: "2026-10-01 09:00:00" },
+    { accountId: "FBCMXAD00001USD", merchantId: "88021", name: "CUISAMIX", uniqueId: "cuisamix-store", erp: "CMX", biz: "广告", currency: "USD", sales: "示例销售", accountStatus: "正常", fundStatus: "正常", precharge: 0, real: 2400, linked: 0, credit: 0, used: 0, unused: 0, related: "—", creditStatus: "未授信", manager: "—", clerk: "—", createdAt: "2026-10-01 09:05:00" },
+    { accountId: "FBBBAADV0001EUR", merchantId: "88022", name: "Bellora Beauty Milano", uniqueId: "bellora-milano", erp: "BBM", biz: "垫资", currency: "EUR", sales: "示例销售", accountStatus: "正常", fundStatus: "正常", precharge: 0, real: 5.55, linked: 0, credit: 0, used: 0, unused: 0, related: "—", creditStatus: "未授信", manager: "—", clerk: "—", createdAt: "2026-06-01 09:00:00" },
+    { accountId: "FBBBAFUL0001EUR", merchantId: "88022", name: "Bellora Beauty Milano", uniqueId: "bellora-milano", erp: "BBM", biz: "履约", currency: "EUR", sales: "示例销售", accountStatus: "正常", fundStatus: "正常", precharge: 0, real: 640, linked: 0, credit: 0, used: 0, unused: 0, related: "—", creditStatus: "未授信", manager: "示例店长", clerk: "示例店员", createdAt: "2026-06-01 09:00:00" },
+    { accountId: "FBDEMOAD0001USD", merchantId: "88031", name: "示例商户甲", uniqueId: "demo-ad", erp: "—", biz: "广告", currency: "USD", sales: "示例销售", accountStatus: "正常", fundStatus: "正常", precharge: 0, real: 1500, linked: 0, credit: 0, used: 0, unused: 0, related: "—", creditStatus: "未授信", manager: "—", clerk: "—", createdAt: "2026-09-12 11:20:00" },
+    { accountId: "FBDEMOFU0001USD", merchantId: "88032", name: "示例商户乙", uniqueId: "demo-fulfill", erp: "—", biz: "履约", currency: "USD", sales: "示例销售", accountStatus: "正常", fundStatus: "正常", precharge: 0, real: 3200, linked: 0, credit: 500, used: 100, unused: 400, related: "—", creditStatus: "已授信", manager: "示例店长", clerk: "示例店员", createdAt: "2026-09-18 14:08:00" },
+    { accountId: "FBDEMOCB0001USD", merchantId: "88033", name: "示例商户丙", uniqueId: "demo-chargeback", erp: "—", biz: "拒付", currency: "USD", sales: "—", accountStatus: "正常", fundStatus: "冻结", precharge: 0, real: 80, linked: 0, credit: 0, used: 0, unused: 0, related: "—", creditStatus: "未授信", manager: "—", clerk: "—", createdAt: "2026-08-02 16:40:00" }
+  ];
+  const balances = [
+    {
+      id: "b-cuisamix",
+      customer: "CUISAMIX",
+      period: "2026-10-13 ~ 2026-10-20",
+      periodEnd: "2026-10-20",
+      channel: "paypal",
+      currency: "EUR",
+      trade: 1897.61,
+      received: 1784.37,
+      refund: -46.07,
+      chargeback: 0,
+      channelFee: -13.97,
+      serviceFee: -114.20,
+      reserve: -178.44,
+      settlement: 1431.69,
+      opening: 0,
+      ending: 1431.69,
+      fundBalance: 1431.69,
+      synced: false,
+      source: "对账单 2026-10-13 至 2026-10-20。交易金额 1,897.61 EUR。实际收款取折算后的收款(EUR)：1,832.85 × 1.0924 = 2,002.21 USD × 0.8912 = 1,784.37。退款 -47.32 折 -46.07。拒付无。渠道手续费 -0.35×41 = -14.35，折 -13.97。服务费 6.4% = -114.20。保证金 10% = -178.44。本期结算额 1,431.69。期初对账单未列，示例按 0.00，期末先等于本期结算额。"
+    },
+    {
+      id: "b-bellora",
+      customer: "Bellora Beauty Milano",
+      period: "2026-06-24 ~ 2026-06-30",
+      periodEnd: "2026-06-30",
+      channel: "oceanpayment",
+      currency: "EUR",
+      trade: 7.95,
+      received: 7.95,
+      refund: -59.95,
+      chargeback: 59.95,
+      channelFee: -1.09,
+      serviceFee: -0.51,
+      reserve: -0.80,
+      settlement: 5.55,
+      opening: 0,
+      ending: 5.55,
+      fundBalance: 5.55,
+      synced: false,
+      source: "对账单 2026-06-24 至 2026-06-30，平台写 OP，即 oceanpayment，汇率 1。交易金额 7.95，实际收款 7.95。退款 -59.95。拒付 59.95（申诉成功）。渠道手续费 -0.25 + -0.84 = -1.09。服务费 6.4% = -0.51。保证金 10% = -0.80。本期结算额 5.55。期初按 0.00，期末先等于本期结算额。"
+    }
+  ];
+  balances.forEach((row) => {
+    const sum = cents(row.received) + cents(row.refund) + cents(row.chargeback) + cents(row.channelFee) + cents(row.serviceFee) + cents(row.reserve);
+    if (sum !== cents(row.settlement)) console.warn("结算额与分项不一致", row.id, sum, cents(row.settlement));
+  });
+  return {
+    seq: 10,
+    accounts,
+    balances,
+    transfers: [
+      {
+        id: "t-seed",
+        kind: "transfer",
+        transferNo: "TRF202610200001",
+        approvalNo: "AP202610200088",
+        status: "已通过",
+        outAccountId: "FBDEMOAD0001USD",
+        inAccountId: "FBDEMOFU0001USD",
+        outMerchantId: "88031",
+        outName: "示例商户甲",
+        outBiz: "广告",
+        outCurrency: "USD",
+        outAmount: 100,
+        outBalanceAfter: 1500,
+        inMerchantId: "88032",
+        inName: "示例商户乙",
+        inBiz: "履约",
+        inCurrency: "USD",
+        inAmount: 100,
+        rate: 1,
+        reason: "历史调拨示例，已入账",
+        attachment: "—",
+        operator: "原型操作员",
+        createdAt: "2026-10-20 10:16:00",
+        auditedAt: "2026-10-20 11:02:18",
+        direction: ""
+      }
+    ],
+    txns: [
+      {
+        id: "x-cui",
+        merchantId: "88021",
+        merchantName: "CUISAMIX",
+        uniqueId: "cuisamix-store",
+        time: "2026-10-20 23:59:00",
+        biz: "垫资",
+        bizCurrency: "垫资EUR",
+        type: "对账确认入账",
+        txnCurrency: "EUR",
+        txnAmount: 1431.69,
+        accountCurrency: "EUR",
+        change: 1431.69,
+        afterAvailable: 1431.69,
+        afterTotal: 1431.69,
+        rate: "1.00",
+        operator: "系统",
+        txnNo: "TX202610200001",
+        flowNo: "LS202610200001",
+        relatedNo: "2026-10-13~2026-10-20",
+        trace: "余额表确认后进入垫资余额池",
+        remark: "示例。对应周对账单本期结算额",
+        fresh: false
+      },
+      {
+        id: "x-bel",
+        merchantId: "88022",
+        merchantName: "Bellora Beauty Milano",
+        uniqueId: "bellora-milano",
+        time: "2026-06-30 23:59:00",
+        biz: "垫资",
+        bizCurrency: "垫资EUR",
+        type: "对账确认入账",
+        txnCurrency: "EUR",
+        txnAmount: 5.55,
+        accountCurrency: "EUR",
+        change: 5.55,
+        afterAvailable: 5.55,
+        afterTotal: 5.55,
+        rate: "1.00",
+        operator: "系统",
+        txnNo: "TX202606300001",
+        flowNo: "LS202606300001",
+        relatedNo: "2026-06-24~2026-06-30",
+        trace: "余额表确认后进入垫资余额池",
+        remark: "示例。对应周对账单本期结算额",
+        fresh: false
+      }
+    ],
+    receipts: [
+      { id: "RC-1001", customer: "CUISAMIX", platform: "paypal", channel: "paypal", billNo: "示例-41笔付款合计", method: "PayPal", type: "本期付款合计（41 笔未逐条展开）", date: "2026-10-13", period: "2026-10-13 ~ 2026-10-20", currency: "EUR", amount: 1832.85, billCurrency: "EUR", billAmount: 1832.85, withhold: 0, fee: -14.35 },
+      { id: "RC-1002", customer: "CUISAMIX", platform: "paypal", channel: "paypal", billNo: "ryoRC2Nz9ajGfm8qSI5IRnQZi", method: "PayPal", type: "付款退款", date: "2026-10-14 18:06:14", period: "2026-10-13 ~ 2026-10-20", currency: "EUR", amount: -47.32, billCurrency: "EUR", billAmount: -47.32, withhold: 0, fee: 0 },
+      { id: "RC-2001", customer: "Bellora Beauty Milano", platform: "oceanpayment", channel: "oceanpayment", billNo: "示例-对账单交易额", method: "信用卡", type: "付款（金额来自对账单，日期为示例）", date: "2026-06-28 12:00:00", period: "2026-06-24 ~ 2026-06-30", currency: "EUR", amount: 7.95, billCurrency: "EUR", billAmount: 7.95, withhold: 0, fee: -0.25 },
+      { id: "RC-2002", customer: "Bellora Beauty Milano", platform: "oceanpayment", channel: "oceanpayment", billNo: "rU68p1x0HR6fj7wphvDyycXVO", method: "信用卡", type: "退款(部分)", date: "2026-05-16 07:07:23", period: "2026-06-24 ~ 2026-06-30", currency: "EUR", amount: -59.95, billCurrency: "EUR", billAmount: -59.95, withhold: 0, fee: -0.84 },
+      { id: "RC-2003", customer: "Bellora Beauty Milano", platform: "oceanpayment", channel: "oceanpayment", billNo: "rv98wec4urcSLs1tCfLgptip0", method: "信用卡", type: "申诉成功", date: "2025-12-07 01:36:59", period: "2026-06-24 ~ 2026-06-30", currency: "EUR", amount: 59.95, billCurrency: "EUR", billAmount: 59.95, withhold: 0, fee: 0 }
+    ],
+    queries: { merchants: {}, transfers: {}, txns: {}, receipts: {}, balance: {} },
+    channel: "paypal",
+    txHidden: {},
+    colOpen: false,
+    highlight: { transferId: "", txnId: "", balanceId: "" },
+    syncNote: ""
+  };
+}
+
+let db = seed();
+
+function page() {
+  const id = (location.hash || "#fund-merchants").slice(1);
+  return PAGES[id] ? id : "fund-merchants";
+}
+function accountById(id) { return db.accounts.find((a) => a.accountId === id); }
+function nextNo(prefix) {
+  db.seq += 1;
+  return prefix + String(db.seq).padStart(4, "0");
+}
+function optionAccounts(selected) {
+  return db.accounts.map((a) => {
+    const label = `${a.name} / ${a.biz} / ${a.currency} / 余额 ${money(a.real)}`;
+    return `<option value="${esc(a.accountId)}" ${a.accountId === selected ? "selected" : ""}>${esc(label)}</option>`;
+  }).join("");
+}
+function advanceAccounts(selected) {
+  return db.accounts.filter((a) => a.biz === "垫资").map((a) => {
+    const label = `${a.name} / ${a.biz} / ${a.currency} / 余额 ${money(a.real)}`;
+    return `<option value="${esc(a.accountId)}" ${a.accountId === selected ? "selected" : ""}>${esc(label)}</option>`;
+  }).join("");
+}
+
+function render() {
+  const id = page();
+  const meta = PAGES[id];
+  document.title = meta.title + " · 垫资原型";
+  document.getElementById("rail-fund").classList.toggle("active", meta.sys === "fund");
+  document.getElementById("rail-recon").classList.toggle("active", meta.sys === "recon");
+  document.getElementById("crumb").innerHTML = meta.crumb;
+  const fundItem = (pid, label) => `<button type="button" class="item ${id === pid ? "active" : ""}" data-go="${pid}">${label}</button>`;
+  document.getElementById("sider").innerHTML = meta.sys === "fund"
+    ? `<h4>商户管理</h4>${fundItem("fund-merchants", "商户管理")}${fundItem("fund-transfers", "账户调拨列表")}<h4>交易管理</h4>${fundItem("fund-txns", "交易详情")}`
+    : `<h4>垫资对账</h4>${fundItem("recon-receipts", "平台收款明细")}${fundItem("recon-balance", "余额表")}<h4>说明</h4><p class="note" style="padding:0 16px">余额表在本系统，不在 Fund。</p>`;
+  const content = document.getElementById("content");
+  if (id === "fund-merchants") content.innerHTML = viewMerchants();
+  else if (id === "fund-transfers") content.innerHTML = viewTransfers();
+  else if (id === "fund-txns") content.innerHTML = viewTxns();
+  else if (id === "recon-receipts") content.innerHTML = viewReceipts();
+  else content.innerHTML = viewBalance();
+  const hit = document.querySelector("tr.hit");
+  if (hit) hit.scrollIntoView({ block: "nearest" });
+}
+
+function qval(group, key) { return db.queries[group][key] || ""; }
+function field(label, html) { return `<div class="field"><label>${label}</label>${html}</div>`; }
+function textInput(id, value, placeholder) {
+  return `<input id="${id}" value="${esc(value)}" placeholder="${esc(placeholder || "")}" />`;
+}
+function selectInput(id, value, options) {
+  const opts = [`<option value="">${esc(options.placeholder || "全部")}</option>`]
+    .concat(options.items.map((item) => `<option value="${esc(item)}" ${item === value ? "selected" : ""}>${esc(item)}</option>`));
+  return `<select id="${id}">${opts.join("")}</select>`;
+}
+
+function viewMerchants() {
+  const q = db.queries.merchants;
+  let rows = db.accounts.filter((m) => {
+    if (q.id && !m.merchantId.includes(q.id.trim())) return false;
+    if (q.name && !m.name.includes(q.name.trim())) return false;
+    if (q.uniqueId && !m.uniqueId.includes(q.uniqueId.trim())) return false;
+    if (q.erp && !String(m.erp).includes(q.erp.trim())) return false;
+    if (q.accountId && !m.accountId.includes(q.accountId.trim())) return false;
+    if (q.fundStatus && m.fundStatus !== q.fundStatus) return false;
+    if (q.currency && m.currency !== q.currency) return false;
+    if (q.biz && m.biz !== q.biz) return false;
+    if (q.manager && !String(m.manager).includes(q.manager.trim())) return false;
+    if (q.clerk && !String(m.clerk).includes(q.clerk.trim())) return false;
+    return true;
+  });
+  rows = rows.slice().sort((a, b) => (a.biz === "垫资" ? 0 : 1) - (b.biz === "垫资" ? 0 : 1) || a.merchantId.localeCompare(b.merchantId));
+  const body = rows.length ? rows.map((m) => `<tr>
+    <td>${esc(m.merchantId)}</td>
+    <td>${esc(m.name)}</td>
+    <td>${esc(m.uniqueId)}</td>
+    <td>${esc(m.erp)}</td>
+    <td>${bizTag(m.biz)}</td>
+    <td>${esc(m.currency)}</td>
+    <td>${esc(m.sales)}</td>
+    <td><span class="tag green">${esc(m.accountStatus)}</span></td>
+    <td><span class="tag ${m.fundStatus === "正常" ? "green" : "orange"}">${esc(m.fundStatus)}</span></td>
+    <td>${moneyCcy(m.precharge, m.currency)}</td>
+    <td>${moneyCcy(m.real, m.currency)}</td>
+    <td>${moneyCcy(m.linked, m.currency)}</td>
+    <td>${moneyCcy(m.credit, m.currency)}</td>
+    <td>${moneyCcy(m.used, m.currency)}</td>
+    <td>${moneyCcy(m.unused, m.currency)}</td>
+    <td>${esc(m.related)}</td>
+    <td>${esc(m.creditStatus)}</td>
+    <td>${esc(m.manager)}</td>
+    <td>${esc(m.clerk)}</td>
+    <td>${esc(m.createdAt)}</td>
+    <td>
+      <button class="btn link" type="button" data-action="account-detail" data-id="${esc(m.accountId)}">详情</button>
+      ${m.biz === "垫资" ? `<button class="btn link" type="button" data-action="open-adjust" data-id="${esc(m.accountId)}">调额</button>` : ""}
+    </td>
+  </tr>`).join("") : `<tr class="empty"><td colspan="21">无匹配商户</td></tr>`;
+  return `<div class="alert">子业务在广告、履约、拒付之外增加<b>垫资</b>。列沿用现有商户管理，不新增列。垫资账户的真实资金会在调拨或调额飞书通过后变化。</div>
+  <div class="panel">
+    <div class="filters">
+      ${field("商户ID", textInput("mq-id", qval("merchants", "id"), "请输入商户ID"))}
+      ${field("商户名称", textInput("mq-name", qval("merchants", "name"), "请输入商户名称"))}
+      ${field("商户唯一标识", textInput("mq-uid", qval("merchants", "uniqueId"), "请输入商户唯一标识"))}
+      ${field("ERP代号", textInput("mq-erp", qval("merchants", "erp"), "请输入ERP代号"))}
+      ${field("资金账户", textInput("mq-acc", qval("merchants", "accountId"), "请输入资金账户"))}
+      ${field("资金状态", selectInput("mq-fund", qval("merchants", "fundStatus"), { items: ["正常", "冻结"] }))}
+      ${field("币种", selectInput("mq-ccy", qval("merchants", "currency"), { items: ["EUR", "USD"] }))}
+      ${field("子业务", selectInput("mq-biz", qval("merchants", "biz"), { items: ["垫资", "广告", "履约", "拒付"] }))}
+      ${field("履约店长", textInput("mq-manager", qval("merchants", "manager"), "请输入履约店长"))}
+      ${field("履约店员", textInput("mq-clerk", qval("merchants", "clerk"), "请输入履约店员"))}
+      <div class="actions">
+        <button class="btn primary" type="button" data-action="search-merchants">查询</button>
+        <button class="btn" type="button" data-action="reset-merchants">重置</button>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="table-wrap"><table style="min-width:2480px">
+      <thead><tr>
+        <th>商户ID</th><th>商户名称</th><th>商户唯一标识</th><th>ERP代号</th><th>子业务</th><th>币种</th><th>所属销售</th>
+        <th>账户状态</th><th>资金状态</th><th>可预充金额</th><th>真实资金</th><th>关联金额</th><th>信用额度</th>
+        <th>已用额度</th><th>未用额度</th><th>关联商户</th><th>授信状态</th><th>履约店长</th><th>履约店员</th><th>创建时间</th><th>操作</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function viewTransfers() {
+  const q = db.queries.transfers;
+  const rows = db.transfers.filter((t) => {
+    if (q.transferNo && !t.transferNo.includes(q.transferNo.trim())) return false;
+    if (q.approvalNo && !t.approvalNo.includes(q.approvalNo.trim())) return false;
+    if (q.status && t.status !== q.status) return false;
+    if (q.outMerchantId && !String(t.outMerchantId).includes(q.outMerchantId.trim())) return false;
+    if (q.inMerchantId && !String(t.inMerchantId).includes(q.inMerchantId.trim())) return false;
+    if (q.outBiz && t.outBiz !== q.outBiz) return false;
+    if (q.inBiz && t.inBiz !== q.inBiz) return false;
+    if (q.outCurrency && t.outCurrency !== q.outCurrency) return false;
+    if (q.inCurrency && t.inCurrency !== q.inCurrency) return false;
+    if (q.amountMin !== undefined && q.amountMin !== "" && t.outAmount < Number(q.amountMin)) return false;
+    if (q.amountMax !== undefined && q.amountMax !== "" && t.outAmount > Number(q.amountMax)) return false;
+    return true;
+  });
+  const pending = db.transfers.filter((t) => t.status === "待飞书审批").length;
+  const body = rows.length ? rows.map((t) => `<tr class="${db.highlight.transferId === t.id ? "hit" : ""}" id="row-${esc(t.id)}">
+    <td>${esc(t.transferNo)}</td>
+    <td>${esc(t.approvalNo)}</td>
+    <td>${statusTag(t.status)}${t.status === "待飞书审批" ? ` <button class="btn tiny primary" type="button" data-action="approve" data-id="${esc(t.id)}">审批通过</button> <button class="btn link danger" type="button" data-action="reject" data-id="${esc(t.id)}">驳回</button>` : ""}</td>
+    <td>${esc(t.outMerchantId)}</td>
+    <td>${esc(t.outName)}</td>
+    <td>${esc(t.outAccountId)}</td>
+    <td>${t.outBiz === "—" ? "—" : bizTag(t.outBiz)}</td>
+    <td>${esc(t.outCurrency)}</td>
+    <td>${moneyHtml(t.kind === "adjust" && t.direction === "减少" ? -t.outAmount : t.outAmount, t.kind === "adjust")}</td>
+    <td>${t.outBalanceAfter === "" || t.outBalanceAfter == null ? "—" : moneyHtml(t.outBalanceAfter)}</td>
+    <td>${esc(t.inMerchantId)}</td>
+    <td>${esc(t.inName)}</td>
+    <td>${esc(t.inAccountId)}</td>
+    <td>${t.inBiz === "—" ? "—" : bizTag(t.inBiz)}</td>
+    <td>${esc(t.inCurrency)}</td>
+    <td>${t.inAmount === "" || t.inAmount == null ? "—" : moneyHtml(t.inAmount)}</td>
+    <td>${t.rate === "" || t.rate == null ? "—" : esc(Number(t.rate).toFixed(4))}</td>
+    <td>${esc(t.reason)}</td>
+    <td>${esc(t.attachment || "—")}</td>
+    <td>${esc(t.operator)}</td>
+    <td>${esc(t.createdAt)}</td>
+    <td>${esc(t.auditedAt || "—")}</td>
+    <td><button class="btn link" type="button" data-action="transfer-detail" data-id="${esc(t.id)}">详情</button></td>
+  </tr>`).join("") : `<tr class="empty"><td colspan="23">无调拨记录</td></tr>`;
+  const bizItems = ["垫资", "广告", "履约", "拒付"];
+  return `<div class="alert">新增调拨提交后状态为<b>待飞书审批</b>，通过前不改账户余额，也不写对账余额表。点该行的「审批通过」后，才改余额、在交易详情加一条流水，并把垫资账户最新余额同步进余额表的期末。</div>
+  <div class="panel">
+    <div class="filters">
+      ${field("调拨单号", textInput("tq-no", qval("transfers", "transferNo"), "请输入调拨单号"))}
+      ${field("审批单号", textInput("tq-ap", qval("transfers", "approvalNo"), "请输入审批单号"))}
+      ${field("状态", selectInput("tq-st", qval("transfers", "status"), { items: ["待飞书审批", "已通过", "已驳回"] }))}
+      ${field("调出商户ID", textInput("tq-out-mid", qval("transfers", "outMerchantId"), "调出商户ID"))}
+      ${field("调入商户ID", textInput("tq-in-mid", qval("transfers", "inMerchantId"), "调入商户ID"))}
+      ${field("调出业务", selectInput("tq-out-biz", qval("transfers", "outBiz"), { items: bizItems }))}
+      ${field("调入业务", selectInput("tq-in-biz", qval("transfers", "inBiz"), { items: bizItems }))}
+      ${field("调出币种", selectInput("tq-out-ccy", qval("transfers", "outCurrency"), { items: ["EUR", "USD"] }))}
+      ${field("调入币种", selectInput("tq-in-ccy", qval("transfers", "inCurrency"), { items: ["EUR", "USD"] }))}
+      ${field("金额下限", textInput("tq-min", qval("transfers", "amountMin"), "最小金额"))}
+      ${field("金额上限", textInput("tq-max", qval("transfers", "amountMax"), "最大金额"))}
+      <div class="actions">
+        <button class="btn primary" type="button" data-action="search-transfers">查询</button>
+        <button class="btn" type="button" data-action="reset-transfers">重置</button>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="toolbar">
+      <span class="note" style="margin-right:auto">待飞书审批 ${pending} 笔</span>
+      <button class="btn" type="button" data-action="open-adjust">手动调额</button>
+      <button class="btn primary" type="button" data-action="open-transfer">新增资金调拨</button>
+    </div>
+    <div class="table-wrap"><table style="min-width:2460px">
+      <thead><tr>
+        <th>调拨单号</th><th>审批单号</th><th>状态</th>
+        <th>调出商户ID</th><th>调出商户名称</th><th>调出资金账户ID</th><th>调出业务</th><th>调出币种</th><th>调出金额</th><th>调出余额</th>
+        <th>调入商户ID</th><th>调入商户名称</th><th>调入资金账户ID</th><th>调入业务</th><th>调入币种</th><th>调入金额</th>
+        <th>汇率</th><th>调拨原因</th><th>附件</th><th>调拨人</th><th>创建时间</th><th>审核时间</th><th>操作</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function viewTxns() {
+  const q = db.queries.txns;
+  const visible = TX_COLS.filter(([key]) => !db.txHidden[key]);
+  let rows = db.txns.filter((t) => {
+    if (q.merchantId && !t.merchantId.includes(q.merchantId.trim())) return false;
+    if (q.merchantName && !t.merchantName.includes(q.merchantName.trim())) return false;
+    if (q.uniqueId && !String(t.uniqueId).includes(q.uniqueId.trim())) return false;
+    if (q.flowNo && !t.flowNo.includes(q.flowNo.trim())) return false;
+    if (q.txnNo && !t.txnNo.includes(q.txnNo.trim())) return false;
+    if (q.bizCurrency && t.bizCurrency !== q.bizCurrency) return false;
+    if (q.type && t.type !== q.type) return false;
+    if (q.timeFrom && t.time < q.timeFrom) return false;
+    if (q.timeTo && t.time > q.timeTo + " 23:59:59") return false;
+    if (q.relatedNo && !t.relatedNo.includes(q.relatedNo.trim())) return false;
+    return true;
+  }).slice().sort((a, b) => (a.time < b.time ? 1 : -1));
+  const cell = (t, key) => {
+    if (key === "biz") return bizTag(t.biz);
+    if (key === "txnAmount") return moneyHtml(t.txnAmount);
+    if (key === "change") return moneyHtml(t.change, true);
+    if (key === "afterAvailable" || key === "afterTotal") return moneyHtml(t[key]);
+    if (key === "type" && t.fresh) return `${esc(t.type)} <span class="tag green">新</span>`;
+    return esc(t[key]);
+  };
+  const body = rows.length ? rows.map((t) => `<tr class="${db.highlight.txnId === t.id ? "hit" : ""}">
+    ${visible.map(([key]) => `<td>${cell(t, key)}</td>`).join("")}
+  </tr>`).join("") : `<tr class="empty"><td colspan="${visible.length}">无交易</td></tr>`;
+  const types = [...new Set(db.txns.map((t) => t.type))];
+  const bizCurrencies = [...new Set(db.txns.map((t) => t.bizCurrency))];
+  const picker = db.colOpen ? `<div class="popover" id="col-picker">${TX_COLS.map(([key, label]) =>
+    `<label><input type="checkbox" data-action="toggle-col" data-col="${key}" ${db.txHidden[key] ? "" : "checked"} />${esc(label)}</label>`
+  ).join("")}</div>` : "";
+  return `<div class="alert">调拨或调额<b>审批通过之后</b>才会在这里新增一条流水。待飞书审批时本页不变。列按现有交易详情，不另加字段。</div>
+  <div class="panel" style="position:relative">
+    <div class="filters">
+      ${field("商户ID", textInput("xq-id", qval("txns", "merchantId"), "商户ID"))}
+      ${field("商户名称", textInput("xq-name", qval("txns", "merchantName"), "商户名称"))}
+      ${field("商户唯一标识", textInput("xq-uid", qval("txns", "uniqueId"), "商户唯一标识"))}
+      ${field("交易流水号", textInput("xq-flow", qval("txns", "flowNo"), "交易流水号"))}
+      ${field("交易号", textInput("xq-txn", qval("txns", "txnNo"), "交易号"))}
+      ${field("币种业务", selectInput("xq-bizc", qval("txns", "bizCurrency"), { items: bizCurrencies }))}
+      ${field("变动类型", selectInput("xq-type", qval("txns", "type"), { items: types }))}
+      ${field("交易时间起", `<input id="xq-from" type="date" value="${esc(qval("txns", "timeFrom"))}" />`)}
+      ${field("交易时间止", `<input id="xq-to" type="date" value="${esc(qval("txns", "timeTo"))}" />`)}
+      ${field("业务单号", textInput("xq-rel", qval("txns", "relatedNo"), "业务单号 / 关联单号"))}
+      <div class="actions">
+        <button class="btn primary" type="button" data-action="search-txns">查询</button>
+        <button class="btn" type="button" data-action="reset-txns">重置</button>
+        <button class="btn" type="button" data-action="export-txns">导出</button>
+        <button class="btn" type="button" data-action="toggle-cols">自定义表头</button>
+      </div>
+    </div>
+    ${picker}
+  </div>
+  <div class="panel">
+    <div class="table-wrap"><table style="min-width:${visible.length * 120}px">
+      <thead><tr>${visible.map(([, label]) => `<th>${esc(label)}</th>`).join("")}</tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function viewReceipts() {
+  const q = db.queries.receipts;
+  const channel = db.channel;
+  const rows = db.receipts.filter((r) => {
+    if (r.channel !== channel) return false;
+    if (q.customer && !r.customer.includes(q.customer.trim())) return false;
+    if (q.period && !r.period.includes(q.period.trim())) return false;
+    if (q.platform && r.platform !== q.platform) return false;
+    if (q.billNo && !r.billNo.includes(q.billNo.trim())) return false;
+    if (q.start && r.date < q.start) return false;
+    if (q.end && r.date.slice(0, 10) > q.end) return false;
+    return true;
+  });
+  const body = rows.length ? rows.map((r) => `<tr>
+    <td>${esc(r.id)}</td><td>${esc(r.customer)}</td><td>${esc(r.platform)}</td><td>${esc(r.billNo)}</td>
+    <td>${esc(r.method)}</td><td>${esc(r.type)}</td><td>${esc(r.date)}</td><td>${esc(r.currency)}</td>
+    <td>${moneyHtml(r.amount)}</td><td>${esc(r.billCurrency)}</td><td>${moneyHtml(r.billAmount)}</td>
+    <td>${moneyHtml(r.withhold)}</td><td>${moneyHtml(r.fee)}</td>
+  </tr>`).join("") : `<tr class="empty"><td colspan="13">暂无同步流水。接入后由 Fund 垫资交易明细写入。</td></tr>`;
+  return `<div class="alert">四个渠道 Tab 的字段先沿用现有 PayPal 列。数据从 Fund【垫资交易明细】同步，<b>不再手工导入 Excel</b>。查询、重置仍可用。paypal、oceanpayment 里的数字来自两份周对账单和异常明细；airwallex、shopifypayments 这份示例里没有流水。</div>
+  <div class="panel">
+    <div class="tabs">${CHANNELS.map((ch) => `<button type="button" class="${ch === channel ? "on" : ""}" data-action="channel" data-channel="${ch}">${ch}</button>`).join("")}</div>
+    <div class="filters">
+      ${field("客户", textInput("rq-customer", qval("receipts", "customer"), "客户"))}
+      ${field("账单周期", textInput("rq-period", qval("receipts", "period"), "例如 2026-10-13"))}
+      ${field("平台", selectInput("rq-platform", qval("receipts", "platform"), { items: CHANNELS }))}
+      ${field("账单号", textInput("rq-bill", qval("receipts", "billNo"), "账单号"))}
+      ${field("开始日期", `<input id="rq-start" type="date" value="${esc(qval("receipts", "start"))}" />`)}
+      ${field("结束日期", `<input id="rq-end" type="date" value="${esc(qval("receipts", "end"))}" />`)}
+      ${field("时区", selectInput("rq-tz", qval("receipts", "timezone") || "UTC+8", { placeholder: "UTC+8", items: ["UTC+8", "UTC"] }))}
+      <div class="actions">
+        <button class="btn primary" type="button" data-action="search-receipts">查询</button>
+        <button class="btn" type="button" data-action="reset-receipts">重置</button>
+      </div>
+    </div>
+    <p class="note">当前时区 ${esc(qval("receipts", "timezone") || "UTC+8")}。示例流水不换算时区。</p>
+  </div>
+  <div class="panel">
+    <div class="table-wrap"><table style="min-width:1680px">
+      <thead><tr>
+        <th>ID</th><th>客户</th><th>平台</th><th>账单号</th><th>收款方式</th><th>类型</th><th>日期</th>
+        <th>币种</th><th>金额</th><th>账单币种</th><th>账单金额</th><th>预扣款</th><th>手续费</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function viewBalance() {
+  const q = db.queries.balance;
+  const pending = db.transfers.filter((t) => t.status === "待飞书审批" && (t.outBiz === "垫资" || t.inBiz === "垫资"));
+  const rows = db.balances.filter((b) => {
+    if (q.customer && !b.customer.toLowerCase().includes(q.customer.trim().toLowerCase())) return false;
+    if (q.period && !b.period.includes(q.period.trim())) return false;
+    return true;
+  }).slice().sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1));
+  const body = rows.length ? rows.map((b) => `<tr class="${db.highlight.balanceId === b.id ? "hit" : ""}">
+    <td>${esc(b.customer)}</td>
+    <td>${esc(b.period)}</td>
+    <td>${esc(b.channel)}</td>
+    <td>${esc(b.currency)}</td>
+    <td>${moneyHtml(b.trade)}</td>
+    <td>${moneyHtml(b.received)}</td>
+    <td>${moneyHtml(b.refund)}</td>
+    <td>${moneyHtml(b.chargeback)}</td>
+    <td>${moneyHtml(b.channelFee)}</td>
+    <td>${moneyHtml(b.serviceFee)}</td>
+    <td>${moneyHtml(b.reserve)}</td>
+    <td>${moneyHtml(b.settlement)}</td>
+    <td>${moneyHtml(b.opening)}</td>
+    <td>${moneyHtml(b.ending)}${b.synced ? ` <span class="tag green">已更新</span>` : ""}</td>
+    <td>${moneyHtml(b.fundBalance)}${b.synced ? ` <span class="tag purple">刚同步</span>` : ""}</td>
+  </tr>`).join("") : `<tr class="empty"><td colspan="15">无余额行</td></tr>`;
+  const pendingText = pending.length
+    ? `当前有 ${pending.length} 笔垫资相关单据待飞书审批，通过前期末和 Fund同步余额都不变。`
+    : "当前没有待审批的垫资调拨或调额。";
+  const sources = db.balances.map((b) => `<p><b>${esc(b.customer)} · ${esc(b.period)} · ${esc(b.channel)}</b><br />${esc(b.source)}</p>`).join("");
+  return `<div class="alert">余额表在<b>垫资对账系统</b>，不在 Fund。每个对账周期一行。扣款沿用对账单符号，为负数。期末 = 期初 + 本期结算额，直到调拨或调额飞书通过；通过后期末和「Fund同步余额」都改成该客户垫资账户的最新余额。${esc(pendingText)}${db.syncNote ? " " + esc(db.syncNote) : ""}</div>
+  <div class="panel">
+    <div class="filters">
+      ${field("客户", textInput("bq-customer", qval("balance", "customer"), "客户"))}
+      ${field("对账周期", textInput("bq-period", qval("balance", "period"), "例如 2026-10"))}
+      <div class="actions">
+        <button class="btn primary" type="button" data-action="search-balance">查询</button>
+        <button class="btn" type="button" data-action="reset-balance">重置</button>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>客户</th><th>对账周期</th><th>渠道</th><th>币种</th>
+        <th>交易金额</th><th>实际收款</th><th>退款</th><th>拒付</th><th>渠道手续费</th><th>服务费</th><th>保证金</th><th>本期结算额</th><th>期初</th><th>期末</th>
+        <th title="调拨或调额飞书通过后写入。通过前不改。">Fund同步余额</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+  </div>
+  <div class="panel note">
+    <h3>示例数字从哪来</h3>
+    <div class="cols">${sources}</div>
+    <p>实际收款、退款、拒付、渠道手续费、服务费、保证金相加等于本期结算额。交易金额是订单额，不进这道加法。服务费按对账单 6.4%，保证金按 10%，都算在折后收款上。</p>
+  </div>`;
+}
+
+function readForm(pairs) {
+  const out = {};
+  pairs.forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    out[key] = el ? el.value : "";
+  });
+  return out;
+}
+function go(id) {
+  db.colOpen = false;
+  if (location.hash === "#" + id) render();
+  else location.hash = id;
+}
+
+function openModal(html) { document.getElementById("modal-root").innerHTML = html; }
+function closeModal() { document.getElementById("modal-root").innerHTML = ""; }
+
+function openTransfer() {
+  openModal(`<div class="mask" data-action="mask-close">
+    <form class="modal" id="transfer-form">
+      <h3>新增资金调拨<button type="button" data-action="close" aria-label="关闭">×</button></h3>
+      <div class="body">
+        <div class="cards">
+          <div class="card">
+            <h4>调出信息</h4>
+            ${field("调出业务账户", `<select id="tf-out"><option value="">请选择调出账户</option>${optionAccounts("")}</select>`)}
+            ${field("调出资金账户ID", `<input id="tf-out-id" readonly placeholder="选择账户后带出" />`)}
+            ${field("调出商户ID / 名称", `<input id="tf-out-name" readonly placeholder="选择账户后带出" />`)}
+            ${field("调出币种", `<input id="tf-out-ccy" readonly placeholder="—" />`)}
+            ${field('<span class="req">输入调出金额</span>', `<input id="tf-amount" inputmode="decimal" placeholder="例如 200.00" />`)}
+          </div>
+          <div class="card">
+            <h4>调入信息</h4>
+            ${field("调入业务账户", `<select id="tf-in"><option value="">请选择调入账户</option>${optionAccounts("")}</select>`)}
+            ${field("调入资金账户ID", `<input id="tf-in-id" readonly placeholder="选择账户后带出" />`)}
+            ${field("调入商户ID / 名称", `<input id="tf-in-name" readonly placeholder="选择账户后带出" />`)}
+            ${field("调入币种", `<input id="tf-in-ccy" readonly placeholder="—" />`)}
+          </div>
+        </div>
+        <div class="fx">
+          <div><span>汇率</span><input id="tf-rate" value="1.00" /></div>
+          <div><span>调入金额</span><b id="tf-in-amt">—</b></div>
+          <div><span>调出后预计余额（通过后才入账）</span><b id="tf-out-bal">—</b></div>
+          <div><span>调入后预计余额（通过后才入账）</span><b id="tf-in-bal">—</b></div>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label class="req">调拨原因</label>
+          <select id="tf-reason">
+            <option value="">请选择</option>
+            <option>垫资结算转出至履约</option>
+            <option>垫资结算转出至广告</option>
+            <option>履约余额转回垫资</option>
+            <option>广告余额转回垫资</option>
+            <option>其他</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>附件</label>
+          <label class="btn" style="display:inline-flex;align-items:center;gap:8px">选择文件<input id="tf-file" type="file" hidden /></label>
+          <span id="tf-file-name" class="note">未选择</span>
+        </div>
+        <div class="err" id="tf-err"></div>
+        <p class="note">垫资只能和履约或广告互转。提交后走飞书审批，通过前余额不动。</p>
+      </div>
+      <div class="footer">
+        <button class="btn" type="button" data-action="close">取消</button>
+        <button class="btn primary" type="submit">提交审核</button>
+      </div>
+    </form>
+  </div>`);
+  const form = document.getElementById("transfer-form");
+  const fill = (prefix, account) => {
+    document.getElementById(prefix + "-id").value = account ? account.accountId : "";
+    document.getElementById(prefix + "-name").value = account ? `${account.merchantId} / ${account.name}` : "";
+    document.getElementById(prefix + "-ccy").value = account ? account.currency : "";
+  };
+  let lastPair = "";
+  const preview = () => {
+    const out = accountById(document.getElementById("tf-out").value);
+    const inn = accountById(document.getElementById("tf-in").value);
+    fill("tf-out", out);
+    fill("tf-in", inn);
+    const rateEl = document.getElementById("tf-rate");
+    const pair = (out ? out.accountId : "") + ">" + (inn ? inn.accountId : "");
+    if (pair !== lastPair) {
+      lastPair = pair;
+      if (out && inn && out.currency === inn.currency) {
+        rateEl.value = "1.00";
+        rateEl.readOnly = true;
+      } else {
+        rateEl.readOnly = false;
+      }
+    }
+    const amount = Number(document.getElementById("tf-amount").value);
+    const rate = Number(rateEl.value);
+    const inAmt = isFinite(amount) && isFinite(rate) ? round2(amount * rate) : NaN;
+    document.getElementById("tf-in-amt").textContent = isFinite(inAmt) ? money(inAmt) + (inn ? " " + inn.currency : "") : "—";
+    document.getElementById("tf-out-bal").textContent = out && isFinite(amount) ? money(round2(out.real - amount)) + " " + out.currency : "—";
+    document.getElementById("tf-in-bal").textContent = inn && isFinite(inAmt) ? money(round2(inn.real + inAmt)) + " " + inn.currency : "—";
+    const picked = document.getElementById("tf-file").files[0];
+    document.getElementById("tf-file-name").textContent = picked ? picked.name : "未选择";
+  };
+  form.addEventListener("input", preview);
+  form.addEventListener("change", preview);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitTransfer();
+  });
+  preview();
+}
+
+function submitTransfer() {
+  const err = document.getElementById("tf-err");
+  const out = accountById(document.getElementById("tf-out").value);
+  const inn = accountById(document.getElementById("tf-in").value);
+  const amount = round2(document.getElementById("tf-amount").value);
+  const rate = Number(document.getElementById("tf-rate").value);
+  const reason = document.getElementById("tf-reason").value;
+  const file = document.getElementById("tf-file").files[0];
+  if (!out || !inn) { err.textContent = "请选择调出和调入账户。"; return; }
+  if (out.accountId === inn.accountId) { err.textContent = "调出和调入不能是同一个账户。"; return; }
+  const sides = [out.biz, inn.biz];
+  const okPair = sides.includes("垫资") && sides.some((biz) => biz === "履约" || biz === "广告");
+  if (!okPair) { err.textContent = "垫资账户只能和履约或广告互转。"; return; }
+  if (!(amount > 0)) { err.textContent = "请输入大于 0 的调出金额。"; return; }
+  if (cents(amount) > cents(out.real)) { err.textContent = "调出金额超过当前余额。通过前余额不会被预占，但提交时不能超过余额。"; return; }
+  if (!isFinite(rate) || rate <= 0) { err.textContent = "请填写大于 0 的汇率。"; return; }
+  if (!reason) { err.textContent = "请选择调拨原因。"; return; }
+  const inAmount = round2(amount * rate);
+  const item = {
+    id: "t-" + nextNo(""),
+    kind: "transfer",
+    transferNo: "TRF" + nowText().slice(0, 10).replace(/-/g, "") + nextNo(""),
+    approvalNo: "AP" + nowText().slice(0, 10).replace(/-/g, "") + nextNo(""),
+    status: "待飞书审批",
+    outAccountId: out.accountId,
+    inAccountId: inn.accountId,
+    outMerchantId: out.merchantId,
+    outName: out.name,
+    outBiz: out.biz,
+    outCurrency: out.currency,
+    outAmount: amount,
+    outBalanceAfter: out.real,
+    inMerchantId: inn.merchantId,
+    inName: inn.name,
+    inBiz: inn.biz,
+    inCurrency: inn.currency,
+    inAmount,
+    rate,
+    reason,
+    attachment: file ? file.name : "—",
+    operator: "原型操作员",
+    createdAt: nowText(),
+    auditedAt: "",
+    direction: ""
+  };
+  db.transfers.unshift(item);
+  db.highlight.transferId = item.id;
+  closeModal();
+  render();
+  toast("已提交，待飞书审批。通过前不改余额，交易详情和余额表都不变。");
+}
+
+function openAdjust(accountId) {
+  openModal(`<div class="mask" data-action="mask-close">
+    <form class="modal narrow" id="adjust-form">
+      <h3>手动调额<button type="button" data-action="close" aria-label="关闭">×</button></h3>
+      <div class="body">
+        <p class="note">手动调额同样等飞书通过才改余额。保证金释放不从这里做。</p>
+        ${field("垫资账户", `<select id="af-account"><option value="">请选择垫资账户</option>${advanceAccounts(accountId || "")}</select>`)}
+        <div class="field"><label class="req">方向</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px"><input type="radio" name="af-dir" value="增加" checked /> 增加</label>
+          <label style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="af-dir" value="减少" /> 减少</label>
+        </div>
+        ${field('<span class="req">金额</span>', `<input id="af-amount" inputmode="decimal" placeholder="例如 50.00" />`)}
+        ${field('<span class="req">原因</span>', `<select id="af-reason"><option value="">请选择</option><option>对账差额</option><option>线下补记</option><option>其他</option></select>`)}
+        ${field("备注", `<textarea id="af-note" maxlength="100" placeholder="选填"></textarea>`)}
+        <div class="err" id="af-err"></div>
+      </div>
+      <div class="footer">
+        <button class="btn" type="button" data-action="close">取消</button>
+        <button class="btn primary" type="submit">提交审核</button>
+      </div>
+    </form>
+  </div>`);
+  document.getElementById("adjust-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitAdjust();
+  });
+}
+
+function submitAdjust() {
+  const err = document.getElementById("af-err");
+  const account = accountById(document.getElementById("af-account").value);
+  const direction = (document.querySelector("input[name=af-dir]:checked") || {}).value;
+  const amount = round2(document.getElementById("af-amount").value);
+  const reason = document.getElementById("af-reason").value;
+  const note = document.getElementById("af-note").value.trim();
+  if (!account) { err.textContent = "请选择垫资账户。"; return; }
+  if (!(amount > 0)) { err.textContent = "请输入大于 0 的金额。"; return; }
+  if (direction === "减少" && cents(amount) > cents(account.real)) { err.textContent = "调减金额超过当前余额。"; return; }
+  if (!reason) { err.textContent = "请选择原因。"; return; }
+  const item = {
+    id: "t-" + nextNo(""),
+    kind: "adjust",
+    transferNo: "ADJ" + nowText().slice(0, 10).replace(/-/g, "") + nextNo(""),
+    approvalNo: "AP" + nowText().slice(0, 10).replace(/-/g, "") + nextNo(""),
+    status: "待飞书审批",
+    outAccountId: account.accountId,
+    inAccountId: "—",
+    outMerchantId: account.merchantId,
+    outName: account.name,
+    outBiz: account.biz,
+    outCurrency: account.currency,
+    outAmount: amount,
+    outBalanceAfter: account.real,
+    inMerchantId: "—",
+    inName: "—",
+    inBiz: "—",
+    inCurrency: "—",
+    inAmount: "",
+    rate: "",
+    reason: "手动调额：" + reason + (note ? "；" + note : ""),
+    attachment: "—",
+    operator: "原型操作员",
+    createdAt: nowText(),
+    auditedAt: "",
+    direction
+  };
+  db.transfers.unshift(item);
+  db.highlight.transferId = item.id;
+  closeModal();
+  if (page() !== "fund-transfers") location.hash = "fund-transfers";
+  else render();
+  toast("调额已提交，待飞书审批。通过前余额和余额表都不变。");
+}
+
+function addTxn(account, signed, type, rate, relatedNo, remark) {
+  const txn = {
+    id: "x-" + nextNo(""),
+    merchantId: account.merchantId,
+    merchantName: account.name,
+    uniqueId: account.uniqueId,
+    time: nowText(),
+    biz: account.biz,
+    bizCurrency: account.biz + account.currency,
+    type,
+    txnCurrency: account.currency,
+    txnAmount: round2(Math.abs(signed)),
+    accountCurrency: account.currency,
+    change: round2(signed),
+    afterAvailable: round2(account.real),
+    afterTotal: round2(account.real),
+    rate: Number(rate).toFixed(2),
+    operator: "原型操作员",
+    txnNo: "TX" + nowText().replace(/\D/g, "").slice(0, 14),
+    flowNo: "LS" + nowText().replace(/\D/g, "").slice(0, 14),
+    relatedNo,
+    trace: "飞书审批通过",
+    remark,
+    fresh: true
+  };
+  db.txns.unshift(txn);
+  db.highlight.txnId = txn.id;
+}
+
+function syncBalance(account) {
+  if (!account || account.biz !== "垫资") return;
+  const rows = db.balances.filter((b) => b.customer === account.name && b.currency === account.currency);
+  if (!rows.length) {
+    db.syncNote = account.name + " 的垫资余额已改，余额表没有对应周期行。";
+    return;
+  }
+  rows.sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1));
+  const row = rows[0];
+  const before = row.ending;
+  row.ending = round2(account.real);
+  row.fundBalance = round2(account.real);
+  row.synced = true;
+  db.highlight.balanceId = row.id;
+  db.syncNote = `${row.customer} ${row.period} 的期末已从 ${money(before)} 同步为 ${money(row.ending)}。`;
+}
+
+function approve(id) {
+  const item = db.transfers.find((t) => t.id === id);
+  if (!item || item.status !== "待飞书审批") return;
+  if (item.kind === "adjust") {
+    const account = accountById(item.outAccountId);
+    const signed = item.direction === "减少" ? -item.outAmount : item.outAmount;
+    if (cents(account.real + signed) < 0) {
+      toast("余额已不够这笔调减，未通过，余额表不变。");
+      return;
+    }
+    account.real = round2(account.real + signed);
+    item.outBalanceAfter = account.real;
+    item.status = "已通过";
+    item.auditedAt = nowText();
+    addTxn(account, signed, item.direction === "减少" ? "手动调额-减少" : "手动调额-增加", 1, item.transferNo, item.reason);
+    syncBalance(account);
+  } else {
+    const out = accountById(item.outAccountId);
+    const inn = accountById(item.inAccountId);
+    if (cents(out.real) < cents(item.outAmount)) {
+      toast("调出余额已不够这笔调拨，未通过，余额表不变。");
+      return;
+    }
+    out.real = round2(out.real - item.outAmount);
+    inn.real = round2(inn.real + item.inAmount);
+    item.outBalanceAfter = out.real;
+    item.status = "已通过";
+    item.auditedAt = nowText();
+    const advance = out.biz === "垫资" ? out : inn;
+    const signed = out.biz === "垫资" ? -item.outAmount : item.inAmount;
+    const type = out.biz === "垫资" ? "账户调拨-转出" : "账户调拨-转入";
+    addTxn(advance, signed, type, item.rate, item.transferNo, item.reason);
+    syncBalance(advance);
+  }
+  db.highlight.transferId = item.id;
+  render();
+  toast("审批通过。垫资余额已改，交易详情新增一条流水，余额表期末已同步。");
+}
+
+function reject(id) {
+  const item = db.transfers.find((t) => t.id === id);
+  if (!item || item.status !== "待飞书审批") return;
+  item.status = "已驳回";
+  item.auditedAt = nowText();
+  db.highlight.transferId = item.id;
+  render();
+  toast("已驳回。余额、交易详情、余额表都没有变化。");
+}
+
+function transferDetail(id) {
+  const t = db.transfers.find((item) => item.id === id);
+  if (!t) return;
+  const line = (label, value) => `<i>${esc(label)}</i><span>${value}</span>`;
+  openModal(`<div class="mask" data-action="mask-close"><div class="modal narrow">
+    <h3>调拨详情<button type="button" data-action="close" aria-label="关闭">×</button></h3>
+    <div class="body"><div class="kv">
+      ${line("调拨单号", esc(t.transferNo))}
+      ${line("审批单号", esc(t.approvalNo))}
+      ${line("状态", statusTag(t.status))}
+      ${line("调出", esc(`${t.outName} / ${t.outBiz} / ${t.outCurrency} ${money(t.outAmount)}`))}
+      ${line("调入", t.kind === "adjust" ? "手动调额，无调入账户" : esc(`${t.inName} / ${t.inBiz} / ${t.inCurrency} ${money(t.inAmount)}`))}
+      ${line("原因", esc(t.reason))}
+      ${line("创建时间", esc(t.createdAt))}
+      ${line("审核时间", esc(t.auditedAt || "—"))}
+    </div>
+    <p class="note">${t.status === "待飞书审批" ? "还没通过，账户余额和余额表期末都还是原数。" : "已结束的单据不会再次改余额。"}</p>
+    </div>
+    <div class="footer">
+      ${t.status === "待飞书审批" ? `<button class="btn primary" type="button" data-action="approve" data-id="${esc(t.id)}">审批通过</button>` : ""}
+      <button class="btn" type="button" data-action="close">关闭</button>
+    </div>
+  </div></div>`);
+}
+
+function accountDetail(id) {
+  const m = accountById(id);
+  if (!m) return;
+  const line = (label, value) => `<i>${esc(label)}</i><span>${value}</span>`;
+  openModal(`<div class="mask" data-action="mask-close"><div class="modal narrow">
+    <h3>商户账户<button type="button" data-action="close" aria-label="关闭">×</button></h3>
+    <div class="body"><div class="kv">
+      ${line("商户", esc(m.merchantId + " " + m.name))}
+      ${line("子业务", bizTag(m.biz))}
+      ${line("资金账户", esc(m.accountId))}
+      ${line("币种", esc(m.currency))}
+      ${line("真实资金", moneyCcy(m.real, m.currency))}
+      ${line("资金状态", esc(m.fundStatus))}
+    </div></div>
+    <div class="footer"><button class="btn" type="button" data-action="close">关闭</button></div>
+  </div></div>`);
+}
+
+function exportTxns() {
+  const visible = TX_COLS.filter(([key]) => !db.txHidden[key]);
+  const lines = [visible.map(([, label]) => label).join(",")];
+  db.txns.forEach((t) => {
+    lines.push(visible.map(([key]) => `"${String(t[key] ?? "").replace(/"/g, '""')}"`).join(","));
+  });
+  const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "交易详情.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+document.body.addEventListener("click", (event) => {
+  const goEl = event.target.closest("[data-go]");
+  if (goEl) { go(goEl.dataset.go); return; }
+  const el = event.target.closest("[data-action]");
+  if (!el) return;
+  const action = el.dataset.action;
+  if (action === "mask-close" && event.target !== el) return;
+  if (action === "close" || action === "mask-close") { closeModal(); return; }
+  if (action === "open-transfer") { openTransfer(); return; }
+  if (action === "open-adjust") { openAdjust(el.dataset.id || ""); return; }
+  if (action === "approve") { closeModal(); approve(el.dataset.id); return; }
+  if (action === "reject") { reject(el.dataset.id); return; }
+  if (action === "transfer-detail") { transferDetail(el.dataset.id); return; }
+  if (action === "account-detail") { accountDetail(el.dataset.id); return; }
+  if (action === "channel") { db.channel = el.dataset.channel; render(); return; }
+  if (action === "toggle-cols") { db.colOpen = !db.colOpen; render(); return; }
+  if (action === "export-txns") { exportTxns(); return; }
+  if (action === "reset-demo") {
+    const stay = page();
+    db = seed();
+    closeModal();
+    if (location.hash !== "#" + stay) location.hash = stay;
+    else render();
+    toast("已恢复示例数据。");
+    return;
+  }
+  if (action === "search-merchants") {
+    db.queries.merchants = readForm([
+      ["mq-id", "id"], ["mq-name", "name"], ["mq-uid", "uniqueId"], ["mq-erp", "erp"],
+      ["mq-acc", "accountId"], ["mq-fund", "fundStatus"], ["mq-ccy", "currency"],
+      ["mq-biz", "biz"], ["mq-manager", "manager"], ["mq-clerk", "clerk"]
+    ]);
+    render();
+    return;
+  }
+  if (action === "reset-merchants") { db.queries.merchants = {}; render(); return; }
+  if (action === "search-transfers") {
+    db.queries.transfers = readForm([
+      ["tq-no", "transferNo"], ["tq-ap", "approvalNo"], ["tq-st", "status"],
+      ["tq-out-mid", "outMerchantId"], ["tq-in-mid", "inMerchantId"],
+      ["tq-out-biz", "outBiz"], ["tq-in-biz", "inBiz"],
+      ["tq-out-ccy", "outCurrency"], ["tq-in-ccy", "inCurrency"],
+      ["tq-min", "amountMin"], ["tq-max", "amountMax"]
+    ]);
+    render();
+    return;
+  }
+  if (action === "reset-transfers") { db.queries.transfers = {}; render(); return; }
+  if (action === "search-txns") {
+    db.queries.txns = readForm([
+      ["xq-id", "merchantId"], ["xq-name", "merchantName"], ["xq-uid", "uniqueId"],
+      ["xq-flow", "flowNo"], ["xq-txn", "txnNo"], ["xq-bizc", "bizCurrency"],
+      ["xq-type", "type"], ["xq-from", "timeFrom"], ["xq-to", "timeTo"], ["xq-rel", "relatedNo"]
+    ]);
+    db.colOpen = false;
+    render();
+    return;
+  }
+  if (action === "reset-txns") { db.queries.txns = {}; db.colOpen = false; render(); return; }
+  if (action === "search-receipts") {
+    db.queries.receipts = readForm([
+      ["rq-customer", "customer"], ["rq-period", "period"], ["rq-platform", "platform"],
+      ["rq-bill", "billNo"], ["rq-start", "start"], ["rq-end", "end"], ["rq-tz", "timezone"]
+    ]);
+    if (db.queries.receipts.platform) db.channel = db.queries.receipts.platform;
+    render();
+    return;
+  }
+  if (action === "reset-receipts") { db.queries.receipts = {}; render(); return; }
+  if (action === "search-balance") {
+    db.queries.balance = readForm([["bq-customer", "customer"], ["bq-period", "period"]]);
+    render();
+    return;
+  }
+  if (action === "reset-balance") { db.queries.balance = {}; render(); return; }
+});
+
+document.body.addEventListener("change", (event) => {
+  const el = event.target.closest("[data-action=toggle-col]");
+  if (!el) return;
+  db.txHidden[el.dataset.col] = !el.checked;
+  render();
+});
+
+window.addEventListener("hashchange", render);
+if (!location.hash) location.hash = "fund-merchants";
+else render();
+</script>
+</body>
+</html>

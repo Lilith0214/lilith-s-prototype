@@ -78,15 +78,32 @@
     const q=(view.balanceQuery||'').trim().toLowerCase();
     return state.customers.filter(c=>!q || [c.id,c.name].join(' ').toLowerCase().includes(q));
   }
+  function balanceLineVisible(line){
+    const day=String(line.time||'').slice(0,10);
+    if(view.balanceFrom && day<view.balanceFrom) return false;
+    if(view.balanceTo && day>view.balanceTo) return false;
+    if(view.balanceSource && line.source!==view.balanceSource) return false;
+    return true;
+  }
+  function readBalanceFilters(){
+    const q=document.getElementById('balance-q'), from=document.getElementById('balance-from'), to=document.getElementById('balance-to'), source=document.getElementById('balance-source'), channel=document.getElementById('balance-channel');
+    if(q) view.balanceQuery=q.value.trim();
+    if(from) view.balanceFrom=from.value;
+    if(to) view.balanceTo=to.value;
+    if(source) view.balanceSource=source.value;
+    if(channel) view.balanceChannel=channel.value;
+  }
   function balanceSuggest(q){
     const text=(q||'').trim().toLowerCase();
     return state.customers.filter(c=>!text || [c.id,c.name].join(' ').toLowerCase().includes(text)).slice(0,8);
   }
   function customerBalanceBlock(c){
-    const accounts=state.accounts.filter(a=>a.customer===c.id).map(a=>({account:a, ledger:balanceLedger(a)}));
-    const currencies=[...new Set(accounts.map(x=>x.account.currency))];
+    const allAccounts=state.accounts.filter(a=>a.customer===c.id).map(a=>({account:a, ledger:balanceLedger(a)}));
+    const accounts=allAccounts.filter(x=>!view.balanceChannel || x.account.channel===view.balanceChannel);
+    if(!accounts.length) return '';
+    const currencies=[...new Set(allAccounts.map(x=>x.account.currency))];
     const totals=currencies.map(cur=>{
-      const rows=accounts.filter(x=>x.account.currency===cur);
+      const rows=allAccounts.filter(x=>x.account.currency===cur);
       const counted=rows.filter(x=>x.ledger.balance!==null);
       const lines=counted.flatMap(x=>x.ledger.lines);
       return {
@@ -105,7 +122,8 @@
     const accountHtml=accounts.map(({account:a, ledger})=>{
       const lines=ledger.lines;
       const part=(pred)=>a.opening==null?null:sumLines(lines,l=>l.count&&pred(l));
-      const rows=lines.map(l=>`<tr class="${l.count?'':'is-idle'}"><td>${esc(l.time)}</td><td>${esc(l.source)}</td><td>${esc(l.type)}</td><td class="money ${l.delta<0?'minus':'plus'}">${signedMoney(l.delta,a.currency)}</td><td class="money">${l.after==null?'—':money(l.after,a.currency)}</td><td>${esc(l.note)}</td><td>${l.count?'<span class="sync-pill ok">已计入</span>':'<span class="sync-pill warn">不计入</span>'}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">还没有计入余额的变动</td></tr>';
+      const visible=lines.filter(balanceLineVisible);
+      const rows=visible.map(l=>`<tr class="${l.count?'':'is-idle'}"><td>${esc(l.time)}</td><td>${esc(l.source)}</td><td>${esc(l.type)}</td><td class="money ${l.delta<0?'minus':'plus'}">${signedMoney(l.delta,a.currency)}</td><td class="money">${l.after==null?'—':money(l.after,a.currency)}</td><td>${esc(l.note)}</td><td>${l.count?'<span class="sync-pill ok">已计入</span>':'<span class="sync-pill warn">不计入</span>'}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">这个筛选下没有变动明细</td></tr>';
       return `<article class="balance-account"><header><div><b>${esc(a.channel)}</b><span>${esc(balanceAccountName(a.id))} · ${esc(a.id)} · ${esc(a.currency)}</span></div><div class="balance-total"><span>账户余额</span><strong>${ledger.balance==null?'待设置期初':money(ledger.balance,a.currency)}</strong></div></header><div class="balance-split account"><span>期初<strong>${a.opening==null?'—':money(a.opening,a.currency)}</strong></span><span>对账单结算<strong>${signedMoney(part(l=>l.type==='对账单结算'),a.currency)}</strong></span><span>调拨净额<strong>${signedMoney(part(l=>l.type.startsWith('调拨')),a.currency)}</strong></span><span>手动调额<strong>${signedMoney(part(l=>l.type==='手动调额'),a.currency)}</strong></span></div><div class="table-wrap"><table class="balance-lines"><thead><tr><th>时间</th><th>来源</th><th>变动类型</th><th>变动金额</th><th>变动后余额</th><th>说明</th><th>是否计入</th></tr></thead><tbody>${rows}</tbody></table></div></article>`;
     }).join('')||'<p class="empty">这个客户还没有资金账户</p>';
     const missing=totals.some(t=>t.missing)?'有资金账户还没设期初，客户总余额不含这些账户。':'';
@@ -113,20 +131,24 @@
   }
   function renderBalances(){
     const list=balanceCustomers();
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1><p>按客户、资金账户、变动明细三层看金额。客户看总余额，账户看各渠道资金账户余额，明细看每一笔对账单结算、调拨和手动调额。</p></div><div class="head-actions"><button class="btn" id="export-balance">导出余额表</button></div></div><div class="panel balance-filter"><div class="balance-search"><label for="balance-q">客户</label><div class="balance-search-box"><input id="balance-q" placeholder="输入客户名称或客户 ID，支持模糊搜索" value="${esc(view.balanceQuery||'')}" autocomplete="off"><div id="balance-suggest" class="balance-suggest" hidden></div></div><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button></div></div><div class="balance-list">${list.map(customerBalanceBlock).join('')||'<div class="panel"><p class="empty">没有匹配的客户</p></div>'}</div>`;
+    const blocks=list.map(customerBalanceBlock).filter(Boolean);
+    const channels=[['PayPal','PayPal'],['Airwallex','Airwallex'],['Oceanpayment','OceanPayment'],['ShopifyPayments','ShopifyPayments']];
+    const filtering=view.balanceFrom||view.balanceTo||view.balanceSource||view.balanceChannel;
+    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1><p>按客户、资金账户、变动明细三层看金额。客户看总余额，账户看各渠道资金账户余额，明细看每一笔对账单结算、调拨和手动调额。</p></div><div class="head-actions"><button class="btn" id="export-balance">导出余额表</button></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field grow"><label for="balance-q">客户</label><div class="balance-search-box"><input id="balance-q" placeholder="输入客户名称或客户 ID，支持模糊搜索" value="${esc(view.balanceQuery||'')}" autocomplete="off"><div id="balance-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field"><label>时间区间</label><div class="range"><input id="balance-from" type="date" aria-label="开始日期" value="${esc(view.balanceFrom||'')}"><span>至</span><input id="balance-to" type="date" aria-label="结束日期" value="${esc(view.balanceTo||'')}"></div></div><div class="balance-field"><label for="balance-source">来源</label><select id="balance-source"><option value="">全部</option><option value="Fund" ${view.balanceSource==='Fund'?'selected':''}>Fund</option><option value="垫资对账" ${view.balanceSource==='垫资对账'?'selected':''}>垫资对账</option></select></div><div class="balance-field"><label for="balance-channel">渠道</label><select id="balance-channel"><option value="">全部</option>${channels.map(([v,t])=>`<option value="${v}" ${view.balanceChannel===v?'selected':''}>${t}</option>`).join('')}</select></div><div class="balance-field actions"><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button></div></div>${filtering?'<p class="balance-note filter">时间、来源和渠道用来筛选资金账户和变动明细。客户总余额、账户余额仍是当前全量，不按筛选重算。</p>':''}</div><div class="balance-list">${blocks.join('')||'<div class="panel"><p class="empty">没有符合筛选的记录</p></div>'}</div>`;
     const input=document.getElementById('balance-q'), box=document.getElementById('balance-suggest');
     const paint=()=>{const hits=balanceSuggest(input.value);box.innerHTML=hits.map(c=>`<button type="button" data-pick="${esc(c.id)}">${esc(c.name)}<span>${esc(c.id)}</span></button>`).join('')||'<div class="empty">没有匹配的客户</div>';box.hidden=false;};
     input.onfocus=paint;input.oninput=paint;
     input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();document.getElementById('balance-search').click();}};
-    box.onclick=e=>{const b=e.target.closest('[data-pick]');if(!b)return;const picked=R.customer(state,b.dataset.pick);view.balanceQuery=picked.name;view.customer=picked.id;view.currency=picked.currency;render();};
-    document.getElementById('balance-search').onclick=()=>{view.balanceQuery=input.value.trim();render();};
-    document.getElementById('balance-reset').onclick=()=>{view.balanceQuery='';render();};
+    box.onclick=e=>{const b=e.target.closest('[data-pick]');if(!b)return;readBalanceFilters();const picked=R.customer(state,b.dataset.pick);view.balanceQuery=picked.name;view.customer=picked.id;view.currency=picked.currency;render();};
+    document.getElementById('balance-search').onclick=()=>{readBalanceFilters();render();};
+    document.getElementById('balance-reset').onclick=()=>{view.balanceQuery='';view.balanceFrom='';view.balanceTo='';view.balanceSource='';view.balanceChannel='';render();};
     document.getElementById('export-balance').onclick=()=>{
       const rows=[];
-      list.forEach(c=>state.accounts.filter(a=>a.customer===c.id).forEach(a=>{
+      list.forEach(c=>state.accounts.filter(a=>a.customer===c.id && (!view.balanceChannel || a.channel===view.balanceChannel)).forEach(a=>{
         const ledger=balanceLedger(a);
-        if(!ledger.lines.length) rows.push([c.id,c.name,a.id,balanceAccountName(a.id),a.channel,a.currency,'','','','',ledger.balance==null?'待设置期初':'','','']);
-        ledger.lines.forEach(l=>rows.push([c.id,c.name,a.id,balanceAccountName(a.id),a.channel,a.currency,l.time,l.source,l.type,(l.delta/100).toFixed(2),l.after==null?'':(l.after/100).toFixed(2),l.count?'已计入':'不计入',l.note]));
+        const visible=ledger.lines.filter(balanceLineVisible);
+        if(!visible.length) rows.push([c.id,c.name,a.id,balanceAccountName(a.id),a.channel,a.currency,'','','','',ledger.balance==null?'待设置期初':'','','']);
+        visible.forEach(l=>rows.push([c.id,c.name,a.id,balanceAccountName(a.id),a.channel,a.currency,l.time,l.source,l.type,(l.delta/100).toFixed(2),l.after==null?'':(l.after/100).toFixed(2),l.count?'已计入':'不计入',l.note]));
       }));
       exportRows(rows,['客户 ID','客户名称','资金账户','账户别名','渠道','币种','时间','来源','变动类型','变动金额','变动后余额','是否计入','说明']);
     };

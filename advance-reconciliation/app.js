@@ -4,7 +4,7 @@
   const storageKey='advance-reconciliation-demo-v1';
   let state;
   try { state=JSON.parse(localStorage.getItem(storageKey)||'null'); } catch(_) {}
-  if(!state||state.schema!==4) state=R.seed();
+  if(!state||state.schema!==5) state=R.seed();
   if(!state.lastUpload) state.lastUpload={added:8,failed:2};
   let view = {page:'balances', customer:'DEMO-1001', currency:'EUR', status:'', from:'2026-10-01', to:'2026-10-31', q:'', period:'', flow:'', detail:'', account:'', syncFail:false, channel:'', balanceTab:'periods', flowCustomer:'', flowPeriod:'', flowPlatform:'', flowMatched:'', flowBill:'', flowTimezone:'UTC+8 北京/上海'};
   let modal = null;
@@ -108,7 +108,7 @@
   function merchantSheet(c){
     const accounts=state.accounts.filter(a=>a.customer===c.id && a.currency===c.currency);
     const ready=accounts.length>0 && accounts.every(a=>a.opening!==null);
-    const periods=state.periods.filter(p=>p.customer===c.id && p.currency===c.currency && !R.editable(p)).sort((a,b)=>a.start<b.start?-1:a.start>b.start?1:0);
+    const periods=state.periods.filter(p=>p.customer===c.id && p.currency===c.currency).sort((a,b)=>a.start<b.start?-1:a.start>b.start?1:0);
     const fundEvents=state.events.filter(e=>e.customer===c.id && e.currency===c.currency && e.kind!=='settlement');
     const pendingOps=state.operations.filter(o=>{const a=state.accounts.find(x=>x.id===o.source);return a && a.customer===c.id && a.currency===c.currency && o.execution!=='执行成功';});
     const used=new Set();
@@ -124,7 +124,7 @@
       const pending=pendingOps.filter(o=>{const day=dayOf(o.time);return day>=p.start&&day<=p.end&&o.type!=='transfer';}).reduce((n,o)=>n+o.amount,0);
       const startBal=running;
       if(ready) running=running+(posted?settlement:0)+transfer+adjust;
-      if(periodOverlaps(p)) rows.push({p,startBal,settlement,posted,transfer,adjust,hasTransfer:transfers.length>0,hasAdjust:adjusts.length>0,pending,endBal:running,outside:false});
+      if(periodOverlaps(p)) rows.push({p,startBal,settlement,posted,open:R.editable(p),transfer,adjust,hasTransfer:transfers.length>0,hasAdjust:adjusts.length>0,pending,endBal:running,outside:false});
     });
     const outside=fundEvents.filter(e=>!used.has(e.id));
     const outsidePending=pendingOps.filter(o=>!periods.some(p=>dayOf(o.time)>=p.start&&dayOf(o.time)<=p.end)&&o.type!=='transfer');
@@ -174,7 +174,7 @@
       const fundId=fundMerchantId(c.id);
       return `<tr><td>${esc(asOf)}</td><td>${esc(c.name)}</td><td class="mono">${esc(c.id)}</td><td class="mono">${fundId?esc(fundId):'—'}</td><td>${esc(c.currency)}</td><td class="money">${s.settlement==null?'待设置期初':money(s.settlement,c.currency)}</td><td class="money">${s.settlement==null?'—':signedMoney(s.fund,c.currency)}</td><td class="money"><b>${s.current==null?'待设置期初':money(s.current,c.currency)}</b></td><td>${esc(s.note||'—')}</td><td class="ops"><button class="link" data-balance-periods="${c.id}">周期明细</button><button class="link" data-balance-accounts="${c.id}">账户明细</button></td></tr>`;
     }).join('')||'<tr><td colspan="10" class="empty">没有符合筛选的商户</td></tr>';
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1><p>按客户看截止日的结算余额。结算余额不含 Fund 调拨和手动调额，这两类放在 Fund资金变动。</p></div><div class="head-actions"><button class="btn primary" id="balance-transfer">发起资金调拨审批</button><button class="btn" id="export-balance">导出余额表</button></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field grow"><label for="balance-q">客户</label><div class="balance-search-box"><input id="balance-q" placeholder="输入客户名称或客户 ID，支持模糊搜索" value="${esc(view.balanceQuery||'')}" autocomplete="off"><div id="balance-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field"><label for="balance-asof">统计日期(截止余额)</label><input id="balance-asof" type="date" value="${esc(asOf)}"></div><div class="balance-field actions"><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button></div></div><p class="balance-note">结算余额 = 期初 + 截止日及之前已入账的对账结算。Fund资金变动 = 截止日及之前已执行的调拨和手动调额。当前余额 = 结算余额 + Fund资金变动。未入账、待审批的不进金额，写在备注。</p></div><div class="panel table-panel"><div class="table-wrap"><table class="balance-sheet"><thead><tr><th>统计日期(截止余额)</th><th>客户</th><th>商户ID</th><th>FUND商户ID</th><th>币种</th><th>结算余额</th><th>Fund资金变动</th><th>当前余额</th><th>备注</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1><p>按客户看截止日的结算余额。结算余额不含 Fund 调拨和手动调额，这两类放在 Fund资金变动。</p></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field grow"><label for="balance-q">客户</label><div class="balance-search-box"><input id="balance-q" placeholder="输入客户名称或客户 ID，支持模糊搜索" value="${esc(view.balanceQuery||'')}" autocomplete="off"><div id="balance-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field"><label for="balance-asof">统计日期(截止余额)</label><input id="balance-asof" type="date" value="${esc(asOf)}"></div><div class="balance-field actions"><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button><button class="btn primary" id="balance-transfer">发起资金调拨审批</button><button class="btn" id="export-balance">导出余额表</button></div></div><p class="balance-note">结算余额 = 期初 + 截止日及之前已入账的对账结算。Fund资金变动 = 截止日及之前已执行的调拨和手动调额。当前余额 = 结算余额 + Fund资金变动。未入账、待审批的不进金额，写在备注。</p></div><div class="panel table-panel"><div class="table-wrap"><table class="balance-sheet"><thead><tr><th>统计日期(截止余额)</th><th>客户</th><th>商户ID</th><th>FUND商户ID</th><th>币种</th><th>结算余额</th><th>Fund资金变动</th><th>当前余额</th><th>备注</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     const input=document.getElementById('balance-q'), box=document.getElementById('balance-suggest');
     const paint=()=>{const hits=balanceSuggest(input.value);box.innerHTML=hits.map(c=>`<button type="button" data-pick="${esc(c.id)}">${esc(c.name)}<span>${esc(c.id)}</span></button>`).join('')||'<div class="empty">没有匹配的客户</div>';box.hidden=false;};
     input.onfocus=paint;input.oninput=paint;
@@ -194,12 +194,12 @@
     const sheet=merchantSheet(c);
     const rows=sheet.rows.map(r=>{
       const label=r.outside?'未归入已确认周期':`${r.p.start} ~ ${r.p.end}`;
-      const settle=r.outside?'—':`${signedMoney(r.settlement,c.currency)} ${r.posted?'<span class="sync-pill ok">已入账</span>':'<span class="sync-pill warn">未入账</span>'}`;
+      const settle=r.outside?'—':`${signedMoney(r.settlement,c.currency)} ${r.posted?'<span class="sync-pill ok">已入账</span>':r.open?'<span class="sync-pill warn">未确认</span>':'<span class="sync-pill warn">未入账</span>'}`;
       const end=sheet.ready?money(r.endBal,c.currency):'待设置期初';
       const start=sheet.ready?money(r.startBal,c.currency):'待设置期初';
       return `<tr><td>${label}</td><td class="money">${start}</td><td class="money">${settle}</td><td>${fundMoveCell(r,c.currency)}</td><td class="money">${end}</td><td class="ops"><button class="link" data-balance-accounts="${c.id}">账户明细</button></td></tr>`;
     }).join('')||'<tr><td colspan="6" class="empty">没有已确认的结算周期</td></tr>';
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>${esc(c.name)}</h1><p>${esc(c.id)} · FUND商户ID ${esc(fundMerchantId(c.id)||'—')} · 按周期看对账结算和 Fund资金变动。</p></div><div class="head-actions"><button class="btn" id="balance-back">返回余额表</button><button class="btn primary" id="balance-transfer">发起资金调拨审批</button></div></div><section class="balance-merchant"><header><div><b>周期余额</b><span>未确认的周期不在这里。同客户账户之间的调拨，净额为 0。</span></div><div class="balance-total"><span>当前余额</span><strong>${sheet.ready?money(sheet.balance,c.currency):'待设置期初'}</strong></div></header><div class="table-wrap"><table class="balance-periods"><thead><tr><th>周期</th><th>期初余额</th><th>对账结算</th><th>Fund资金变动</th><th>期末余额</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>${esc(c.name)}</h1><p>${esc(c.id)} · FUND商户ID ${esc(fundMerchantId(c.id)||'—')} · 按周期看对账结算和 Fund资金变动。</p></div><div class="head-actions"><button class="btn" id="balance-back">返回余额表</button><button class="btn primary" id="balance-transfer">发起资金调拨审批</button></div></div><section class="balance-merchant"><header><div><b>周期余额</b><span>从 9 月初到 11 月初共 8 个默认周期。未确认、未入账的会列出，但不改变期末。同客户账户之间的调拨，净额为 0。</span></div><div class="balance-total"><span>当前余额</span><strong>${sheet.ready?money(sheet.balance,c.currency):'待设置期初'}</strong></div></header><div class="table-wrap"><table class="balance-periods"><thead><tr><th>周期</th><th>期初余额</th><th>对账结算</th><th>Fund资金变动</th><th>期末余额</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
     document.getElementById('balance-back').onclick=()=>{view.balanceCustomer='';view.balanceView='';render();};
     document.getElementById('balance-transfer').onclick=openFundApproval;
     document.querySelectorAll('[data-balance-accounts]').forEach(b=>b.onclick=()=>openBalance(b.dataset.balanceAccounts,'accounts'));
@@ -404,7 +404,7 @@
   function openCycleConfig(){modal={type:'cycle-config',customer:view.customer||state.customers[0].id,rows:null};renderModal();}
   function openFlow(id){const f=state.flows.find(x=>x.id===id);modal={type:'flow',flow:f};renderModal();}
   function openStatement(id){const p=R.period(state,id);modal={type:'statement',id};renderModal();}
-  function openOpening(){const a=state.accounts.find(a=>a.customer===view.customer&&a.opening===null)||state.accounts.find(a=>a.customer===view.customer);modal={type:'opening',account:a?.id||'',amount:'',date:'2026-10-12',reason:''};renderModal();}
+  function openOpening(){const a=state.accounts.find(a=>a.customer===view.customer&&a.opening===null)||state.accounts.find(a=>a.customer===view.customer);modal={type:'opening',account:a?.id||'',amount:'',date:'2026-09-01',reason:''};renderModal();}
   function openOperation(){const accts=state.accounts.filter(a=>a.customer===view.customer);modal={type:'operation',op:'transfer',source:accts[0]?.id||'',target:accts[1]?.id||accts[0]?.id||'',amount:'',reason:''};renderModal();}
   function closeModal(){modal=null;overlay.innerHTML='';}
   function field(id,label,value,type='text',extra=''){return `<label>${label}<input id="${id}" type="${type}" value="${esc(value??'')}" ${extra}></label>`;}

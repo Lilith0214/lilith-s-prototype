@@ -278,11 +278,11 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:4,seq:100,customers:[
+    const s={schema:5,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
-    [['A-PP','DEMO-1001','PayPal','EUR',100000,142000,8000],['A-OP','DEMO-1001','Oceanpayment','EUR',50000,62000,4000],['B-AW','DEMO-1002','Airwallex','USD',80000,240000,12000],['B-SP','DEMO-1002','ShopifyPayments','USD',20000,87000,9000],['C-PP','DEMO-1003','PayPal','USD',null,25000,0]].forEach(([id,cid,channel,currency,opening,channelBalance,frozen])=>s.accounts.push({id,customer:cid,channel,currency,opening,openingAt:opening===null?null:'2026-10-12',channelBalance,frozen,channelAt:'2026-10-27 08:00:00'}));
+    [['A-PP','DEMO-1001','PayPal','EUR',100000,142000,8000],['A-OP','DEMO-1001','Oceanpayment','EUR',50000,62000,4000],['B-AW','DEMO-1002','Airwallex','USD',80000,240000,12000],['B-SP','DEMO-1002','ShopifyPayments','USD',20000,87000,9000],['C-PP','DEMO-1003','PayPal','USD',null,25000,0]].forEach(([id,cid,channel,currency,opening,channelBalance,frozen])=>s.accounts.push({id,customer:cid,channel,currency,opening,openingAt:opening===null?null:'2026-09-01',channelBalance,frozen,channelAt:'2026-10-27 08:00:00'}));
     s.customers.forEach((c,i)=>{[13,20].forEach((day,j)=>s.periods.push({id:`P${i+1}${j+1}`,customer:c.id,currency:c.currency,start:`2026-10-${day}`,end:`2026-10-${day+6}`,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]}));});
     let n=0;
     const payment=(aid,pid,day,amount,fee,refund=0)=>{
@@ -311,6 +311,29 @@
     stamp(adjust,'2026-10-17T02:00:00.000Z');
     pending.time='2026-10-18T02:00:00.000Z';
     s.customers.forEach((c,i)=>s.periods.push({id:`P${i+1}3`,customer:c.id,currency:c.currency,start:'2026-10-27',end:'2026-11-02',status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]}));
+    ['2026-09-08','2026-09-15','2026-09-22','2026-09-29','2026-10-06'].forEach((start,j)=>{
+      const end=addDays(start,6);
+      s.customers.forEach((c,i)=>{
+        const id=`H${i+1}${j+1}`;
+        s.periods.push({id,customer:c.id,currency:c.currency,start,end,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]});
+        if(c.id==='DEMO-1003') return;
+        s.accounts.filter(a=>a.customer===c.id).forEach((a,k)=>{
+          const amount=(c.id==='DEMO-1001'?60000:70000)+j*8000+k*15000;
+          payment(a.id,id,addDays(start,2+k),amount,c.id==='DEMO-1001'?-1800:-2200);
+        });
+        review(s,id);confirm(s,id,'演示历史确认 '+id);syncSettlement(s,id);
+        s.events.filter(e=>e.kind==='settlement'&&e.reference===id).forEach(e=>{e.time=end+'T12:00:00.000Z';});
+      });
+    });
+    const earlyTransfer=requestOperation(s,'transfer','A-PP','A-OP',15000,'9月中 PayPal 调入 Oceanpayment');
+    approve(s,earlyTransfer.id,true);execute(s,earlyTransfer.id);
+    const earlyAdjustA=requestOperation(s,'adjust','A-PP',null,8000,'10月初 PayPal 手动调增');
+    approve(s,earlyAdjustA.id,true);execute(s,earlyAdjustA.id);
+    const earlyAdjustB=requestOperation(s,'adjust','B-SP',null,-4000,'9月初 ShopifyPayments 手动调减');
+    approve(s,earlyAdjustB.id,true);execute(s,earlyAdjustB.id);
+    stamp(earlyTransfer,'2026-09-16T02:00:00.000Z');
+    stamp(earlyAdjustA,'2026-10-02T02:00:00.000Z');
+    stamp(earlyAdjustB,'2026-09-10T02:00:00.000Z');
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};s.lastUpload={added:8,failed:2};
     return s;
   }

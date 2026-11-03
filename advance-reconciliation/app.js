@@ -188,12 +188,12 @@
     const periodValue=view.balancePeriod==='__none__'?'':(view.balancePeriod||(period?period.label:''));
     const asOf=period?period.end:'';
     const list=balanceCustomers();
-    const rows=!period?'<tr><td colspan="10" class="empty">没有匹配的对账周期</td></tr>':list.map(c=>{
+    const rows=!period?'<tr><td colspan="7" class="empty">没有匹配的对账周期</td></tr>':list.map(c=>{
       const s=balanceSnapshot(c,asOf);
       const fundId=fundMerchantId(c.id);
-      return `<tr><td>${esc(asOf)}</td><td>${esc(c.name)}</td><td class="mono">${esc(c.id)}</td><td class="mono">${fundId?esc(fundId):'—'}</td><td>${esc(c.currency)}</td><td class="money">${s.settlement==null?'待设置期初':money(s.settlement,c.currency)}</td><td class="money">${s.settlement==null?'—':signedMoney(s.fund,c.currency)}</td><td class="money"><b>${s.current==null?'待设置期初':money(s.current,c.currency)}</b></td><td>${esc(s.note||'—')}</td><td class="ops"><button class="link" data-balance-periods="${c.id}">周期明细</button><button class="link" data-balance-accounts="${c.id}">账户明细</button></td></tr>`;
-    }).join('')||'<tr><td colspan="10" class="empty">没有符合筛选的商户</td></tr>';
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1><p>按客户看所选对账周期结束日的结算余额。结算余额不含 Fund 调拨和手动调额，这两类放在 Fund资金变动。</p></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field grow"><label for="balance-q">客户</label><div class="balance-search-box"><input id="balance-q" placeholder="输入客户名称或客户 ID，支持模糊搜索" value="${esc(view.balanceQuery||'')}" autocomplete="off"><div id="balance-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field period"><label for="balance-period">对账周期</label><div class="balance-search-box"><input id="balance-period" placeholder="输入周期起止日期，支持模糊搜索" value="${esc(periodValue)}" autocomplete="off"><div id="balance-period-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field actions"><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button><button class="btn primary" id="balance-transfer">发起资金调拨审批</button><button class="btn" id="export-balance">导出余额表</button></div></div><p class="balance-note">当前按${period?esc(period.label):'—'}截止。结算余额 = 期初 + 该周期结束日及之前已入账的对账结算。Fund资金变动 = 该日及之前已执行的调拨和手动调额。当前余额 = 结算余额 + Fund资金变动。未入账、待审批的不进金额，写在备注。</p></div><div class="panel table-panel"><div class="table-wrap"><table class="balance-sheet"><thead><tr><th>统计日期(截止余额)</th><th>客户</th><th>商户ID</th><th>FUND商户ID</th><th>币种</th><th>结算余额</th><th>Fund资金变动</th><th>当前余额</th><th>备注</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+      return `<tr><td>${esc(asOf)}</td><td>${esc(c.name)}</td><td class="mono">${esc(c.id)}</td><td class="mono">${fundId?esc(fundId):'—'}</td><td>${esc(c.currency)}</td><td class="money"><b>${s.current==null?'待设置期初':money(s.current,c.currency)}</b></td><td class="ops"><button class="link" data-balance-periods="${c.id}">周期明细</button></td></tr>`;
+    }).join('')||'<tr><td colspan="7" class="empty">没有符合筛选的商户</td></tr>';
+    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1><p>按客户和币种看钱包可用余额，截止到所选对账周期结束日。</p></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field grow"><label for="balance-q">客户</label><div class="balance-search-box"><input id="balance-q" placeholder="输入客户名称或客户 ID，支持模糊搜索" value="${esc(view.balanceQuery||'')}" autocomplete="off"><div id="balance-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field period"><label for="balance-period">对账周期</label><div class="balance-search-box"><input id="balance-period" placeholder="输入周期起止日期，支持模糊搜索" value="${esc(periodValue)}" autocomplete="off"><div id="balance-period-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field actions"><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button><button class="btn" id="export-balance">导出余额表</button></div></div><p class="balance-note">当前按${period?esc(period.label):'—'}截止。可用余额按客户和币种统计，含已入账结算和已执行的 Fund 变动。未入账、待审批的不算。</p></div><div class="panel table-panel"><div class="table-wrap"><table class="balance-sheet"><thead><tr><th>统计日期(截止余额)</th><th>客户</th><th>商户ID</th><th>FUND商户ID</th><th>币种</th><th>可用余额</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     const input=document.getElementById('balance-q'), box=document.getElementById('balance-suggest');
     const periodInput=document.getElementById('balance-period'), periodBox=document.getElementById('balance-period-suggest');
     const paint=()=>{periodBox.hidden=true;const hits=balanceSuggest(input.value);box.innerHTML=hits.map(c=>`<button type="button" data-pick="${esc(c.id)}">${esc(c.name)}<span>${esc(c.id)}</span></button>`).join('')||'<div class="empty">没有匹配的客户</div>';box.hidden=false;};
@@ -206,11 +206,9 @@
     periodBox.onclick=e=>{const b=e.target.closest('[data-period]');if(!b)return;view.balanceQuery=input.value.trim();view.balancePeriod=b.dataset.period;render();};
     document.getElementById('balance-search').onclick=()=>{view.balanceQuery=input.value.trim();const typed=periodInput.value.trim();const hit=typed?balancePeriodSuggest(typed)[0]:null;view.balancePeriod=typed?(hit?hit.label:'__none__'):'';render();};
     document.getElementById('balance-reset').onclick=()=>{view.balanceQuery='';view.balancePeriod='';render();};
-    document.getElementById('balance-transfer').onclick=openFundApproval;
     document.querySelectorAll('[data-balance-periods]').forEach(b=>b.onclick=()=>openBalance(b.dataset.balancePeriods,'periods'));
-    document.querySelectorAll('[data-balance-accounts]').forEach(b=>b.onclick=()=>openBalance(b.dataset.balanceAccounts,'accounts'));
     document.getElementById('export-balance').onclick=()=>{
-      exportRows(list.map(c=>{const s=balanceSnapshot(c,asOf);return [asOf,c.name,c.id,fundMerchantId(c.id),c.currency,s.settlement==null?'':(s.settlement/100).toFixed(2),(s.fund/100).toFixed(2),s.current==null?'':(s.current/100).toFixed(2),s.note];}),['统计日期(截止余额)','客户','商户ID','FUND商户ID','币种','结算余额','Fund资金变动','当前余额','备注']);
+      exportRows(list.map(c=>{const s=balanceSnapshot(c,asOf);return [asOf,c.name,c.id,fundMerchantId(c.id),c.currency,s.current==null?'':(s.current/100).toFixed(2)];}),['统计日期(截止余额)','客户','商户ID','FUND商户ID','币种','可用余额']);
     };
   }
   function renderBalancePeriods(){
@@ -221,42 +219,12 @@
       const settle=r.outside?'—':`${signedMoney(r.settlement,c.currency)} ${r.posted?'<span class="sync-pill ok">已入账</span>':r.open?'<span class="sync-pill warn">未确认</span>':'<span class="sync-pill warn">未入账</span>'}`;
       const end=sheet.ready?money(r.endBal,c.currency):'待设置期初';
       const start=sheet.ready?money(r.startBal,c.currency):'待设置期初';
-      return `<tr><td>${label}</td><td class="money">${start}</td><td class="money">${settle}</td><td>${fundMoveCell(r,c.currency)}</td><td class="money">${end}</td><td class="ops"><button class="link" data-balance-accounts="${c.id}">账户明细</button></td></tr>`;
-    }).join('')||'<tr><td colspan="6" class="empty">没有已确认的结算周期</td></tr>';
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>${esc(c.name)}</h1><p>${esc(c.id)} · FUND商户ID ${esc(fundMerchantId(c.id)||'—')} · 按周期看对账结算和 Fund资金变动。</p></div><div class="head-actions"><button class="btn" id="balance-back">返回余额表</button><button class="btn primary" id="balance-transfer">发起资金调拨审批</button></div></div><section class="balance-merchant"><header><div><b>周期余额</b><span>从 9 月初到 11 月初共 8 个默认周期。未确认、未入账的会列出，但不改变期末。同客户账户之间的调拨，净额为 0。</span></div><div class="balance-total"><span>当前余额</span><strong>${sheet.ready?money(sheet.balance,c.currency):'待设置期初'}</strong></div></header><div class="table-wrap"><table class="balance-periods"><thead><tr><th>周期</th><th>期初余额</th><th>对账结算</th><th>Fund资金变动</th><th>期末余额</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+      return `<tr><td>${label}</td><td class="money">${start}</td><td class="money">${settle}</td><td>${fundMoveCell(r,c.currency)}</td><td class="money">${end}</td></tr>`;
+    }).join('')||'<tr><td colspan="5" class="empty">没有已确认的结算周期</td></tr>';
+    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>${esc(c.name)}</h1><p>${esc(c.id)} · FUND商户ID ${esc(fundMerchantId(c.id)||'—')} · 按客户和币种看各周期的钱包余额。</p></div><div class="head-actions"><button class="btn" id="balance-back">返回余额表</button></div></div><section class="balance-merchant"><header><div><b>周期余额</b><span>从 9 月初到 11 月初共 8 个默认周期。未确认、未入账的会列出，但不改变期末。同客户账户之间的调拨，净额为 0。</span></div><div class="balance-total"><span>可用余额</span><strong>${sheet.ready?money(sheet.balance,c.currency):'待设置期初'}</strong></div></header><div class="table-wrap"><table class="balance-periods"><thead><tr><th>周期</th><th>期初余额</th><th>对账结算</th><th>Fund资金变动</th><th>期末余额</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
     document.getElementById('balance-back').onclick=()=>{view.balanceCustomer='';view.balanceView='';render();};
-    document.getElementById('balance-transfer').onclick=openFundApproval;
-    document.querySelectorAll('[data-balance-accounts]').forEach(b=>b.onclick=()=>openBalance(b.dataset.balanceAccounts,'accounts'));
   }
-  function renderBalanceAccounts(){
-    const c=R.customer(state,view.balanceCustomer);
-    const channels=[['PayPal','PayPal'],['Airwallex','Airwallex'],['Oceanpayment','OceanPayment'],['ShopifyPayments','ShopifyPayments']];
-    const all=state.accounts.filter(a=>a.customer===c.id).map(a=>({account:a,ledger:balanceLedger(a)}));
-    const accounts=all.filter(x=>!view.balanceChannel||x.account.channel===view.balanceChannel);
-    const ready=all.filter(x=>x.ledger.balance!==null);
-    const total=ready.length?ready.reduce((n,x)=>n+x.ledger.balance,0):null;
-    const accountHtml=accounts.map(({account:a,ledger})=>{
-      const visible=ledger.lines.filter(balanceLineVisible);
-      const rows=visible.map(l=>`<tr class="${l.count?'':'is-idle'}"><td>${esc(l.time)}</td><td>${esc(l.type)}</td><td class="money ${l.delta<0?'minus':'plus'}">${signedMoney(l.delta,a.currency)}</td><td class="money">${l.after==null?'—':money(l.after,a.currency)}</td><td>${l.count?'<span class="sync-pill ok">已入账</span>':'<span class="sync-pill warn">未入账</span>'}</td><td>${esc(l.note)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">这个筛选下没有明细</td></tr>';
-      return `<article class="balance-account"><header><div><b>${esc(a.channel)}</b><span>${esc(balanceAccountName(a.id))} · ${esc(a.id)} · ${esc(a.currency)}</span></div><div class="balance-total"><span>账户余额</span><strong>${ledger.balance==null?'待设置期初':money(ledger.balance,a.currency)}</strong></div></header><div class="table-wrap"><table class="balance-lines"><thead><tr><th>时间</th><th>变动类型</th><th>变动金额</th><th>变动后余额</th><th>入账状态</th><th>说明</th></tr></thead><tbody>${rows}</tbody></table></div></article>`;
-    }).join('')||'<div class="panel"><p class="empty">这个客户还没有资金账户</p></div>';
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>${esc(c.name)}</h1><p>按渠道资金账户看每一笔变动和入账状态。</p></div><div class="head-actions"><button class="btn" id="balance-back">返回余额表</button><button class="btn primary" id="balance-transfer">发起资金调拨审批</button><button class="btn" id="export-balance">导出明细</button></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field"><label>时间区间</label><div class="range"><input id="balance-from" type="date" aria-label="开始日期" value="${esc(view.balanceFrom||'')}"><span>至</span><input id="balance-to" type="date" aria-label="结束日期" value="${esc(view.balanceTo||'')}"></div></div><div class="balance-field"><label for="balance-source">来源</label><select id="balance-source"><option value="">全部</option><option value="Fund" ${view.balanceSource==='Fund'?'selected':''}>Fund</option><option value="垫资对账" ${view.balanceSource==='垫资对账'?'selected':''}>垫资对账</option></select></div><div class="balance-field"><label for="balance-channel">渠道</label><select id="balance-channel"><option value="">全部</option>${channels.map(([v,t])=>`<option value="${v}" ${view.balanceChannel===v?'selected':''}>${t}</option>`).join('')}</select></div><div class="balance-field actions"><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button></div><div class="balance-total sheet"><span>客户余额 · ${esc(c.currency)}</span><strong>${total==null?'待设置期初':money(total,c.currency)}</strong></div></div></div><div class="balance-list">${accountHtml}</div>`;
-    document.getElementById('balance-back').onclick=()=>{view.balanceCustomer='';view.balanceView='';render();};
-    document.getElementById('balance-transfer').onclick=openFundApproval;
-    document.getElementById('balance-search').onclick=()=>{readBalanceFilters();render();};
-    document.getElementById('balance-reset').onclick=()=>{view.balanceFrom='';view.balanceTo='';view.balanceSource='';view.balanceChannel='';render();};
-    document.getElementById('export-balance').onclick=()=>{
-      const rows=[];
-      accounts.forEach(({account:a,ledger})=>ledger.lines.filter(balanceLineVisible).forEach(l=>rows.push([c.id,c.name,a.id,balanceAccountName(a.id),a.channel,a.currency,l.time,l.type,(l.delta/100).toFixed(2),l.after==null?'':(l.after/100).toFixed(2),l.count?'已入账':'未入账',l.note])));
-      exportRows(rows,['客户 ID','客户名称','资金账户','账户别名','渠道','币种','时间','变动类型','变动金额','变动后余额','入账状态','说明']);
-    };
-  }
-  function openFundApproval(){
-    const id=view.balanceCustomer||view.customer;
-    const picked=R.customer(state,id);
-    view.customer=picked.id;view.currency=picked.currency;view.page='fund';location.hash='fund';render();openOperation();
-  }
-  function renderBalances(){if(view.balanceView==='accounts'&&view.balanceCustomer) renderBalanceAccounts(); else if(view.balanceView==='periods'&&view.balanceCustomer) renderBalancePeriods(); else renderBalanceList();}
+  function renderBalances(){if(view.balanceView==='periods'&&view.balanceCustomer) renderBalancePeriods(); else renderBalanceList();}
   function renderFlows(){
     const channels=[['','全部渠道'],['Airwallex','Airwallex'],['PayPal','PayPal'],['Oceanpayment','OceanPayment'],['ShopifyPayments','ShopifyPayments']];
     const flowRows=()=>state.flows.filter(f=>{const c=state.customers.find(x=>x.id===f.customer);const text=[f.customer,c?.name||'',f.account,f.id,f.eventId,f.bill].join(' ').toLowerCase();const p=state.periods.find(x=>x.id===f.period);return (!view.flowCustomer||text.includes(view.flowCustomer.toLowerCase()))&&(!view.flowPeriod||[f.period,p?.start||'',p?.end||''].join(' ').toLowerCase().includes(view.flowPeriod.toLowerCase()))&&(!view.flowPlatform||f.channel===view.flowPlatform)&&(!view.flowMatched||(view.flowMatched==='已对账匹配'?R.flowStatus(state,f)==='已匹配':view.flowMatched==='未匹配'?R.flowStatus(state,f)==='未匹配':true))&&(!view.flowBill||String(f.bill||'').toLowerCase().includes(view.flowBill.toLowerCase()))&&(!view.flowFrom||f.date>=view.flowFrom)&&(!view.flowTo||f.date<=view.flowTo)&&(!view.channel||f.channel===view.channel)});
@@ -491,7 +459,7 @@
     const content=document.getElementById('content');
 
     if(view.page!=='flows'){const auditButton=document.createElement('button');auditButton.className='btn';auditButton.textContent='操作记录';auditButton.onclick=()=>auditDialog();document.querySelector('.page-head')?.append(auditButton);}
-    if(view.page==='balances'){ /* 余额表分商户周期和账户明细两层，不再追加旧的汇总看板。 */ }
+    if(view.page==='balances'){ /* 余额表按客户和币种展示钱包可用余额。 */ }
     if(view.page==='flows'){
       const status=document.getElementById('status');
       if(status?.closest('div')) status.closest('div').style.display='none';

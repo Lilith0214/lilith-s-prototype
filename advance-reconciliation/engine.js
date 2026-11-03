@@ -133,13 +133,26 @@
     if(result.unresolved) fail('仍有未匹配或多重匹配记录，请先处理订单匹配');
     p.status='reviewed';p.reviewedAt=new Date().toISOString(); audit(s,'财务复核',id,'复核通过，等待登记客户确认');
   }
+  function creditWallet(s,p,value) {
+    for(const aid of Object.keys(value.byAccount)) if(account(s,aid).opening===null) fail('请先在 Fund 设置垫资钱包期初余额');
+    const key=`SETTLE:${p.id}:V${p.version}`;
+    const time=`${p.end}T18:00:00.000Z`;
+    for(const [aid,row] of Object.entries(value.byAccount)) {
+      const ekey=`${key}:${aid}`;
+      if(!s.events.some(e=>e.id===ekey)) s.events.push({id:ekey,kind:'settlement',account:aid,customer:p.customer,delta:row.total,currency:p.currency,reference:p.id,time,line:'垫资'});
+    }
+    p.walletPosted=true;
+    audit(s,'计入垫资钱包',p.id,`确认后增量 ${value.total/100} ${p.currency} 已加入 Fund 垫资钱包`);
+  }
   function confirm(s,id,reference) {
     const p=period(s,id);
     if(p.status!=='reviewed') fail('请先完成财务复核');
     if(!reference.trim()) fail('请填写客户确认凭据或记录编号');
     const value=calc(s,id); if(value.unresolved) fail('存在未解决的匹配异常');
-    p.snapshot=value;p.status='confirmed';p.confirmation=reference;p.confirmedAt=new Date().toISOString();
-    audit(s,'客户确认',id,`${reference}；V${p.version} 锁定`);
+    p.snapshot=value;
+    creditWallet(s,p,value);
+    p.status='confirmed';p.confirmation=reference;p.confirmedAt=new Date().toISOString();
+    audit(s,'客户确认',id,`${reference}；V${p.version} 锁定；结算增量已计入垫资钱包`);
   }
   function syncSettlement(s,id,failOnce=false) {
     const p=period(s,id);
@@ -149,7 +162,7 @@
     for(const aid of Object.keys(result.byAccount)) if(account(s,aid).opening===null) fail('请先在 Fund 设置相关账户期初余额');
     const key=`SETTLE:${id}:V${p.version}`;
     p.request=key;
-    if(failOnce){p.status='failed';audit(s,'同步失败',id,`${key}；演示请求未入账，可按原请求重试`);return '同步失败，余额未变动';}
+    if(failOnce){p.status='failed';audit(s,'同步失败',id,`${key}；确认时增量已计入垫资钱包，Fund 回执失败不回冲`);return 'Fund 回执失败。确认时的结算增量仍留在垫资钱包';}
     const now=new Date().toISOString();
     for(const [aid,row] of Object.entries(result.byAccount)) {
       const ekey=`${key}:${aid}`;
@@ -278,7 +291,7 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:5,seq:100,customers:[
+    const s={schema:6,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
@@ -334,6 +347,12 @@
     stamp(earlyTransfer,'2026-09-16T02:00:00.000Z');
     stamp(earlyAdjustA,'2026-10-02T02:00:00.000Z');
     stamp(earlyAdjustB,'2026-09-10T02:00:00.000Z');
+    const liveA=requestOperation(s,'adjust','A-PP',null,1500,'最新一期结束后，Fund 垫资钱包实时调增');
+    approve(s,liveA.id,true);execute(s,liveA.id);
+    const liveB=requestOperation(s,'adjust','B-AW',null,3000,'最新一期结束后，Fund 垫资钱包实时调增');
+    approve(s,liveB.id,true);execute(s,liveB.id);
+    stamp(liveA,'2026-11-03T08:00:00.000Z');
+    stamp(liveB,'2026-11-03T08:10:00.000Z');
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};s.lastUpload={added:8,failed:2};
     return s;
   }

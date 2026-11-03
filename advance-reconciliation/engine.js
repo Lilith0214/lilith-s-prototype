@@ -278,7 +278,7 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:3,seq:100,customers:[
+    const s={schema:4,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
@@ -305,7 +305,11 @@
     approve(s,transfer.id,true);execute(s,transfer.id);
     const adjust=requestOperation(s,'adjust','B-AW',null,5000,'Airwallex 账户手动调增');
     approve(s,adjust.id,true);execute(s,adjust.id);
-    requestOperation(s,'adjust','A-PP',null,-3000,'待审批的手动调减，不应改变余额');
+    const pending=requestOperation(s,'adjust','A-PP',null,-3000,'待审批的手动调减，不应改变余额');
+    const stamp=(op,iso)=>{op.time=iso;s.events.filter(e=>e.reference===op.id).forEach(e=>e.time=iso);};
+    stamp(transfer,'2026-10-16T02:00:00.000Z');
+    stamp(adjust,'2026-10-17T02:00:00.000Z');
+    pending.time='2026-10-18T02:00:00.000Z';
     s.customers.forEach((c,i)=>s.periods.push({id:`P${i+1}3`,customer:c.id,currency:c.currency,start:'2026-10-27',end:'2026-11-02',status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]}));
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};s.lastUpload={added:8,failed:2};
     return s;

@@ -291,7 +291,7 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:6,seq:100,customers:[
+    const s={schema:7,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
@@ -307,6 +307,8 @@
     };
     payment('A-PP','P11','2026-10-15',100000,-3000);payment('A-OP','P11','2026-10-17',50000,-1500);
     payment('A-PP','P12','2026-10-22',200000,-6000,10000);payment('A-OP','P12','2026-10-24',100000,-2500);
+    const secondRefund=s.flows.find(f=>f.period==='P12'&&f.type==='refund');
+    s.flows.push({...clone(secondRefund),id:'REFUND-P12-2',eventId:'TX-R-P12-2',amount:-4500,fee:0});
     payment('B-AW','P21','2026-10-16',150000,-4500);payment('B-SP','P21','2026-10-18',60000,-1800);
     payment('B-AW','P22','2026-10-23',240000,-7200,12000);payment('B-SP','P22','2026-10-25',90000,-2700);
     payment('C-PP','P32','2026-10-25',25000,-1000);

@@ -4,7 +4,7 @@
   const storageKey='advance-reconciliation-demo-v1';
   let state;
   try { state=JSON.parse(localStorage.getItem(storageKey)||'null'); } catch(_) {}
-  if(!state||state.schema!==6) state=R.seed();
+  if(!state||state.schema!==7) state=R.seed();
   if(!state.lastUpload) state.lastUpload={added:8,failed:2};
   let view = {page:'balances', customer:'DEMO-1001', currency:'EUR', status:'', from:'2026-10-01', to:'2026-10-31', q:'', period:'', flow:'', detail:'', account:'', syncFail:false, channel:'', balanceTab:'periods', flowCustomer:'', flowPeriod:'', flowPlatform:'', flowMatched:'', flowBill:'', flowTimezone:'UTC+8 北京/上海'};
   let modal = null;
@@ -176,6 +176,22 @@
     const balance=ready?accounts.reduce((n,a)=>n+R.fundBalance(state,a.id),0):null;
     return {ready,balance,rows};
   }
+  function rateLabel(bps){
+    const n=bps/100;
+    return `${Number.isInteger(n)?n.toFixed(0):n.toFixed(1)}%`;
+  }
+  function statementDetail(period){
+    if(!period||!state.periods.some(p=>p.id===period.id)) return null;
+    const x=R.calc(state,period.id);
+    const matched=state.flows.filter(f=>f.period===period.id&&R.flowStatus(state,f)==='已匹配');
+    const saved=state.periods.find(p=>p.id===period.id);
+    return {revenue:x.gross,refund:x.refund,refundRows:matched.filter(f=>f.type==='refund').length,dispute:x.dispute,disputeRows:matched.filter(f=>f.type==='dispute'||f.type==='recovery').length,fee:x.fee,service:x.service,reserve:x.reserve,serviceRate:saved.service,reserveRate:saved.reserve};
+  }
+  function detailCell(amount,cur,note){
+    if(amount==null) return '<td class="money">—</td>';
+    const sub=note?`<span class="sub">${esc(note)}</span>`:'';
+    return `<td class="money"><div class="balance-move${amount===0?' zero':''}">${signedMoney(amount,cur)}${sub}</div></td>`;
+  }
   function fundMoveCell(row,cur){
     const net=(row.transfer||0)+(row.adjust||0)+(row.other||0);
     const bits=[];
@@ -261,10 +277,13 @@
       const settle=r.outside||r.virtual?'—':`${signedMoney(r.settlement,cur)} ${r.posted?'<span class="sync-pill ok">已入账</span>':r.open?'<span class="sync-pill warn">未确认</span>':'<span class="sync-pill warn">未入账</span>'}`;
       const end=sheet.ready?money(r.endBal,cur):'待设置期初';
       const start=sheet.ready?money(r.startBal,cur):'待设置期初';
-      return `<tr class="${r.current?'cycle-current':''}"><td>${label}</td><td class="money">${start}</td><td class="money">${settle}</td><td>${fundMoveCell(r,cur)}</td><td class="money">${end}</td></tr>`;
-    }).join('')||'<tr><td colspan="5" class="empty">没有符合筛选的周期</td></tr>';
+      const detail=r.outside||r.virtual?null:statementDetail(r.p);
+      const blanks='<td class="money">—</td>'.repeat(6);
+      const details=detail?[detailCell(detail.revenue,cur),detailCell(detail.refund,cur,detail.refundRows>1?`${detail.refundRows} 行收款合计`:''),detailCell(detail.dispute,cur,detail.disputeRows>1?`${detail.disputeRows} 行收款合计`:''),detailCell(detail.fee,cur),detailCell(detail.service,cur,rateLabel(detail.serviceRate)),detailCell(detail.reserve,cur,rateLabel(detail.reserveRate))].join(''):blanks;
+      return `<tr class="${r.current?'cycle-current':''}"><td>${label}</td><td class="money">${start}</td>${details}<td class="money">${settle}</td><td>${fundMoveCell(r,cur)}</td><td class="money">${end}</td></tr>`;
+    }).join('')||'<tr><td colspan="11" class="empty">没有符合筛选的周期</td></tr>';
     const periodOptions=sheet.rows.filter(r=>r.p).map(r=>r.p.start+' ~ '+r.p.end);
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>${esc(c.name)}</h1><p>商户ID ${esc(fundMerchantId(c.id))} · ${esc(cur)} · 业务线 垫资。本期期初取上一期期末。</p></div><div class="head-actions"><button class="btn" id="balance-log">日志</button><button class="btn" id="balance-back">返回余额表</button></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field period"><label for="detail-period">对账周期</label><div class="balance-search-box"><input id="detail-period" placeholder="输入周期起止日期，支持模糊搜索" value="${esc(view.detailPeriod||'')}" autocomplete="off"><div id="detail-period-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field actions"><button class="btn primary" id="detail-search">查询</button><button class="btn" id="detail-reset">重置</button></div></div></div><section class="balance-merchant"><header><div><b>周期余额</b><span>对账结算是本期确认后计入钱包的增量。Fund资金变动含本周期内的调拨、调额和其他变动。最上面一行是当前最新周期。</span></div><div class="balance-total"><span>可用余额</span><strong>${snap.current==null?'待设置期初':money(snap.current,cur)}</strong><span>截止 ${esc(asOf)}</span></div></header><div class="table-wrap"><table class="balance-periods"><thead><tr><th>周期</th><th>期初余额</th><th>对账结算</th><th>Fund资金变动</th><th>期末余额</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>${esc(c.name)}</h1><p>商户ID ${esc(fundMerchantId(c.id))} · ${esc(cur)} · 业务线 垫资。本期期初取上一期期末。</p></div><div class="head-actions"><button class="btn" id="balance-log">日志</button><button class="btn" id="balance-back">返回余额表</button></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field period"><label for="detail-period">对账周期</label><div class="balance-search-box"><input id="detail-period" placeholder="输入周期起止日期，支持模糊搜索" value="${esc(view.detailPeriod||'')}" autocomplete="off"><div id="detail-period-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field actions"><button class="btn primary" id="detail-search">查询</button><button class="btn" id="detail-reset">重置</button></div></div></div><section class="balance-merchant"><header><div><b>周期余额</b><span>对账结算是本期确认后计入钱包的增量。收入和各项费用取当期对账单的收款列，同一费用项有多行时先合计。Fund资金变动含本周期内的调拨、调额和其他变动。最上面一行是当前最新周期。</span></div><div class="balance-total"><span>可用余额</span><strong>${snap.current==null?'待设置期初':money(snap.current,cur)}</strong><span>截止 ${esc(asOf)}</span></div></header><div class="table-wrap"><table class="balance-periods"><thead><tr><th rowspan="2">周期</th><th rowspan="2">期初余额</th><th colspan="6" class="group">对账明细</th><th rowspan="2">对账结算</th><th rowspan="2">Fund资金变动</th><th rowspan="2">期末余额</th></tr><tr><th>收入</th><th>退款</th><th>争议费</th><th>交易手续费</th><th>服务费</th><th>保证金</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
     const periodInput=document.getElementById('detail-period'), periodBox=document.getElementById('detail-period-suggest');
     const paintPeriods=()=>{const text=periodInput.value.trim().toLowerCase().replace(/\s/g,'');const hits=periodOptions.filter(p=>!text||p.toLowerCase().replace(/\s/g,'').includes(text)).slice(0,8);periodBox.innerHTML=hits.map(p=>`<button type="button" data-period="${esc(p)}">${esc(p)}</button>`).join('')||'<div class="empty">没有匹配的对账周期</div>';periodBox.hidden=false;};
     periodInput.onfocus=paintPeriods;periodInput.oninput=paintPeriods;

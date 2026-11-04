@@ -24,8 +24,7 @@
     const active=view.page, title={balances:'余额表',paypal:'垫资 PayPal 明细',flows:'平台收款明细',matching:'订单匹配',statements:'对账管理',orders:'店铺订单明细',fund:'Fund 联动',customers:'客户管理'}[active]||'余额表';
     root.innerHTML=`<aside class="sidebar"><div class="brand"><span class="mark">垫</span><b>垫资对账</b></div>
       <div class="nav-title">数据管理</div><button class="nav ${active==='customers'?'active':''}" data-nav="customers">${icon('客')}客户管理</button><button class="nav ${active==='orders'?'active':''}" data-nav="orders">${icon('店')}店铺订单明细</button><button class="nav ${active==='flows'?'active':''}" data-nav="flows">${icon('收')}平台收款明细</button>
-      <div class="nav-title">对账管理</div><button class="nav ${active==='statements'?'active':''}" data-nav="statements">${icon('单')}对账管理</button><button class="nav ${active==='matching'?'active':''}" data-nav="matching">${icon('链')}订单匹配</button>
-      <div class="nav-title">余额与资金</div><button class="nav ${active==='balances'?'active':''}" data-nav="balances">${icon('余')}余额表</button>
+      <div class="nav-title">对账管理</div><button class="nav ${active==='statements'?'active':''}" data-nav="statements">${icon('单')}对账管理</button><button class="nav ${active==='matching'?'active':''}" data-nav="matching">${icon('链')}订单匹配</button><button class="nav ${active==='balances'?'active':''}" data-nav="balances">${icon('余')}余额表</button>
       <div class="sidebar-foot">原型演示 · 全部为模拟数据<br><button class="link" id="reset-demo">重置演示</button></div></aside>
       <main class="main"><header class="topbar"><div class="menu-glyph">☰</div><div class="crumb"><b>${esc(title)}</b></div><div class="topright"><span>经典</span><span class="theme-on">亮色</span><span>${new Date().toLocaleString('zh-CN',{hour12:false})}</span></div></header><section class="content" id="content"></section></main>`;
     root.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>nav(b.dataset.nav));

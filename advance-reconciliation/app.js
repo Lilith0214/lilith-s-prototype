@@ -245,7 +245,7 @@
       const fundId=fundMerchantId(c.id);
       return `<tr><td>${esc(asOf)}</td><td>${esc(c.name)}</td><td class="mono">${esc(fundId)}</td><td>${esc(c.currency)}</td><td>垫资</td><td class="money"><b>${snap.current==null?'待设置期初':money(snap.current,c.currency)}</b></td><td class="ops"><button class="link" data-balance-periods="${c.id}">周期明细</button></td></tr>`;
     }).join('')||'<tr><td colspan="7" class="empty">没有符合筛选的商户</td></tr>';
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1></div><div class="head-actions"><button class="btn" id="balance-log">日志</button></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field grow"><label for="balance-q">客户</label><div class="balance-search-box"><input id="balance-q" placeholder="输入客户名称或客户 ID，支持模糊搜索" value="${esc(view.balanceQuery||'')}" autocomplete="off"><div id="balance-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field date"><label for="balance-date">统计日期</label><input id="balance-date" type="date" value="${esc(asOf)}"></div><div class="balance-field actions"><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button><button class="btn" id="export-balance">导出余额表</button></div></div></div><div class="panel table-panel"><div class="table-wrap"><table class="balance-sheet"><thead><tr><th>统计日期(截止余额)</th><th>客户</th><th>商户ID</th><th>币种</th><th>业务线</th><th>可用余额</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>余额表</h1></div><div class="head-actions"><button class="btn" id="balance-log">日志</button></div></div><div class="panel balance-filter"><div class="balance-search"><div class="balance-field grow"><label for="balance-q">客户</label><div class="balance-search-box"><input id="balance-q" placeholder="输入客户名称或客户 ID，支持模糊搜索" value="${esc(view.balanceQuery||'')}" autocomplete="off"><div id="balance-suggest" class="balance-suggest" hidden></div></div></div><div class="balance-field date"><label for="balance-date">统计日期</label><input id="balance-date" type="date" value="${esc(asOf)}"></div><div class="balance-field actions"><button class="btn primary" id="balance-search">查询</button><button class="btn" id="balance-reset">重置</button><button class="btn" id="export-balance">导出余额表</button><button class="btn" id="import-statement">手动导入对账单</button><input id="import-statement-file" type="file" accept=".xlsx,.xls,.csv" hidden></div></div></div><div class="panel table-panel"><div class="table-wrap"><table class="balance-sheet"><thead><tr><th>统计日期(截止余额)</th><th>客户</th><th>商户ID</th><th>币种</th><th>业务线</th><th>可用余额</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     const input=document.getElementById('balance-q'), box=document.getElementById('balance-suggest');
     const paint=()=>{const hits=balanceSuggest(input.value);box.innerHTML=hits.map(c=>`<button type="button" data-pick="${esc(c.id)}">${esc(c.name)}<span>${esc(fundMerchantId(c.id))}</span></button>`).join('')||'<div class="empty">没有匹配的客户</div>';box.hidden=false;};
     input.onfocus=paint;input.oninput=paint;
@@ -257,6 +257,15 @@
     document.getElementById('balance-log').onclick=()=>auditDialog();
     document.getElementById('export-balance').onclick=()=>{
       exportRows(list.map(c=>{const snap=balanceSnapshot(c,asOf);return [asOf,c.name,fundMerchantId(c.id),c.currency,'垫资',snap.current==null?'':(snap.current/100).toFixed(2)];}),['统计日期(截止余额)','客户','商户ID','币种','业务线','可用余额']);
+    };
+    document.getElementById('import-statement').onclick=()=>document.getElementById('import-statement-file').click();
+    document.getElementById('import-statement-file').onchange=e=>{
+      const file=e.target.files&&e.target.files[0];
+      e.target.value='';
+      if(!file) return;
+      R.audit(state,'手动导入对账单','余额表',`${file.name}；财务调整后的对账单已上传，用于同步垫资钱包余额`);
+      render();
+      toast(`已接收「${file.name}」。调整后的对账单将同步到垫资钱包余额`);
     };
   }
   function renderBalancePeriods(){

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>信用额度调整</title>
+<style>
+:root {
+  --blue: #1677ff;
+  --blue-h: #4096ff;
+  --bg: #f5f6f8;
+  --line: #f0f0f0;
+  --text: rgba(0,0,0,.88);
+  --sub: #595959;
+  --muted: #8c8c8c;
+  --danger: #ff4d4f;
+  --red: #cf1322;
+  --green: #389e0d;
+  --gold: #d48806;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 13px;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.app { display: flex; height: 100%; min-width: 0; }
+.sider {
+  width: 208px; background: #fff; border-right: 1px solid var(--line); flex: none; padding: 8px 0;
+}
+.brand { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; font-weight: 600; }
+.brand i {
+  width: 22px; height: 22px; border-radius: 6px; background: var(--blue); color: #fff;
+  display: grid; place-items: center; font-style: normal; font-size: 12px;
+}
+.menu { margin: 4px 8px; padding: 8px 12px; border-radius: 6px; color: #434343; }
+.menu.on { background: #e6f4ff; color: var(--blue); font-weight: 500; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.top {
+  height: 48px; background: #fff; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; padding: 0 16px; gap: 8px;
+}
+.crumb { color: var(--muted); }
+.crumb b { color: var(--text); font-weight: 500; }
+.content { padding: 12px; flex: 1; }
+.panel { background: #fff; border-radius: 8px; }
+.panel-hd {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+}
+.panel-hd h1 { margin: 0; font-size: 14px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+th { background: #fafafa; color: var(--sub); font-weight: 500; }
+.num { font-variant-numeric: tabular-nums; }
+.link { border: 0; background: transparent; color: var(--blue); padding: 0; }
+.tag {
+  display: inline-block; padding: 0 8px; line-height: 20px; border-radius: 4px;
+  background: #f6ffed; color: var(--green); border: 1px solid #b7eb8f; font-size: 12px;
+}
+.tag.wait { background: #fffbe6; color: var(--gold); border-color: #ffe58f; }
+
+.proto {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; background: #f4f0e6; border-bottom: 1px dashed #d3cbbd; color: #6f675c;
+}
+.proto b { color: #3f372c; font-weight: 600; }
+.proto button {
+  height: 26px; padding: 0 10px; border: 1px solid #ddd4c6; border-radius: 13px; background: #fff; color: #3f372c;
+}
+.proto button:hover { border-color: var(--blue); color: var(--blue); }
+
+.mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 20;
+}
+.mask[hidden] { display: none; }
+.dialog {
+  width: min(960px, 100%); max-height: min(760px, calc(100vh - 48px));
+  background: #fff; border-radius: 8px; display: flex; flex-direction: column;
+  box-shadow: 0 8px 28px rgba(0,0,0,.18);
+}
+.dialog header, .dialog footer {
+  display: flex; align-items: center; justify-content: space-between; flex: none;
+  padding: 0 20px; height: 52px;
+}
+.dialog header { border-bottom: 1px solid var(--line); }
+.dialog header h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.x {
+  width: 32px; height: 32px; border: 0; background: transparent; color: var(--muted); font-size: 18px; border-radius: 6px;
+}
+.x:hover { background: #f5f5f5; color: var(--text); }
+.dialog .body { overflow: auto; padding: 16px 20px 8px; display: grid; grid-template-columns: 1.15fr .85fr; gap: 20px; }
+.dialog footer { border-top: 1px solid var(--line); justify-content: flex-end; gap: 8px; }
+.btn {
+  height: 32px; padding: 0 16px; border-radius: 6px; border: 1px solid #d9d9d9; background: #fff;
+}
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary:hover { background: var(--blue-h); }
+.btn:disabled { background: #f5f5f5; color: rgba(0,0,0,.25); border-color: #d9d9d9; cursor: not-allowed; }
+
+.req::before { content: "*"; color: var(--danger); margin-right: 4px; }
+.field { margin-bottom: 14px; }
+.field label, .cap { display: block; margin-bottom: 6px; color: var(--sub); line-height: 20px; }
+.hint { margin: 6px 0 0; color: var(--muted); line-height: 18px; }
+input[type="text"], input[type="number"], select, textarea {
+  width: 100%; height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 10px; background: #fff; outline: none;
+}
+textarea { height: 72px; padding: 6px 10px; resize: vertical; }
+input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(22,119,255,.12); }
+input.bad, input.bad:focus { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(255,77,79,.12); }
+.readonly {
+  height: 32px; border-radius: 6px; background: #f5f5f5; color: rgba(0,0,0,.45);
+  display: flex; align-items: center; padding: 0 10px;
+}
+.merchant {
+  height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; display: flex; align-items: center;
+  padding: 0 10px; background: #fff;
+}
+.info {
+  display: flex; gap: 24px; margin: -4px 0 14px; padding: 8px 12px; background: #fafafa; border-radius: 6px; color: var(--sub);
+}
+.info b { color: var(--text); font-weight: 500; }
+.sec {
+  display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; font-weight: 600; color: var(--text);
+}
+.sec::before { content: ""; width: 3px; height: 14px; border-radius: 2px; background: var(--blue); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stats { margin-bottom: 12px; }
+.now { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 28px; }
+.now small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); line-height: 18px; }
+.alert {
+  margin-top: 8px; padding: 8px 10px; border-radius: 6px; line-height: 20px; border: 1px solid transparent;
+}
+.alert.block { background: #fff2f0; border-color: #ffccc7; color: var(--red); }
+.alert.direct { background: #f6ffed; border-color: #b7eb8f; color: var(--green); }
+.alert.approval { background: #fffbe6; border-color: #ffe58f; color: var(--gold); }
+.count { float: right; color: #bfbfbf; font-weight: 400; }
+.upload {
+  height: 88px; border: 1px dashed #d9d9d9; border-radius: 6px; background: #fafafa;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted);
+}
+.upload:hover { border-color: var(--blue); color: var(--blue); }
+.file { margin-top: 6px; color: var(--blue); }
+
+.segs { display: flex; flex-wrap: wrap; gap: 0; }
+.segs button {
+  height: 32px; padding: 0 12px; border: 1px solid #d9d9d9; background: #fff; margin-left: -1px;
+}
+.segs button:first-child { margin-left: 0; border-radius: 6px 0 0 6px; }
+.segs button:last-child { border-radius: 0 6px 6px 0; }
+.segs button.on { position: relative; color: var(--blue); border-color: var(--blue); z-index: 1; }
+.bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin: 8px 0 10px; }
+.bar i { display: block; height: 100%; }
+.bar .a { background: #1677ff; flex: 7; }
+.bar .b { background: #73d13d; flex: 1.2; }
+.bar .c { background: #ff7875; flex: 1.2; }
+.legend { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 8px; color: var(--sub); }
+.legend b { display: block; color: var(--text); font-weight: 500; }
+.legend span { color: var(--muted); }
+
+.confirm {
+  width: 420px; background: #fff; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.18); padding: 20px 20px 16px;
+}
+.confirm h3 { margin: 0 0 16px; font-size: 16px; }
+.cmp { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 12px; }
+.cmp .arrow { color: var(--muted); font-size: 18px; }
+.cmp .now { text-align: center; }
+.note { text-align: center; color: var(--sub); margin: 0 0 16px; }
+.confirm .actions { display: flex; justify-content: flex-end; gap: 8px; }
+.toast {
+  position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 40;
+  background: #fff; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.12);
+  padding: 10px 16px; display: none;
+}
+.toast.show { display: block; }
+@media (max-width: 860px) {
+  .app { min-width: 0; }
+  .sider { display: none; }
+  .dialog .body, .limits, .pair { grid-template-columns: 1fr; }
+  .proto { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<div class="proto">
+  <b>原型</b>
+  <span>填入新额度后点确认</span>
+  <button type="button" data-try="200">200 禁止</button>
+  <button type="button" data-try="800">800 调低</button>
+  <button type="button" data-try="1000">1000 持平</button>
+  <button type="button" data-try="1500">1500 调高</button>
+</div>
+<div class="app">
+  <aside class="sider">
+    <div class="brand"><i>F</i> Fund</div>
+    <div class="menu">商户管理</div>
+    <div class="menu on">信用额度</div>
+  </aside>
+  <section class="main">
+    <header class="top"><div class="crumb">Fund / 额度管理 / <b>信用额度</b></div></header>
+    <div class="content">
+      <div class="panel">
+        <div class="panel-hd">
+          <h1>信用额度</h1>
+          <button class="btn primary" id="open" type="button">发起调整</button>
+        </div>
+        <table>
+          <colgroup>
+            <col style="width:24%" /><col style="width:10%" /><col style="width:8%" />
+            <col style="width:14%" /><col style="width:14%" /><col style="width:14%" /><col style="width:16%" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>商户</th><th>子业务</th><th>币种</th>
+              <th>信用额度</th><th>已用额度</th><th>状态</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>15279<br><span style="color:#8c8c8c">aut***@test.com</span></td>
+              <td>履约</td>
+              <td>USD</td>
+              <td class="num" id="list-credit">1,000.00</td>
+              <td class="num">400.00</td>
+              <td id="list-status"><span class="tag">生效中</span></td>
+              <td><button class="link" id="open2" type="button">调整</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="mask" id="form-mask">
+  <form class="dialog" id="form" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+    <header>
+      <h2 id="dlg-title">发起信用额度调整申请</h2>
+      <button class="x" type="button" id="close" aria-label="关闭">×</button>
+    </header>
+    <div class="body">
+      <div>
+        <div class="field">
+          <label class="req">商户名称</label>
+          <div class="merchant">履约：auto_vs_1790502732_872779@test.com（aut***@test.com）</div>
+        </div>
+        <div class="info"><span>商户 ID <b>15279</b></span><span>子业务线 <b>履约</b></span></div>
+        <div class="field">
+          <label class="req">运营部业务组</label>
+          <select id="group">
+            <option>履约一组</option>
+            <option>履约二组</option>
+            <option>广告一组</option>
+          </select>
+        </div>
+
+        <div class="sec">信用额度</div>
+        <div class="pair stats">
+          <div><span class="cap">当前信用额度</span><div class="now" id="current-view">1,000.00</div></div>
+          <div><span class="cap">已用额度</span><div class="now">400.00</div></div>
+        </div>
+        <div class="field">
+          <label class="req" for="next">新的信用额度</label>
+          <input id="next" inputmode="decimal" placeholder="请输入新的信用额度" autocomplete="off" />
+          <p class="hint">填写调整后的上限，不是在当前额度上相加。</p>
+          <div class="alert" id="alert" hidden></div>
+        </div>
+
+        <div class="pair" style="margin-top:16px">
+          <div>
+            <div class="sec">单日额度</div>
+            <div class="field"><label>当前单日额度</label><div class="readonly">—</div></div>
+            <div class="field"><label for="day">新的单日额度</label><input id="day" placeholder="请输入新的单日额度" /></div>
+          </div>
+          <div>
+            <div class="sec">单笔额度</div>
+            <div class="field"><label>当前单笔额度</label><div class="readonly">—</div></div>
+            <div class="field"><label for="once">新的单笔额度</label><input id="once" placeholder="请输入新的单笔额度" /></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="note">备注 <span class="count" id="note-count">0 / 500</span></label>
+          <textarea id="note" maxlength="500" placeholder="请填写备注"></textarea>
+        </div>
+        <div class="field">
+          <label>附件 <span style="color:#8c8c8c">支持图片 / pdf，最多 10 个，单个 20MB 内</span></label>
+          <button class="upload" id="upload" type="button">点击或拖拽文件到此处上传</button>
+          <div class="file" id="file" hidden>额度说明.pdf</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="sec">周期与日期设置</div>
+        <div class="field">
+          <label class="req">结算周期类型</label>
+          <div class="segs" id="cycles">
+            <button type="button" class="on" data-cycle="一周" data-days="7">一周</button>
+            <button type="button" data-cycle="两周" data-days="14">两周</button>
+            <button type="button" data-cycle="三周" data-days="21">三周</button>
+            <button type="button" data-cycle="一个月" data-days="30">一个月</button>
+            <button type="button" data-cycle="固定天数" data-days="7">固定天数</button>
+          </div>
+        </div>
+        <div class="field" id="weekday-field">
+          <label class="req" for="weekday">账单生成星期</label>
+          <select id="weekday">
+            <option>周一</option><option>周二</option><option>周三</option><option>周四</option><option>周五</option><option>周六</option><option>周日</option>
+          </select>
+        </div>
+        <div class="field" id="fixed-field" hidden>
+          <label class="req" for="fixed-days">固定天数</label>
+          <input id="fixed-days" type="number" min="1" value="7" />
+        </div>
+        <div class="pair">
+          <div class="field"><label class="req" for="term">账期（天）</label><input id="term" type="number" min="0" value="1" /></div>
+          <div class="field"><label for="grace">宽限期（天）</label><input id="grace" type="number" min="0" value="1" /></div>
+        </div>
+        <div class="field">
+          <label>周期说明</label>
+          <div class="bar"><i class="a"></i><i class="b"></i><i class="c"></i></div>
+          <div class="legend">
+            <div><b id="cycle-name">一周</b><span id="cycle-days">7天</span><div class="hint">本期结算周期</div></div>
+            <div><b>账期</b><span id="term-view">1天</span><div class="hint">账单生成</div></div>
+            <div><b>宽限期</b><span id="grace-view">1天</span><div class="hint"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer>
+      <button class="btn" type="button" id="cancel">取消</button>
+      <button class="btn primary" type="submit" id="submit" disabled>确认</button>
+    </footer>
+  </form>
+</div>
+
+<div class="mask" id="confirm-mask" hidden>
+  <div class="confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <h3 id="confirm-title">确认调整信用额度</h3>
+    <div class="cmp">
+      <div class="now"><small>原额度</small><span id="from-amt">1,000.00</span></div>
+      <div class="arrow">→</div>
+      <div class="now"><small>新额度</small><span id="to-amt">800.00</span></div>
+    </div>
+    <p class="note" id="confirm-note">已用额度 400.00。未提高额度，无需审批，确认后立即生效。</p>
+    <div class="actions">
+      <button class="btn" type="button" id="confirm-cancel">取消</button>
+      <button class="btn primary" type="button" id="confirm-ok">确认生效</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const CURRENT_START = 1000;
+const USED = 400;
+let current = CURRENT_START;
+let pending = null;
+
+const $ = (id) => document.getElementById(id);
+const money = (n) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.className = "toast show";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.className = "toast"; }, 2200);
+}
+
+function decide(raw) {
+  const text = String(raw).trim();
+  if (!text) return { type: "empty" };
+  const n = Number(text);
+  if (!Number.isFinite(n)) return { type: "invalid" };
+  if (n < USED) return { type: "block", value: n };
+  if (n <= current) return { type: "direct", value: n, same: n === current };
+  return { type: "approval", value: n };
+}
+
+function renderAlert() {
+  const input = $("next");
+  const alert = $("alert");
+  const submit = $("submit");
+  const d = decide(input.value);
+  input.classList.toggle("bad", d.type === "block" || d.type === "invalid");
+  if (d.type === "empty") {
+    alert.hidden = true;
+    submit.disabled = true;
+    return;
+  }
+  alert.hidden = false;
+  if (d.type === "invalid") {
+    alert.className = "alert block";
+    alert.textContent = "请输入数字";
+    submit.disabled = true;
+  } else if (d.type === "block") {
+    alert.className = "alert block";
+    alert.textContent = "新信用额度不能低于已用额度 " + money(USED);
+    submit.disabled = true;
+  } else if (d.type === "direct") {
+    alert.className = "alert direct";
+    alert.textContent = d.same ? "与原额度相同，确认后不发起审批" : "未提高额度，确认后直接生效，不走审批";
+    submit.disabled = false;
+  } else {
+    alert.className = "alert approval";
+    alert.textContent = "将发起飞书审批，审批人和节点不变";
+    submit.disabled = false;
+  }
+}
+
+function openForm(value) {
+  $("form-mask").hidden = false;
+  if (value != null) $("next").value = value;
+  renderAlert();
+  $("next").focus();
+}
+function closeForm() {
+  $("form-mask").hidden = true;
+  $("confirm-mask").hidden = true;
+}
+
+function syncCycle() {
+  const on = document.querySelector("#cycles button.on");
+  const fixed = on.dataset.cycle === "固定天数";
+  $("weekday-field").hidden = fixed;
+  $("fixed-field").hidden = !fixed;
+  const days = fixed ? ($("fixed-days").value || "7") : on.dataset.days;
+  $("cycle-name").textContent = on.dataset.cycle;
+  $("cycle-days").textContent = days + "天";
+  $("term-view").textContent = ($("term").value || "0") + "天";
+  $("grace-view").textContent = ($("grace").value || "0") + "天";
+}
+
+$("open").onclick = () => openForm();
+$("open2").onclick = () => openForm();
+$("close").onclick = closeForm;
+$("cancel").onclick = closeForm;
+$("next").addEventListener("input", renderAlert);
+$("note").addEventListener("input", () => { $("note-count").textContent = $("note").value.length + " / 500"; });
+$("upload").onclick = () => { $("file").hidden = false; };
+
+document.querySelectorAll("#cycles button").forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll("#cycles button").forEach((b) => b.classList.remove("on"));
+    btn.classList.add("on");
+    syncCycle();
+  };
+});
+$("fixed-days").addEventListener("input", syncCycle);
+$("term").addEventListener("input", syncCycle);
+$("grace").addEventListener("input", syncCycle);
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const d = decide($("next").value);
+  if (d.type === "direct") {
+    pending = d;
+    $("from-amt").textContent = money(current);
+    $("to-amt").textContent = money(d.value);
+    $("confirm-note").textContent = d.same
+      ? "已用额度 " + money(USED) + "。额度不变，不发起审批。"
+      : "已用额度 " + money(USED) + "。未提高额度，无需审批，确认后立即生效。";
+    $("confirm-mask").hidden = false;
+    return;
+  }
+  if (d.type === "approval") {
+    $("list-status").innerHTML = '<span class="tag wait">审批中</span>';
+    closeForm();
+    toast("已提交飞书审批");
+  }
+});
+
+$("confirm-cancel").onclick = () => { $("confirm-mask").hidden = true; };
+$("confirm-ok").onclick = () => {
+  const same = pending && pending.same;
+  if (pending && !pending.same) {
+    current = pending.value;
+    $("current-view").textContent = money(current);
+    $("list-credit").textContent = money(current);
+  }
+  $("list-status").innerHTML = '<span class="tag">生效中</span>';
+  $("next").value = "";
+  closeForm();
+  toast(same ? "额度未变化，未发起审批" : "信用额度已调整，本次无需审批");
+};
+
+document.querySelectorAll("[data-try]").forEach((btn) => {
+  btn.onclick = () => {
+    current = CURRENT_START;
+    $("current-view").textContent = money(current);
+    $("list-credit").textContent = money(current);
+    $("list-status").innerHTML = '<span class="tag">生效中</span>';
+    openForm(btn.dataset.try);
+  };
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!$("confirm-mask").hidden) { $("confirm-mask").hidden = true; return; }
+  closeForm();
+});
+
+syncCycle();
+renderAlert();
+</script>
+</body>
+</html>

@@ -49,7 +49,7 @@ button { cursor: pointer; }
   gap: 8px 28px;
   padding: 8px 8px 20px 0;
 }
-.left { padding: 16px 8px 8px 20px; }
+.left { padding: 16px; }
 .right { padding: 16px 20px 8px 8px; }
 .h {
   display: flex; align-items: center; gap: 8px;
@@ -106,8 +106,21 @@ button { cursor: pointer; }
 .logo.slash { background: #262626; }
 .logo.hsbc { background: #cf1322; }
 .logo.paypal { background: #003087; font-size: 9px; letter-spacing: -0.3px; }
-.group-name { margin: 14px 2px 6px; font-size: 12px; color: #8f959e; }
-.group:first-child .group-name { margin-top: 0; }
+.left { border: 1px solid #f0f0f0; border-radius: 12px; margin: 16px 8px 16px 20px; padding: 16px; }
+.method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stack { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.channel {
+  display: flex; align-items: center; gap: 8px; width: 100%; height: 44px;
+  padding: 0 12px; border: 1px solid #ececec; background: #f7f8fa; border-radius: 8px; text-align: left;
+}
+.channel:hover { border-color: #94bfff; }
+.channel.on { border-color: var(--blue); background: #f5f8ff; box-shadow: inset 0 0 0 1px var(--blue); }
+.ghost {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 36px; margin-top: 12px; padding: 0 12px; border-radius: 6px;
+  background: #f5f6f7; color: #8f959e;
+}
+#paypal-view .primary { margin-top: 12px; }
 .example, .fast {
   display: inline-block; margin-left: 6px; padding: 0 6px; height: 18px; line-height: 18px;
   border-radius: 9px; font-size: 11px; font-style: normal; font-weight: 700; vertical-align: 1px;
@@ -158,40 +171,52 @@ button { cursor: pointer; }
       <div class="left">
         <div class="h">Select Payment Method</div>
         <span class="lbl">Payment Currency</span>
-        <div class="pills" aria-hidden="true">
-          <span class="pill on">USD</span>
-          <span class="pill">EUR</span>
-          <span class="pill">GBP</span>
+        <div class="pills" id="currencies">
+          <button type="button" class="pill on" data-currency="USD">USD</button>
+          <button type="button" class="pill" data-currency="EUR">EUR</button>
+          <button type="button" class="pill" data-currency="GBP">GBP</button>
         </div>
         <label class="lbl" for="amount"><span class="req">*</span>Payment Amount</label>
         <div class="amount">
           <input id="amount" inputmode="decimal" autocomplete="off" placeholder="Please enter recharge amount" />
-          <span>USD</span>
+          <span id="amount-currency">USD</span>
         </div>
+        <div class="lbl">Payment Method</div>
         <span class="lbl">Online Payment</span>
-        <div class="options" id="online"></div>
+        <button type="button" class="channel on" id="paypal-card" onclick="selectPaypal()">
+          <span class="logo paypal">PP</span>
+          <span>PayPal</span>
+        </button>
         <span class="lbl">Transfer to Account</span>
-        <p class="hint">A same-platform transfer arrives faster and is listed first under that provider. US bank options differ by beneficiary company. If you are not sure which company to pay, check with your account manager before you send the money.</p>
         <div id="options"></div>
       </div>
       <div class="right">
-        <div class="right-hd">
-          <div class="h" id="right-title">Transfer to Account</div>
-          <button type="button" class="copy" id="copy-all" onclick="copyDetails()">copy all</button>
+        <div id="paypal-view">
+          <div class="h">Online Payment</div>
+          <div class="ghost"><span id="paypal-amount">Payment Amount</span><span id="paypal-currency">USD</span></div>
+          <button type="button" class="primary">Pay Now</button>
+          <div class="alert">Please submit the bank receipt after the transfer, otherwise verification may be delayed</div>
         </div>
-        <p class="sample-line" id="sample-note" hidden></p>
-        <div id="details"></div>
-        <button type="button" class="primary">Confirm Transfer Details</button>
-        <div class="alert" id="slip"></div>
+        <div id="account-view" hidden>
+          <div class="right-hd">
+            <div class="h">Transfer to Account</div>
+            <button type="button" class="copy" id="copy-all" onclick="copyDetails()">copy all</button>
+          </div>
+          <p class="sample-line" id="sample-note" hidden></p>
+          <div id="details"></div>
+          <button type="button" class="primary">Confirm Transfer Details</button>
+          <div class="alert" id="slip"></div>
+        </div>
         <div class="reminder">
           <h3>Friendly Reminder</h3>
           <ul>
-            <li>We strongly recommend that you enter your ID: <span class="hot">10076</span> in the payment memo when transferring. This will speed up the fund verification process.</li>
-            <li>Do not include sensitive notes when creating a payment (for example, “topup ads” or “order”). Use a numeric code instead.</li>
-            <li>Enter the correct amount, currency, and payment time. Do not submit the same transaction more than once.</li>
-            <li>Upload the payment receipt. Without it, we can’t verify the transfer or credit your balance in time.</li>
-            <li>For Payoneer to Payoneer transfers, allow about 10 minutes. Please wait before you contact support.</li>
-            <li>If the received currency is not USD, an additional 0.6% fee applies. PayPal payments incur an additional 2.5% fee.</li>
+            <li>Do not include sensitive notes when creating a payment (e.g., "topup ads", "order"). We recommend using a numeric code instead.</li>
+            <li>Enter the correct amount, currency, and payment time. Please do not submit the same transaction more than once.</li>
+            <li>Upload the payment proof/receipt. Without it, we can't verify the transfer or credit your balance in time.</li>
+            <li>After submission, your balance will be credited based on the actual received amount. Transfers submitted during business hours are processed the same day; those submitted outside business hours will be processed on the next business day.</li>
+            <li>For platform-to-platform transfers (e.g., Payoneer → Payoneer), there may be a ~10-minute delay. Please wait patiently.</li>
+            <li>For advertising funds: if the received currency is non-USD, an additional 0.6% fee applies. PayPal payments incur an additional 2.5% fee.</li>
+            <li>If you have any questions, please contact Customer Support.</li>
           </ul>
         </div>
       </div>
@@ -215,7 +240,7 @@ function platformRows(name) {
 var accounts = [
   {
     id: "po-platform", channel: "Payoneer", letter: "P", copyable: true,
-    title: "Payoneer · Payoneer to Payoneer", sub: "About 10 minutes · USD, EUR, GBP", faster: true,
+    title: "Payoneer · Payoneer to Payoneer", sub: "About 10 minutes", faster: true,
     slip: "Please submit your Payoneer transfer receipt after you pay, otherwise the payment may not be verified in time.",
     rows: platformRows("Payoneer").concat([
       ["Payoneer Account", "bestads01@163.com"],
@@ -224,8 +249,8 @@ var accounts = [
   },
   {
     id: "po-bestads", channel: "Payoneer", letter: "P", copyable: true,
-    title: "Payoneer · US bank · BESTADS", strong: "BESTADS",
-    sub: "ACH and SWIFT · USD only",
+    title: "Payoneer · US bank · Citibank", strong: "Citibank",
+    sub: "ACH and SWIFT",
     slip: bankSlip,
     rows: [
       ["Accepted transfer methods", "ACH, SWIFT"],
@@ -243,8 +268,8 @@ var accounts = [
   },
   {
     id: "po-huachao", channel: "Payoneer", letter: "P", copyable: true,
-    title: "Payoneer · US bank · HUACHAO", strong: "HUACHAO",
-    sub: "ACH · USD only",
+    title: "Payoneer · US bank · First Century Bank", strong: "First Century Bank",
+    sub: "ACH",
     slip: bankSlip,
     rows: [
       ["Accepted transfer methods", "ACH"],
@@ -261,13 +286,12 @@ var accounts = [
   },
   {
     id: "awx-platform", channel: "Airwallex", letter: "A", example: true, faster: true,
-    title: "Airwallex · Airwallex to Airwallex", sub: "About 10 minutes · USD, EUR, GBP",
+    title: "Airwallex · Airwallex to Airwallex", sub: "About 10 minutes",
     slip: receiptSlip, rows: platformRows("Airwallex")
   },
   {
     id: "awx-a", channel: "Airwallex", letter: "A", example: true,
-    title: "Airwallex · US bank · Company A", strong: "Company A",
-    sub: "ACH and SWIFT · USD only", slip: bankSlip,
+    title: "Airwallex · US bank", sub: "ACH and SWIFT", slip: bankSlip,
     rows: [
       ["Accepted transfer methods", "ACH, SWIFT"],
       ["Accepted currencies", "USD"],
@@ -276,8 +300,7 @@ var accounts = [
   },
   {
     id: "awx-b", channel: "Airwallex", letter: "A", example: true,
-    title: "Airwallex · US bank · Company B", strong: "Company B",
-    sub: "ACH · USD only", slip: bankSlip,
+    title: "Airwallex · US bank", sub: "ACH", slip: bankSlip,
     rows: [
       ["Accepted transfer methods", "ACH"],
       ["Accepted currencies", "USD"],
@@ -286,13 +309,12 @@ var accounts = [
   },
   {
     id: "wf-platform", channel: "Worldfirst", letter: "W", example: true, faster: true,
-    title: "Worldfirst · Worldfirst to Worldfirst", sub: "About 10 minutes · USD, EUR, GBP",
+    title: "Worldfirst · Worldfirst to Worldfirst", sub: "About 10 minutes",
     slip: receiptSlip, rows: platformRows("Worldfirst")
   },
   {
     id: "wf-a", channel: "Worldfirst", letter: "W", example: true,
-    title: "Worldfirst · US bank · Company A", strong: "Company A",
-    sub: "ACH and SWIFT · USD only", slip: bankSlip,
+    title: "Worldfirst · US bank", sub: "ACH and SWIFT", slip: bankSlip,
     rows: [
       ["Accepted transfer methods", "ACH, SWIFT"],
       ["Accepted currencies", "USD"],
@@ -301,8 +323,7 @@ var accounts = [
   },
   {
     id: "wf-b", channel: "Worldfirst", letter: "W", example: true,
-    title: "Worldfirst · US bank · Company B", strong: "Company B",
-    sub: "ACH · USD only", slip: bankSlip,
+    title: "Worldfirst · US bank", sub: "ACH", slip: bankSlip,
     rows: [
       ["Accepted transfer methods", "ACH"],
       ["Accepted currencies", "USD"],
@@ -370,24 +391,93 @@ function buttonHtml(account) {
     "</span></button>";
 }
 
-function renderLists() {
-  var html = "";
-  var current = "";
-  for (var i = 0; i < accounts.length; i++) {
-    var account = accounts[i];
-    if (account.channel !== current) {
-      if (current) html += "</div></div>";
-      current = account.channel;
-      html += '<div class="group"><div class="group-name">' + esc(current) + '</div><div class="options">';
-    }
-    html += buttonHtml(account);
-  }
-  html += "</div></div>";
-  document.getElementById("options").innerHTML = html;
-  document.getElementById("online").innerHTML = buttonHtml(paypal);
+var channels = [
+  { id: "payoneer", name: "Payoneer", letter: "P", cls: "payoneer" },
+  { id: "airwallex", name: "Airwallex", letter: "A", cls: "airwallex" },
+  { id: "worldfirst", name: "Worldfirst", letter: "W", cls: "worldfirst" },
+  { id: "slash", name: "Slash", letter: "S", cls: "slash" },
+  { id: "hsbc", name: "HSBC", letter: "H", cls: "hsbc" }
+];
+var channelAccount = { airwallex: "awx-platform", worldfirst: "wf-platform", slash: "slash", hsbc: "hsbc" };
+var payoneerOpen = false;
+var selectedId = "paypal";
+
+function channelButton(channel, on) {
+  return '<button type="button" class="channel' + (on ? " on" : "") + '" onclick="selectChannel(\'' + channel.id + '\')">' +
+    '<span class="logo ' + channel.cls + '">' + channel.letter + "</span><span>" + channel.name + "</span></button>";
 }
 
-var selectedId = "po-platform";
+function renderLists() {
+  var html = "";
+  if (payoneerOpen) {
+    html += '<div class="stack">';
+    for (var i = 0; i < accounts.length; i++) {
+      if (accounts[i].channel !== "Payoneer") continue;
+      html += buttonHtml(accounts[i]);
+    }
+    html += "</div>";
+  }
+  html += '<div class="method-grid">';
+  for (var c = 0; c < channels.length; c++) {
+    if (payoneerOpen && channels[c].id === "payoneer") continue;
+    var chosen = channels[c].id !== "payoneer" && selectedId === channelAccount[channels[c].id];
+    html += channelButton(channels[c], chosen);
+  }
+  html += "</div>";
+  document.getElementById("options").innerHTML = html;
+  document.getElementById("paypal-card").classList.toggle("on", selectedId === "paypal");
+}
+
+function selectPaypal() {
+  payoneerOpen = false;
+  selectedId = "paypal";
+  render();
+}
+
+function selectChannel(id) {
+  if (id === "payoneer") {
+    payoneerOpen = true;
+    selectedId = "po-platform";
+  } else {
+    payoneerOpen = false;
+    selectedId = channelAccount[id];
+  }
+  render();
+}
+
+function selectAccount(id) {
+  selectedId = id;
+  render();
+}
+
+function render() {
+  renderLists();
+  var paypalView = document.getElementById("paypal-view");
+  var accountView = document.getElementById("account-view");
+  var showAccount = selectedId !== "paypal";
+  paypalView.hidden = showAccount;
+  accountView.hidden = !showAccount;
+  if (!showAccount) return;
+  var account = findAccount(selectedId);
+  var buttons = document.querySelectorAll(".option");
+  for (var i = 0; i < buttons.length; i++) {
+    var on = buttons[i].getAttribute("data-id") === selectedId;
+    buttons[i].classList.toggle("on", on);
+    buttons[i].setAttribute("aria-checked", on ? "true" : "false");
+  }
+  var html = "";
+  for (var r = 0; r < account.rows.length; r++) {
+    html += '<div class="kv-row"><span class="k">' + esc(account.rows[r][0]) + '</span><span class="v">' + esc(account.rows[r][1]) + "</span></div>";
+  }
+  document.getElementById("details").innerHTML = html;
+  var note = document.getElementById("sample-note");
+  note.hidden = !account.example;
+  if (account.example) note.textContent = sampleText;
+  var slip = document.getElementById("slip");
+  slip.hidden = !account.slip;
+  slip.textContent = account.slip || "";
+  document.getElementById("copy-all").hidden = !account.copyable;
+}
 
 function copyDetails() {
   var account = findAccount(selectedId);
@@ -414,32 +504,22 @@ function fallbackCopy(text, done) {
   done();
 }
 
-function selectAccount(id) {
-  selectedId = id;
-  var account = findAccount(id);
-  var buttons = document.querySelectorAll(".option");
-  for (var i = 0; i < buttons.length; i++) {
-    var on = buttons[i].getAttribute("data-id") === id;
-    buttons[i].classList.toggle("on", on);
-    buttons[i].setAttribute("aria-checked", on ? "true" : "false");
-  }
-  var html = "";
-  for (var r = 0; r < account.rows.length; r++) {
-    html += '<div class="kv-row"><span class="k">' + esc(account.rows[r][0]) + '</span><span class="v">' + esc(account.rows[r][1]) + "</span></div>";
-  }
-  document.getElementById("details").innerHTML = html;
-  document.getElementById("right-title").textContent = id === "paypal" ? "Online Payment" : "Transfer to Account";
-  var note = document.getElementById("sample-note");
-  note.hidden = !account.example;
-  if (account.example) note.textContent = sampleText;
-  var slip = document.getElementById("slip");
-  slip.hidden = !account.slip;
-  slip.textContent = account.slip || "";
-  document.getElementById("copy-all").hidden = !account.copyable;
-}
+document.getElementById("amount").addEventListener("input", function (event) {
+  var value = event.target.value.trim();
+  document.getElementById("paypal-amount").textContent = value || "Payment Amount";
+  document.getElementById("paypal-amount").style.color = value ? "#1f2329" : "";
+});
 
-renderLists();
-selectAccount("po-platform");
+document.getElementById("currencies").addEventListener("click", function (event) {
+  var button = event.target.closest("[data-currency]");
+  if (!button) return;
+  var pills = document.querySelectorAll("#currencies .pill");
+  for (var i = 0; i < pills.length; i++) pills[i].classList.toggle("on", pills[i] === button);
+  document.getElementById("amount-currency").textContent = button.getAttribute("data-currency");
+  document.getElementById("paypal-currency").textContent = button.getAttribute("data-currency");
+});
+
+render();
 </script>
 </body>
 </html>

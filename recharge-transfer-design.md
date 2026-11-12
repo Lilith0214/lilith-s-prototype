@@ -2,7 +2,7 @@
 
 这是给客户用的充值/转账弹窗，不是 Fund。客户主要在欧美，界面只用英文。
 
-原型：`recharge-transfer/index.html`。左侧列出全部转账账户，并按渠道排序：同平台放在该渠道第一位。点 Payoneer 时，右侧换成截图里的真实收款账户。没有中文界面，没有二级弹窗。
+原型：`recharge-transfer/index.html`。打开时默认选中 Online Payment。线下先只显示 Payoneer、Airwallex、Worldfirst、Slash、HSBC 五个渠道。点 Payoneer 后，再展开成三种方式，最快的在最上面。右侧账户资料不随文案调整而改字段。
 
 ## 问题
 
@@ -30,21 +30,17 @@
 
 不加弹窗、抽屉，也不做悬停才出现的说明。不把一个 Payoneer 再拆成第二层选择。
 
-左侧仍是支付方式卡片，名称后面加后缀，第二行写时效、汇路和币种。同平台放在第一个，并标 Faster。点卡片只刷新右侧账户资料。
+币种在选转账方式之前已经选定，所以左边名称后面的后缀和提示不写币种，也不写收款公司。两个美国银行账户用银行名称区分。
 
-三个选项一行一个，用单选圆点。这是欧美结账页的习惯，比两个一行的小按钮更容易扫完。
+展开后的三张卡，从上到下：
 
 | 卡片标题 | 第二行 |
 | --- | --- |
-| Payoneer · Payoneer to Payoneer | About 10 minutes · USD, EUR, GBP |
-| Payoneer · US bank · BESTADS | ACH and SWIFT · USD only |
-| Payoneer · US bank · HUACHAO | ACH · USD only |
+| Payoneer · Payoneer to Payoneer | About 10 minutes |
+| Payoneer · US bank · Citibank | ACH and SWIFT |
+| Payoneer · US bank · First Century Bank | ACH |
 
-BESTADS、HUACHAO 加粗。卡片用收款公司简称，右侧 Beneficiary name 用全称。简称人工配置，不要从全称自动截断。
-
-标题下有一句说明，直接放在列表上：
-
-“Payoneer to Payoneer arrives faster. The two US bank options differ only by the beneficiary company. If you are not sure which company to pay, check with your account manager before you send the money.”
+同平台标 Faster。右侧 Beneficiary name、币种和银行字段保持原样。
 
 ## 右侧
 

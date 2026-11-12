@@ -2,7 +2,7 @@
 
 这是给客户用的充值/转账弹窗，不是 Fund。客户主要在欧美，界面只用英文。
 
-原型：`recharge-transfer/index.html`。打开时默认选中 Online Payment。线下先只显示 Payoneer、Airwallex、Worldfirst、Slash、HSBC 五个渠道。点 Payoneer 或 Airwallex 后，在原位置展开成三种方式，最快的在最上面。一次只展开一家。右侧账户资料不随文案调整而改字段。
+原型：`recharge-transfer/index.html`。打开时默认选中 Online Payment。线下先只显示 Payoneer、Airwallex、Worldfirst、Slash、HSBC 五个渠道。点 Payoneer、Airwallex 或 Worldfirst 后，在原位置展开成三种方式，最快的在最上面。一次只展开一家。右侧账户资料按对应截图展示，不另加字段。
 
 ## 问题
 
@@ -36,11 +36,11 @@
 
 | 卡片标题 | 第二行 |
 | --- | --- |
-| Payoneer · Payoneer to Payoneer | About 10 minutes |
+| Payoneer · Payoneer to Payoneer | 无。账户资料里没有到账时间，不写 About 10 minutes |
 | Payoneer · US bank · Citibank | ACH and SWIFT |
 | Payoneer · US bank · First Century Bank | ACH |
 
-同平台标 Faster。右侧只展示截图里的字段，不另加汇路、币种或到账行，也不加水单黄条。
+同平台仍放最上面并标 Faster。右侧只展示截图里的字段，不另加汇路、币种或到账行，也不加水单黄条。
 
 ## 右侧
 
@@ -58,7 +58,15 @@
 
 右侧沿用现有字段和原文，包括户名、账号、路由号和 Notes。Friendly Reminder 不改。
 
-Worldfirst、Slash、HSBC 仍是单张渠道。Worldfirst 还没有真实账号，点开后仍是 Example，不写假账号。
+点 Worldfirst 后同样在原位置展开三张，按到账快慢排列，左侧不写公司和币种：
+
+1. Worldfirst to Worldfirst，About 10 minutes。截图里的 Payment settlement time 就是这一句。
+2. US bank · JP MORGAN CHASE BANK, N.A.，ACH and SWIFT。
+3. Hong Kong bank · JP Morgan Chase HONG KONG BRANCH，Local and SWIFT。
+
+右侧字段、标签和原文与截图一致。Friendly Reminder 不改。
+
+Slash、HSBC 仍是单张渠道。
 
 Slash、HSBC 各只有一个账户，排在多账户渠道后面，名称后面不加后缀。
 
@@ -70,12 +78,11 @@ PayPal 仍在 Online Payment 里，不加这套后缀。
 
 1. BESTADS（Citibank）有 SWIFT 代码 CITIUS33，HUACHAO 没有。原型按「BESTADS 接受 ACH 和 SWIFT，HUACHAO 只接受 ACH」展示。若两张都只接受美国本地 ACH，BESTADS 的 SWIFT 会去掉，两张卡只靠收款公司区分。
 2. 币种是不是「Payoneer to Payoneer 收 USD/EUR/GBP，美国银行只收 USD」。
-3. Worldfirst 的三个账户、汇路和账号还没有。补齐前右侧继续标 Example，不写假账号。
-4. 如果系统已经知道客户的签约主体，后续可以默认选中对应的银行账户。公司名只留在右侧账户资料里。
+3. 如果系统已经知道客户的签约主体，后续可以默认选中对应的银行账户。公司名只留在右侧账户资料里。
 
 ## 验收
 
 - 打开时默认 Online Payment，线下只看到五个渠道。
-- 点 Payoneer 或 Airwallex，在原位置展开三张，最快的在最上面。左侧能看出同平台还是哪家银行，以及汇路，不出现公司和币种。
+- 点 Payoneer、Airwallex 或 Worldfirst，在原位置展开三张，最快的在最上面。左侧能看出同平台还是哪家银行，以及汇路，不出现公司和币种。Payoneer 同平台不写 10 minutes。
 - 点其中一个，右侧账户资料跟着变，字段和原文不改。Friendly Reminder 不改。
 - 没有第二层弹窗。

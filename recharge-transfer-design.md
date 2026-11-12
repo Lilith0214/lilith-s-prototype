@@ -2,7 +2,7 @@
 
 这是给客户用的充值/转账弹窗，不是 Fund。客户主要在欧美，界面只用英文。
 
-原型：`recharge-transfer/index.html`。打开时默认选中 Online Payment。线下先只显示 Payoneer、Airwallex、Worldfirst、Slash、HSBC 五个渠道。点 Payoneer 后，再展开成三种方式，最快的在最上面。右侧账户资料不随文案调整而改字段。
+原型：`recharge-transfer/index.html`。打开时默认选中 Online Payment。线下先只显示 Payoneer、Airwallex、Worldfirst、Slash、HSBC 五个渠道。点 Payoneer 或 Airwallex 后，在原位置展开成三种方式，最快的在最上面。一次只展开一家。右侧账户资料不随文案调整而改字段。
 
 ## 问题
 
@@ -62,7 +62,15 @@
 
 ## 其他渠道
 
-列表里同时展示 Airwallex、Worldfirst、Slash、HSBC，并参与排序。Airwallex 和 Worldfirst 各三张：同平台在前，两张美国银行在后，标 Example。这两家还没有真实收款公司和账号，右侧只显示转账方式、币种和到账时间，不写假账号。财务补齐后去掉 Example，按 Payoneer 的规则展示完整资料。
+点 Airwallex 后同样在原位置展开三张，按到账快慢排列，左侧不写公司和币种：
+
+1. Airwallex to Airwallex，About 1 hour。
+2. US bank · Community Federal Savings Bank，ACH & Wire, SWIFT。
+3. Hong Kong bank · DBS Bank (Hong Kong) Limited，SWIFT。
+
+右侧沿用现有字段和原文，包括户名、账号、路由号和 Notes。Friendly Reminder 不改。
+
+Worldfirst、Slash、HSBC 仍是单张渠道。Worldfirst 还没有真实账号，点开后仍是 Example，不写假账号。
 
 Slash、HSBC 各只有一个账户，排在多账户渠道后面，名称后面不加后缀。
 
@@ -74,12 +82,12 @@ PayPal 仍在 Online Payment 里，不加这套后缀。
 
 1. BESTADS（Citibank）有 SWIFT 代码 CITIUS33，HUACHAO 没有。原型按「BESTADS 接受 ACH 和 SWIFT，HUACHAO 只接受 ACH」展示。若两张都只接受美国本地 ACH，BESTADS 的 SWIFT 会去掉，两张卡只靠收款公司区分。
 2. 币种是不是「Payoneer to Payoneer 收 USD/EUR/GBP，美国银行只收 USD」。
-3. Airwallex、Worldfirst 是不是同样的「两张美国银行 + 一张同平台」，以及各自的收款公司简称、汇路、币种和账号。
-4. 如果系统已经知道客户的签约主体，后续可以默认选中对应的银行账户。这次没有这个数据，所以只把公司简称写在名称后面。
+3. Worldfirst 的三个账户、汇路和账号还没有。补齐前右侧继续标 Example，不写假账号。
+4. 如果系统已经知道客户的签约主体，后续可以默认选中对应的银行账户。公司名只留在右侧账户资料里。
 
 ## 验收
 
-- 界面是英文，读起来是在选付款方式，不是在选三个同名 Payoneer。
-- 不点开右侧，也能看出三个选项分别是 Payoneer to Payoneer、BESTADS、HUACHAO，以及汇路和币种。
-- 点其中一个，右侧账户资料跟着变。HUACHAO 不出现 SWIFT。
+- 打开时默认 Online Payment，线下只看到五个渠道。
+- 点 Payoneer 或 Airwallex，在原位置展开三张，最快的在最上面。左侧能看出同平台还是哪家银行，以及汇路，不出现公司和币种。
+- 点其中一个，右侧账户资料跟着变，字段和原文不改。Friendly Reminder 不改。
 - 没有第二层弹窗。

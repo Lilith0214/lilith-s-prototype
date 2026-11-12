@@ -285,26 +285,55 @@ var accounts = [
     ]
   },
   {
-    id: "awx-platform", channel: "Airwallex", letter: "A", example: true, faster: true,
-    title: "Airwallex · Airwallex to Airwallex", sub: "About 10 minutes",
-    slip: receiptSlip, rows: platformRows("Airwallex")
-  },
-  {
-    id: "awx-a", channel: "Airwallex", letter: "A", example: true,
-    title: "Airwallex · US bank", sub: "ACH and SWIFT", slip: bankSlip,
+    id: "awx-fast", channel: "Airwallex", letter: "A", copyable: true, faster: true,
+    title: "Airwallex · Airwallex to Airwallex", sub: "About 1 hour",
     rows: [
-      ["Accepted transfer methods", "ACH, SWIFT"],
-      ["Accepted currencies", "USD"],
-      ["Arrival time", "ACH: 1 business day; SWIFT: 1–3 business days"]
+      ["Payment settlement time", "About 1 hour"],
+      ["Account number", "10111068291322869"],
+      ["Account name", "牧雪贸易有限公司"],
+      ["Alternative account name", "MUXUE TRADE LIMITED"],
+      ["Notes", "Payment is not affected by weekends or holidays."]
     ]
   },
   {
-    id: "awx-b", channel: "Airwallex", letter: "A", example: true,
-    title: "Airwallex · US bank", sub: "ACH", slip: bankSlip,
+    id: "awx-us", channel: "Airwallex", letter: "A", copyable: true,
+    title: "Airwallex · US bank · Community Federal Savings Bank",
+    strong: "Community Federal Savings Bank",
+    sub: "ACH & Wire, SWIFT",
     rows: [
-      ["Accepted transfer methods", "ACH"],
-      ["Accepted currencies", "USD"],
-      ["Arrival time", "ACH: 1 business day"]
+      ["Payment settlement time", "ACH & Wire: 1 business day; Swift: 1–3 business days"],
+      ["Account name", "MUXUE TRADE LIMITED"],
+      ["Bank account number", "8480040709"],
+      ["ACH routing number", "026073150"],
+      ["Fedwire routing number", "026073008"],
+      ["SWIFT code", "CMFGUS33"],
+      ["Bank name", "Community Federal Savings Bank"],
+      ["Account location", "United States of America"],
+      ["Account type", "Checking"],
+      ["Bank address", "89-16 Jamaica Ave"],
+      ["City", "Woodhaven, NY"],
+      ["ZIP Code", "11421"],
+      ["Notes", "For US dollar regions, no crediting is available during off-hours and holidays, subject to bank channel restrictions."]
+    ]
+  },
+  {
+    id: "awx-hk", channel: "Airwallex", letter: "A", copyable: true,
+    title: "Airwallex · Hong Kong bank · DBS Bank (Hong Kong) Limited",
+    strong: "DBS Bank (Hong Kong) Limited",
+    sub: "SWIFT",
+    rows: [
+      ["Payment settlement time", "1 to 2 business days"],
+      ["Account name", "MUXUE TRADE LIMITED"],
+      ["Bank account number", "795045636"],
+      ["Bank code", "016"],
+      ["Branch code", "478"],
+      ["SWIFT code", "DHBKHKHH"],
+      ["Bank name", "DBS Bank (Hong Kong) Limited"],
+      ["Account location", "Hong Kong SAR"],
+      ["Account type", "Current"],
+      ["Bank address", "18th Floor, The Center, 99 Queen's Road Central, Central"],
+      ["City", "Hong Kong SAR"],
+      ["Notes", "No credits can be processed during non-working days and rest days, which is affected by bank channel restrictions."]
     ]
   },
   {
@@ -398,8 +427,8 @@ var channels = [
   { id: "slash", name: "Slash", letter: "S", cls: "slash" },
   { id: "hsbc", name: "HSBC", letter: "H", cls: "hsbc" }
 ];
-var channelAccount = { airwallex: "awx-platform", worldfirst: "wf-platform", slash: "slash", hsbc: "hsbc" };
-var payoneerOpen = false;
+var channelAccount = { worldfirst: "wf-platform", slash: "slash", hsbc: "hsbc" };
+var openChannel = "";
 var selectedId = "paypal";
 
 function channelButton(channel, on) {
@@ -407,39 +436,51 @@ function channelButton(channel, on) {
     '<span class="logo ' + channel.cls + '">' + channel.letter + "</span><span>" + channel.name + "</span></button>";
 }
 
+function accountsFor(name) {
+  var list = [];
+  for (var i = 0; i < accounts.length; i++) {
+    if (accounts[i].channel === name) list.push(accounts[i]);
+  }
+  return list;
+}
+
 function renderLists() {
   var html = "";
-  if (payoneerOpen) {
-    html += '<div class="stack">';
-    for (var i = 0; i < accounts.length; i++) {
-      if (accounts[i].channel !== "Payoneer") continue;
-      html += buttonHtml(accounts[i]);
-    }
-    html += "</div>";
+  var pending = [];
+  function flush() {
+    if (!pending.length) return;
+    html += '<div class="method-grid">' + pending.join("") + "</div>";
+    pending = [];
   }
-  html += '<div class="method-grid">';
   for (var c = 0; c < channels.length; c++) {
-    if (payoneerOpen && channels[c].id === "payoneer") continue;
-    var chosen = channels[c].id !== "payoneer" && selectedId === channelAccount[channels[c].id];
-    html += channelButton(channels[c], chosen);
+    var channel = channels[c];
+    if (openChannel === channel.id) {
+      flush();
+      var list = accountsFor(channel.name);
+      html += '<div class="stack">';
+      for (var i = 0; i < list.length; i++) html += buttonHtml(list[i]);
+      html += "</div>";
+    } else {
+      pending.push(channelButton(channel, selectedId === channelAccount[channel.id]));
+    }
   }
-  html += "</div>";
+  flush();
   document.getElementById("options").innerHTML = html;
   document.getElementById("paypal-card").classList.toggle("on", selectedId === "paypal");
 }
 
 function selectPaypal() {
-  payoneerOpen = false;
+  openChannel = "";
   selectedId = "paypal";
   render();
 }
 
 function selectChannel(id) {
-  if (id === "payoneer") {
-    payoneerOpen = true;
-    selectedId = "po-platform";
+  if (id === "payoneer" || id === "airwallex") {
+    openChannel = id;
+    selectedId = accountsFor(id === "payoneer" ? "Payoneer" : "Airwallex")[0].id;
   } else {
-    payoneerOpen = false;
+    openChannel = "";
     selectedId = channelAccount[id];
   }
   render();

@@ -40,25 +40,13 @@
 | Payoneer · US bank · Citibank | ACH and SWIFT |
 | Payoneer · US bank · First Century Bank | ACH |
 
-同平台标 Faster。右侧 Beneficiary name、币种和银行字段保持原样。
+同平台标 Faster。右侧只展示截图里的字段，不另加汇路、币种或到账行，也不加水单黄条。
 
 ## 右侧
 
-在现有资料表最上面加两行，样式和其他行一样：
-
-| 标签 | Payoneer to Payoneer | BESTADS | HUACHAO |
-| --- | --- | --- | --- |
-| Accepted transfer methods | Payoneer to Payoneer | ACH, SWIFT | ACH |
-| Accepted currencies | USD, EUR, GBP | USD | USD |
-| Arrival time | About 10 minutes | ACH: 1 business day; SWIFT: 1–3 business days | ACH: 1 business day |
-
-然后才是账户资料。
-
-- Payoneer to Payoneer：Payoneer Account `bestads01@163.com`，Beneficiary name `BESTADS LIMITED`。不出现银行字段。水单提示写成提交 Payoneer receipt。
-- BESTADS：Citibank，111 Wall Street New York, NY 10043 USA，Routing (ABA) `031100209`，SWIFT `CITIUS33`，Account number `70585200002228282`，CHECKING。
-- HUACHAO：First Century Bank，1731 N Elm St Commerce, GA 30529 USA，Routing (ABA) `061120084`，Account number `4023713418887`，CHECKING。没有 SWIFT 行，Arrival time 里也不写 SWIFT。
-
-没有 SWIFT 的账户，到账文案不要再写 Swift。
+- Payoneer to Payoneer：只有 Payoneer Account `bestads01@163.com`，Beneficiary name `BESTADS LIMITED`。
+- Citibank：Payment settlement time `ACH: 1 business day; Swift: 1–3 business days`，Beneficiary name `BESTADS LIMITED`，Bank name Citibank，Bank address `111 Wall Street New York, NY 10043 USA`，Routing (ABA) `031100209`，SWIFT `CITIUS33`，Account number `70585200002228282`，Account type CHECKING，以及 Notes。
+- First Century Bank：Payment settlement time 同上，Beneficiary name `HUACHAO TRADING LIMITED`，Bank name First Century Bank，Bank address `1731 N Elm St Commerce, GA 30529 USA`，Routing (ABA) `061120084`，Account number `4023713418887`，Account type CHECKING，以及 Notes。这张没有 SWIFT 行。
 
 ## 其他渠道
 

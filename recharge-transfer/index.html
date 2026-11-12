@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Recharge/Transfer</title>
+<style>
+:root {
+  --blue: #1677ff;
+  --text: #1f2329;
+  --muted: #8f959e;
+  --line: #eff0f1;
+  --border: #dee0e3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
+  background: #eef0f3;
+  font-size: 14px;
+  line-height: 1.5;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 48px; }
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(31, 35, 41, .12);
+  overflow: hidden;
+}
+.modal-hd {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: 16px;
+  font-weight: 600;
+}
+.icon-btn {
+  width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #8f959e; font-size: 20px;
+}
+.modal-bd {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+  gap: 8px 28px;
+  padding: 8px 8px 20px 0;
+}
+.left { padding: 16px 8px 8px 20px; }
+.right { padding: 16px 20px 8px 8px; }
+.h {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 600;
+}
+.h::before {
+  content: ""; width: 3px; height: 14px; border-radius: 2px; background: var(--blue); flex: none;
+}
+.right-hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.copy {
+  border: 0; background: transparent; color: #646a73; display: inline-flex; align-items: center; gap: 4px; padding: 0;
+}
+.lbl { display: block; margin: 16px 0 8px; color: #646a73; font-size: 13px; }
+.req { color: #f54a45; margin-right: 2px; }
+.pills { display: flex; gap: 8px; }
+.pill {
+  min-width: 56px; height: 32px; padding: 0 14px; border-radius: 6px;
+  border: 1px solid var(--border); background: #fff; color: #1f2329;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pill.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+.amount { position: relative; }
+.amount input {
+  width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 6px;
+  padding: 0 52px 0 12px; outline: none; background: #fff;
+}
+.amount input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(22,119,255,.12); }
+.amount span {
+  position: absolute; right: 12px; top: 0; height: 36px; display: flex; align-items: center; color: #8f959e;
+}
+.hint { margin: 8px 0 10px; color: #646a73; font-size: 13px; line-height: 1.5; }
+.options { display: flex; flex-direction: column; gap: 8px; }
+.option {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%;
+  text-align: left; border: 1px solid #e5e6eb; background: #fafafa;
+  border-radius: 10px; padding: 12px 14px;
+}
+.option:hover { border-color: #94bfff; background: #fff; }
+.option.on { border-color: var(--blue); background: #f5f8ff; box-shadow: inset 0 0 0 1px var(--blue); }
+.radio {
+  width: 16px; height: 16px; margin-top: 2px; border: 1px solid #c9cdd4; border-radius: 50%;
+  background: #fff; flex: none; display: grid; place-items: center;
+}
+.option.on .radio { border-color: var(--blue); }
+.option.on .radio::after {
+  content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--blue);
+}
+.logo {
+  width: 22px; height: 22px; margin-top: 1px; border-radius: 6px; background: #ff6a00; color: #fff;
+  display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none;
+}
+.logo.airwallex { background: #ff4d4f; }
+.logo.worldfirst { background: #eb2f96; }
+.logo.slash { background: #262626; }
+.logo.hsbc { background: #cf1322; }
+.logo.paypal { background: #003087; font-size: 9px; letter-spacing: -0.3px; }
+.group-name { margin: 14px 2px 6px; font-size: 12px; color: #8f959e; }
+.group:first-child .group-name { margin-top: 0; }
+.example, .fast {
+  display: inline-block; margin-left: 6px; padding: 0 6px; height: 18px; line-height: 18px;
+  border-radius: 9px; font-size: 11px; font-style: normal; font-weight: 700; vertical-align: 1px;
+}
+.example { background: #f2f3f5; color: #8f959e; font-weight: 600; }
+.sample-line {
+  margin: 0 0 8px; padding: 8px 10px; background: #fff7e8; border-radius: 6px;
+  color: #d67a16; font-size: 13px; line-height: 1.5;
+}
+.option-text { min-width: 0; }
+.title { display: block; font-size: 14px; font-weight: 600; line-height: 1.4; }
+.title b { font-weight: 700; }
+.fast { background: #e8f8ef; color: #17803d; }
+.sub { display: block; margin-top: 2px; color: #646a73; font-size: 13px; }
+.kv-row {
+  display: flex; justify-content: space-between; gap: 16px;
+  padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.45;
+}
+.kv-row .k { color: #8f959e; flex: none; max-width: 46%; }
+.kv-row .v { text-align: right; max-width: 62%; }
+.primary {
+  width: 100%; height: 40px; margin-top: 16px; border: 0; border-radius: 6px;
+  background: var(--blue); color: #fff; font-weight: 600;
+}
+.alert {
+  margin-top: 10px; background: #fff7e8; border-radius: 6px; padding: 8px 12px;
+  color: #d67a16; font-size: 13px; line-height: 1.5;
+}
+.reminder { margin-top: 18px; }
+.reminder h3 { margin: 0 0 8px; font-size: 14px; }
+.reminder ul { margin: 0; padding-left: 18px; color: #646a73; font-size: 13px; line-height: 1.6; }
+.reminder li { margin: 0 0 6px; }
+.hot { color: #f54a45; font-weight: 700; }
+@media (max-width: 860px) {
+  .modal-bd { grid-template-columns: 1fr; padding: 0 0 16px; }
+  .left, .right { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="modal" aria-label="Recharge/Transfer">
+    <div class="modal-hd">
+      <span>Recharge/Transfer</span>
+      <button type="button" class="icon-btn" aria-label="Close">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="left">
+        <div class="h">Select Payment Method</div>
+        <span class="lbl">Payment Currency</span>
+        <div class="pills" aria-hidden="true">
+          <span class="pill on">USD</span>
+          <span class="pill">EUR</span>
+          <span class="pill">GBP</span>
+        </div>
+        <label class="lbl" for="amount"><span class="req">*</span>Payment Amount</label>
+        <div class="amount">
+          <input id="amount" inputmode="decimal" autocomplete="off" placeholder="Please enter recharge amount" />
+          <span>USD</span>
+        </div>
+        <span class="lbl">Online Payment</span>
+        <div class="options" id="online"></div>
+        <span class="lbl">Transfer to Account</span>
+        <p class="hint">A same-platform transfer arrives faster and is listed first under that provider. US bank options differ by beneficiary company. If you are not sure which company to pay, check with your account manager before you send the money.</p>
+        <div id="options"></div>
+      </div>
+      <div class="right">
+        <div class="right-hd">
+          <div class="h" id="right-title">Transfer to Account</div>
+          <button type="button" class="copy" id="copy-all" onclick="copyDetails()">copy all</button>
+        </div>
+        <p class="sample-line" id="sample-note" hidden></p>
+        <div id="details"></div>
+        <button type="button" class="primary">Confirm Transfer Details</button>
+        <div class="alert" id="slip"></div>
+        <div class="reminder">
+          <h3>Friendly Reminder</h3>
+          <ul>
+            <li>We strongly recommend that you enter your ID: <span class="hot">10076</span> in the payment memo when transferring. This will speed up the fund verification process.</li>
+            <li>Do not include sensitive notes when creating a payment (for example, “topup ads” or “order”). Use a numeric code instead.</li>
+            <li>Enter the correct amount, currency, and payment time. Do not submit the same transaction more than once.</li>
+            <li>Upload the payment receipt. Without it, we can’t verify the transfer or credit your balance in time.</li>
+            <li>For Payoneer to Payoneer transfers, allow about 10 minutes. Please wait before you contact support.</li>
+            <li>If the received currency is not USD, an additional 0.6% fee applies. PayPal payments incur an additional 2.5% fee.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+var bankSlip = "Please make sure to submit the bank transaction slip after the transfer, otherwise the payment may not be verified in time.";
+var receiptSlip = "Please submit the transfer receipt after you pay, otherwise the payment may not be verified in time.";
+var bankNotes = "For US dollar regions, no crediting is available during off-hours and holidays, subject to bank channel restrictions.";
+var sampleText = "Example only. The beneficiary company and account number are not confirmed, so they are not shown here.";
+
+function platformRows(name) {
+  return [
+    ["Accepted transfer methods", name + " to " + name],
+    ["Accepted currencies", "USD, EUR, GBP"],
+    ["Arrival time", "About 10 minutes"]
+  ];
+}
+
+var accounts = [
+  {
+    id: "po-platform", channel: "Payoneer", letter: "P", copyable: true,
+    title: "Payoneer · Payoneer to Payoneer", sub: "About 10 minutes · USD, EUR, GBP", faster: true,
+    slip: "Please submit your Payoneer transfer receipt after you pay, otherwise the payment may not be verified in time.",
+    rows: platformRows("Payoneer").concat([
+      ["Payoneer Account", "bestads01@163.com"],
+      ["Beneficiary name", "BESTADS LIMITED"]
+    ])
+  },
+  {
+    id: "po-bestads", channel: "Payoneer", letter: "P", copyable: true,
+    title: "Payoneer · US bank · BESTADS", strong: "BESTADS",
+    sub: "ACH and SWIFT · USD only",
+    slip: bankSlip,
+    rows: [
+      ["Accepted transfer methods", "ACH, SWIFT"],
+      ["Accepted currencies", "USD"],
+      ["Arrival time", "ACH: 1 business day; SWIFT: 1–3 business days"],
+      ["Beneficiary name", "BESTADS LIMITED"],
+      ["Bank name", "Citibank"],
+      ["Bank address", "111 Wall Street New York, NY 10043 USA"],
+      ["Routing (ABA)", "031100209"],
+      ["SWIFT", "CITIUS33"],
+      ["Account number", "70585200002228282"],
+      ["Account type", "CHECKING"],
+      ["Notes", bankNotes]
+    ]
+  },
+  {
+    id: "po-huachao", channel: "Payoneer", letter: "P", copyable: true,
+    title: "Payoneer · US bank · HUACHAO", strong: "HUACHAO",
+    sub: "ACH · USD only",
+    slip: bankSlip,
+    rows: [
+      ["Accepted transfer methods", "ACH"],
+      ["Accepted currencies", "USD"],
+      ["Arrival time", "ACH: 1 business day"],
+      ["Beneficiary name", "HUACHAO TRADING LIMITED"],
+      ["Bank name", "First Century Bank"],
+      ["Bank address", "1731 N Elm St Commerce, GA 30529 USA"],
+      ["Routing (ABA)", "061120084"],
+      ["Account number", "4023713418887"],
+      ["Account type", "CHECKING"],
+      ["Notes", bankNotes]
+    ]
+  },
+  {
+    id: "awx-platform", channel: "Airwallex", letter: "A", example: true, faster: true,
+    title: "Airwallex · Airwallex to Airwallex", sub: "About 10 minutes · USD, EUR, GBP",
+    slip: receiptSlip, rows: platformRows("Airwallex")
+  },
+  {
+    id: "awx-a", channel: "Airwallex", letter: "A", example: true,
+    title: "Airwallex · US bank · Company A", strong: "Company A",
+    sub: "ACH and SWIFT · USD only", slip: bankSlip,
+    rows: [
+      ["Accepted transfer methods", "ACH, SWIFT"],
+      ["Accepted currencies", "USD"],
+      ["Arrival time", "ACH: 1 business day; SWIFT: 1–3 business days"]
+    ]
+  },
+  {
+    id: "awx-b", channel: "Airwallex", letter: "A", example: true,
+    title: "Airwallex · US bank · Company B", strong: "Company B",
+    sub: "ACH · USD only", slip: bankSlip,
+    rows: [
+      ["Accepted transfer methods", "ACH"],
+      ["Accepted currencies", "USD"],
+      ["Arrival time", "ACH: 1 business day"]
+    ]
+  },
+  {
+    id: "wf-platform", channel: "Worldfirst", letter: "W", example: true, faster: true,
+    title: "Worldfirst · Worldfirst to Worldfirst", sub: "About 10 minutes · USD, EUR, GBP",
+    slip: receiptSlip, rows: platformRows("Worldfirst")
+  },
+  {
+    id: "wf-a", channel: "Worldfirst", letter: "W", example: true,
+    title: "Worldfirst · US bank · Company A", strong: "Company A",
+    sub: "ACH and SWIFT · USD only", slip: bankSlip,
+    rows: [
+      ["Accepted transfer methods", "ACH, SWIFT"],
+      ["Accepted currencies", "USD"],
+      ["Arrival time", "ACH: 1 business day; SWIFT: 1–3 business days"]
+    ]
+  },
+  {
+    id: "wf-b", channel: "Worldfirst", letter: "W", example: true,
+    title: "Worldfirst · US bank · Company B", strong: "Company B",
+    sub: "ACH · USD only", slip: bankSlip,
+    rows: [
+      ["Accepted transfer methods", "ACH"],
+      ["Accepted currencies", "USD"],
+      ["Arrival time", "ACH: 1 business day"]
+    ]
+  },
+  {
+    id: "slash", channel: "Other accounts", letter: "S",
+    title: "Slash", sub: "One receiving account",
+    slip: bankSlip,
+    rows: [
+      ["Accepted transfer methods", "Bank transfer"],
+      ["Account details", "This provider has one receiving account. Its details are unchanged."]
+    ]
+  },
+  {
+    id: "hsbc", channel: "Other accounts", letter: "H",
+    title: "HSBC", sub: "One receiving account",
+    slip: bankSlip,
+    rows: [
+      ["Accepted transfer methods", "Bank transfer"],
+      ["Account details", "This provider has one receiving account. Its details are unchanged."]
+    ]
+  }
+];
+
+var paypal = {
+  id: "paypal", channel: "paypal", letter: "PP",
+  title: "PayPal", sub: "Additional 2.5% fee",
+  slip: "",
+  rows: [
+    ["Accepted currencies", "USD, EUR, GBP"],
+    ["Fee", "Additional 2.5%"]
+  ]
+};
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, function (ch) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+  });
+}
+
+function findAccount(id) {
+  if (id === paypal.id) return paypal;
+  for (var i = 0; i < accounts.length; i++) {
+    if (accounts[i].id === id) return accounts[i];
+  }
+}
+
+function titleHtml(account) {
+  var text = esc(account.title);
+  if (account.strong) text = text.replace(esc(account.strong), "<b>" + esc(account.strong) + "</b>");
+  if (account.faster) text += ' <em class="fast">Faster</em>';
+  if (account.example) text += ' <em class="example">Example</em>';
+  return text;
+}
+
+function buttonHtml(account) {
+  var logoClass = account.id.indexOf("po-") === 0 ? "payoneer" : account.channel.toLowerCase().split(" ")[0];
+  if (account.id === "slash" || account.id === "hsbc" || account.id === "paypal") logoClass = account.id;
+  return '<button type="button" class="option" role="radio" aria-checked="false" data-id="' + account.id + '" onclick="selectAccount(\'' + account.id + '\')">' +
+    '<span class="radio"></span><span class="logo ' + logoClass + '">' + account.letter + "</span>" +
+    '<span class="option-text"><span class="title">' + titleHtml(account) + "</span>" +
+    (account.sub ? '<span class="sub">' + esc(account.sub) + "</span>" : "") +
+    "</span></button>";
+}
+
+function renderLists() {
+  var html = "";
+  var current = "";
+  for (var i = 0; i < accounts.length; i++) {
+    var account = accounts[i];
+    if (account.channel !== current) {
+      if (current) html += "</div></div>";
+      current = account.channel;
+      html += '<div class="group"><div class="group-name">' + esc(current) + '</div><div class="options">';
+    }
+    html += buttonHtml(account);
+  }
+  html += "</div></div>";
+  document.getElementById("options").innerHTML = html;
+  document.getElementById("online").innerHTML = buttonHtml(paypal);
+}
+
+var selectedId = "po-platform";
+
+function copyDetails() {
+  var account = findAccount(selectedId);
+  var text = account.rows.map(function (row) { return row[0] + ": " + row[1]; }).join("\n");
+  var button = document.getElementById("copy-all");
+  var done = function () {
+    button.textContent = "Copied";
+    setTimeout(function () { button.textContent = "copy all"; }, 1600);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text, done); });
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+function fallbackCopy(text, done) {
+  var area = document.createElement("textarea");
+  area.value = text;
+  document.body.appendChild(area);
+  area.select();
+  try { document.execCommand("copy"); } catch (error) {}
+  area.remove();
+  done();
+}
+
+function selectAccount(id) {
+  selectedId = id;
+  var account = findAccount(id);
+  var buttons = document.querySelectorAll(".option");
+  for (var i = 0; i < buttons.length; i++) {
+    var on = buttons[i].getAttribute("data-id") === id;
+    buttons[i].classList.toggle("on", on);
+    buttons[i].setAttribute("aria-checked", on ? "true" : "false");
+  }
+  var html = "";
+  for (var r = 0; r < account.rows.length; r++) {
+    html += '<div class="kv-row"><span class="k">' + esc(account.rows[r][0]) + '</span><span class="v">' + esc(account.rows[r][1]) + "</span></div>";
+  }
+  document.getElementById("details").innerHTML = html;
+  document.getElementById("right-title").textContent = id === "paypal" ? "Online Payment" : "Transfer to Account";
+  var note = document.getElementById("sample-note");
+  note.hidden = !account.example;
+  if (account.example) note.textContent = sampleText;
+  var slip = document.getElementById("slip");
+  slip.hidden = !account.slip;
+  slip.textContent = account.slip || "";
+  document.getElementById("copy-all").hidden = !account.copyable;
+}
+
+renderLists();
+selectAccount("po-platform");
+</script>
+</body>
+</html>

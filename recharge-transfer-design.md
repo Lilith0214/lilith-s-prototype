@@ -66,7 +66,7 @@
 
 1. Airwallex to Airwallex，About 1 hour。
 2. US bank · Community Federal Savings Bank，ACH & Wire, SWIFT。
-3. Hong Kong bank · DBS Bank (Hong Kong) Limited，SWIFT。
+3. Hong Kong bank · DBS Bank (Hong Kong) Limited，Local and SWIFT。
 
 右侧沿用现有字段和原文，包括户名、账号、路由号和 Notes。Friendly Reminder 不改。
 

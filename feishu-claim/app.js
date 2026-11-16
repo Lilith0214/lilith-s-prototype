@@ -70,43 +70,70 @@ function historyBlock(r, expanded) {
   const alert=same.length?`<p class="history-alert">近3日已有 ${same.length} 笔 ${r.currency} ${money(r.amount)}。同金额请对照时间和认领人。</p>`:'';
   return `<section class="history"><div class="history-head"><b>近3日该商户认领</b><span>${rows.length} 笔${same.length?` · ${same.length} 笔同金额`:''}</span></div><p class="history-scope">北京时间近3个自然日 · 该商户全部业务线 · 仅已认领</p>${alert}${list}${more}</section>`;
 }
-function openModal(title,content,footer) {
-  $('#modal').innerHTML=`<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close" aria-label="关闭认领弹窗">×</button></div>${content}<div class="modal-foot">${footer}</div>`;
-  $('#modal').showModal();
+const closeIcon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+const chevronIcon='<svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+let merchantQuery='';
+function openModal(title,content,footer,options={}) {
+  const modal=$('#modal');
+  modal.className=options.className||'';
+  modal.innerHTML=`<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close" aria-label="关闭认领弹窗">${options.closeHtml||'×'}</button></div>${content}<div class="modal-foot">${footer}</div>`;
+  modal.showModal();
 }
-function merchantOptions(biz, selectedId) {
+function setMerchant(id){const input=$('#claim-customer');if(input)input.value=id||'';}
+function renderMerchantPicker(){
+  const form=$('#claim-form');if(!form)return;
+  const biz=form.elements.biz.value;
   const list=biz?customers.filter(c=>c.lines.includes(biz)):[];
-  return `<option value="">${biz?'请选择商户':'请先选择子业务'}</option>`+list.map(c=>`<option value="${c.id}" ${c.id===selectedId?'selected':''}>${esc(c.name)}（${c.id}）</option>`).join('');
+  const input=$('#claim-customer');
+  if(input.value&&!list.some(c=>c.id===input.value))input.value='';
+  const chosen=list.find(c=>c.id===input.value);
+  const label=$('#merchant-label');
+  label.textContent=chosen?`${chosen.name} (${chosen.id})`:'请输入商户名搜索';
+  label.classList.toggle('is-placeholder',!chosen);
+  const q=merchantQuery.trim().toLowerCase();
+  const shown=list.filter(c=>!q||`${c.name}${c.id}`.toLowerCase().includes(q));
+  $('#merchant-listbox').innerHTML=shown.length?shown.map(c=>`<li><button type="button" role="option" class="merchant-option${c.id===input.value?' selected':''}" data-action="pick-merchant" data-id="${c.id}" aria-selected="${c.id===input.value}">${esc(c.name)} (${c.id})</button></li>`).join(''):`<li class="merchant-empty">${biz?'无匹配商户':'请先选择子业务'}</li>`;
+  syncSubmit();
 }
-function fillMerchants(biz, selectedId) {
-  const sel=$('#claim-customer'); if(!sel) return;
-  const list=biz?customers.filter(c=>c.lines.includes(biz)):[];
-  sel.innerHTML=merchantOptions(biz, list.some(c=>c.id===selectedId)?selectedId:'');
+function setMerchantOpen(open){
+  const pop=$('#merchant-pop'),btn=$('#claim-customer-btn');if(!pop||!btn)return;
+  pop.hidden=!open;btn.setAttribute('aria-expanded',String(open));btn.classList.toggle('open',open);
+  if(open){merchantQuery='';const search=$('#merchant-search');if(search)search.value='';renderMerchantPicker();setTimeout(()=>search&&search.focus(),0);}
+}
+function syncSubmit(){
+  const form=$('#claim-form'),btn=$('#claim-submit');if(!form||!btn)return;
+  const ok=!!(form.elements.biz.value&&$('#claim-customer').value);
+  btn.disabled=!ok;
+  const wrap=$('#claim-submit-wrap');if(wrap)wrap.title=ok?'':'请先选择子业务和商户';
 }
 function syncRecommendFields() {
   const r=activeReceipt, form=$('#claim-form'); if(!form||!r) return;
+  const hint=$('#recommend-hint'); if(hint) hint.hidden=!useRecommend;
   if(useRecommend) {
     const radio=[...form.elements.biz].find(el=>el.value===r.biz);
     if(radio) radio.checked=true;
-    fillMerchants(r.biz, r.merchantId);
+    setMerchant(r.merchantId);
   } else {
     [...form.elements.biz].forEach(el=>{el.checked=false;});
-    fillMerchants('','');
+    setMerchant('');
   }
+  merchantQuery='';
+  renderMerchantPicker();
 }
 function beginClaim(r) {
   if(!isRecommended(r)||r.status!=='待认领'||r.returned) return toast('该流水当前不可认领，请查看最新卡片。');
-  activeReceipt=r; useRecommend=true; attachments=[]; pendingClaim=null;
+  activeReceipt=r; useRecommend=true; attachments=[]; pendingClaim=null; merchantQuery='';
+  const conf=r.confidence==='高'?'high':'mid';
   openModal('一键认领',`<form id="claim-form"><div class="modal-body">
-    <div class="transaction-box"><div><span>交易 ID</span><b>${r.id}</b></div><div><span>交易时间（UTC+8）</span><b>${r.time}</b></div><div><span>支付渠道</span><b>${r.channel}</b></div><div><span>金额</span><b>${r.currency} ${money(r.amount)}</b></div></div>
-    <section class="recommend-box"><b>智能推荐</b><div class="recommend-grid"><span>推荐商户</span><strong>${esc(r.merchant)}（${r.merchantId}）</strong><span>子业务线</span><strong>${esc(r.biz)}</strong><span>可信度</span><strong>${esc(r.confidence)}</strong><span>使用推荐信息</span><label class="toggle"><input type="checkbox" id="use-recommend" checked aria-label="使用推荐信息"><i></i></label></div><p>系统推荐仅供参考。开启后预填子业务和商户，可再修改。</p></section>
-    <div class="form-grid"><div><span class="field-label">子业务</span><div class="radios">${bizLines.map(line=>`<label><input type="radio" name="biz" value="${line}" ${line===r.biz?'checked':''}>${line}</label>`).join('')}</div></div>
-    <div><label class="field-label" for="claim-customer">商户</label><select id="claim-customer" name="customer">${merchantOptions(r.biz, r.merchantId)}</select></div></div>
-    <label class="field-label" for="voucher">上传凭证（支持图片和PDF格式文件，最多10份，单个文件20MB以内）</label>
-    <div class="upload-zone" id="drop-zone" tabindex="0" role="button" aria-label="上传文件区域，支持点击、拖拽或粘贴"><span class="upload-symbol">↥</span><p>点击或拖拽文件到此处上传</p><input class="file-input" id="voucher" type="file" accept="image/*,.pdf" multiple aria-label="上传文件"></div>
-    <div id="file-list"></div><div id="claim-error" class="error" role="alert"></div>
-    <p class="prototype-hint">演示：附件仅在本地选择，不上传；此步骤不会入账。</p>
-    </div></form>`, '<button data-action="close">取消</button><button class="primary" type="submit" form="claim-form">确认</button>');
+    <dl class="txn-summary"><div><dt>交易 ID</dt><dd>${r.id}</dd></div><div><dt>交易时间（UTC+8）</dt><dd>${r.time}</dd></div><div><dt>支付渠道</dt><dd>${r.channel}</dd></div><div><dt>金额</dt><dd>${r.currency} ${money(r.amount)}</dd></div></dl>
+    <section class="recommend-box"><h3>智能推荐</h3><dl class="recommend-grid"><dt>推荐商户</dt><dd>${esc(r.merchant)} (${r.merchantId})</dd><dt>子业务线</dt><dd>${esc(r.biz)}</dd><dt>可信度</dt><dd><span class="confidence ${conf}">${esc(r.confidence)}</span></dd><dt>使用推荐信息</dt><dd><label class="toggle"><input type="checkbox" id="use-recommend" checked aria-label="使用推荐信息"><i></i></label></dd></dl><p class="recommend-hint" id="recommend-hint">系统推荐仅供参考。开启后预填子业务和商户，可再修改。</p></section>
+    <div class="form-grid"><div><div class="field-label">子业务</div><div class="radios" role="radiogroup" aria-label="子业务">${bizLines.map(line=>`<label><input type="radio" name="biz" value="${line}" ${line===r.biz?'checked':''}>${line}</label>`).join('')}</div></div>
+    <div class="merchant-field"><label class="field-label" for="claim-customer-btn">商户</label><button type="button" id="claim-customer-btn" class="merchant-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="merchant-listbox"><span id="merchant-label" class="is-placeholder">请输入商户名搜索</span>${chevronIcon}</button><input type="hidden" id="claim-customer" name="customer" value="${r.merchantId}"><div class="merchant-pop" id="merchant-pop" hidden><input id="merchant-search" type="text" placeholder="搜索商户" aria-label="搜索商户" autocomplete="off"><ul id="merchant-listbox" role="listbox" aria-label="商户"></ul></div></div></div>
+    <div class="upload-block"><div class="upload-label">上传凭证<span>（支持图片和PDF格式文件，最多10份，单个文件20MB以内）</span></div>
+    <div class="upload-zone" id="drop-zone" tabindex="0" role="button" aria-label="上传文件区域，支持点击、拖拽或粘贴">点击或拖拽文件到此处上传<input class="file-input" id="voucher" type="file" accept="image/*,.pdf" multiple aria-label="上传文件"></div>
+    <ul class="file-list" id="file-list"></ul><div id="claim-error" class="error" role="alert"></div></div>
+    </div></form>`, '<button data-action="close">取消</button><span id="claim-submit-wrap"><button class="primary" id="claim-submit" type="submit" form="claim-form">确认</button></span>', {className:'fund-claim',closeHtml:closeIcon});
+  renderMerchantPicker();
 }
 function fileError(files) {
   if(files.length>10) return '最多上传 10 个文件，请移除多余附件。';
@@ -125,7 +152,7 @@ function addFiles(newFiles) {
   attachments=unique; renderFiles(); return true;
 }
 function renderFiles() {
-  $('#file-list').innerHTML=attachments.map((f,i)=>`<div class="file-row"><span>▤　${esc(f.name)} <small>${(f.size/1024/1024).toFixed(2)} MB</small></span><button type="button" class="text-button" data-action="remove-file" data-index="${i}" aria-label="移除附件 ${esc(f.name)}">移除</button></div>`).join('');
+  $('#file-list').innerHTML=attachments.map((f,i)=>`<li class="file-row"><span title="${esc(f.name)}">${esc(f.name)}</span><button type="button" class="text-button" data-action="remove-file" data-index="${i}" aria-label="移除附件 ${esc(f.name)}">移除</button></li>`).join('');
 }
 function validateClaim(r,biz,customerId,files) {
   if(!r||r.status!=='待认领'||r.returned) return '该流水已处理，请刷新最新状态。';
@@ -215,7 +242,11 @@ function preview() {
   $('#schedule-error').textContent=result.error||'';f.querySelector('button[type="submit"]').disabled=!!result.error;
 }
 document.addEventListener('click',e=>{
+  const pop=$('#merchant-pop');
+  if(pop&&!pop.hidden&&!e.target.closest('.merchant-field'))setMerchantOpen(false);
   const b=e.target.closest('button');if(!b)return;
+  if(b.id==='claim-customer-btn'){setMerchantOpen(pop.hidden);return;}
+  if(b.dataset.action==='pick-merchant'){setMerchant(b.dataset.id);merchantQuery='';setMerchantOpen(false);renderMerchantPicker();return;}
   if(b.dataset.scene){scene=b.dataset.scene;render();return;}
   const action=b.dataset.action,r=receipts.find(x=>x.id===b.dataset.id);
   if(action==='toggle-history'){historyOpen[b.dataset.id]=!historyOpen[b.dataset.id];render();return;}
@@ -230,12 +261,19 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   if(e.target.id==='use-recommend'){useRecommend=e.target.checked;syncRecommendFields();return;}
-  if(e.target.name==='biz'&&e.target.closest('#claim-form')){fillMerchants(e.target.value,$('#claim-customer').value);return;}
+  if(e.target.name==='biz'&&e.target.closest('#claim-form')){renderMerchantPicker();return;}
   if(e.target.id==='voucher'){addFiles(Array.from(e.target.files));e.target.value='';}
   if(e.target.closest('#settings-form'))preview();
 });
-document.addEventListener('input',e=>{if(e.target.closest('#settings-form'))preview();});
-document.addEventListener('keydown',e=>{if(e.target.id==='drop-zone'&&['Enter',' '].includes(e.key)){e.preventDefault();$('#voucher').click();}});
+document.addEventListener('input',e=>{
+  if(e.target.id==='merchant-search'){merchantQuery=e.target.value;renderMerchantPicker();return;}
+  if(e.target.closest('#settings-form'))preview();
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.id==='drop-zone'&&['Enter',' '].includes(e.key)){e.preventDefault();$('#voucher').click();}
+  if(e.target.id==='merchant-search'&&e.key==='Enter')e.preventDefault();
+  if(e.key==='Escape'&&$('#merchant-pop')&&!$('#merchant-pop').hidden){e.preventDefault();e.stopPropagation();setMerchantOpen(false);}
+});
 document.addEventListener('dragover',e=>{if(e.target.closest('#drop-zone')){e.preventDefault();e.dataTransfer.dropEffect='copy';}});
 document.addEventListener('drop',e=>{if($('#modal').open&&$('#claim-form')){e.preventDefault();if(e.target.closest('#drop-zone'))addFiles(Array.from(e.dataTransfer.files));}});
 document.addEventListener('paste',e=>{if($('#modal').open&&$('#claim-form')){const files=Array.from(e.clipboardData?.files||[]);if(files.length){e.preventDefault();addFiles(files);}}});
@@ -246,5 +284,5 @@ document.addEventListener('submit',e=>{
   if(f.id==='settings-form'){const c={adEnabled:f.elements.adEnabled.checked,fulfillEnabled:f.elements.fulfillEnabled.checked,count:Number(f.elements.count.value),first:f.elements.first.value,interval:Number(f.elements.interval.value)||config.interval,byStore:f.elements.byStore.checked,byMerchant:f.elements.byMerchant.checked,byFrequent:f.elements.byFrequent.checked,frequentMin:Number(f.elements.frequentMin.value)};if(schedule(c).error)return;if(!Number.isInteger(c.frequentMin)||c.frequentMin<1)return toast('高频阈值请填正整数。');config=c;render();toast('配置已保存（演示）。');}
 });
 $('#confirm-modal').addEventListener('cancel',()=>{pendingClaim=null;});
-$('#modal').addEventListener('close',()=>{activeReceipt=null;useRecommend=true;attachments=[];pendingClaim=null;});
+$('#modal').addEventListener('close',()=>{activeReceipt=null;useRecommend=true;attachments=[];pendingClaim=null;merchantQuery='';$('#modal').className='';});
 render();

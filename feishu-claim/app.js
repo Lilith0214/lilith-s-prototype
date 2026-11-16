@@ -28,6 +28,20 @@ const digestRows = [
   {person:'陈可',count:2,amounts:['USD 1,640.00','EUR 800.00'],last:'最近 14:40 · 星辰出海 · 代发'},
   {person:'林晓',count:3,amounts:['EUR 1,240.00'],last:'最近 15:10 · 北辰广告 · 广告'}
 ];
+// 与日报汇总一致：周宁 6 笔 USD 4,280；陈可 2 笔 USD 1,640 + EUR 800；林晓 3 笔 EUR 1,240。同一组员排在一起。
+const boardClaims = [
+  {person:'周宁',channel:'Airwallex',id:'8f21c0aa-6d14-4a77-9c31-10aa77e20101',time:'2026-10-20 16:02:11',merchantId:'14229',currency:'USD',amount:1500},
+  {person:'周宁',channel:'Airwallex',id:'b70e11c2-88a1-4d09-a552-66c10e880214',time:'2026-10-20 14:26:40',merchantId:'14229',currency:'USD',amount:960},
+  {person:'周宁',channel:'Payoneer',id:'c11a90de-02b7-4e61-8f40-91dd22001880',time:'2026-10-20 13:05:18',merchantId:'15301',currency:'USD',amount:800},
+  {person:'周宁',channel:'Airwallex',id:'d4e20817-55c0-4b18-9a77-30cc66110921',time:'2026-10-20 11:18:02',merchantId:'14229',currency:'USD',amount:520},
+  {person:'周宁',channel:'Airwallex',id:'e90b6612-1aa4-4c55-b210-77e014220033',time:'2026-10-20 10:02:47',merchantId:'14229',currency:'USD',amount:320},
+  {person:'周宁',channel:'Airwallex',id:'f12c7708-9e30-4a81-c664-18aa90330014',time:'2026-10-20 09:11:25',merchantId:'16880',currency:'USD',amount:180},
+  {person:'陈可',channel:'Airwallex',id:'91ab20c1-3e18-4d20-9c55-0b71e4aa9021',time:'2026-10-20 14:40:06',merchantId:'16880',currency:'USD',amount:1640},
+  {person:'陈可',channel:'Payoneer',id:'c0b11e3a-88d2-4f7e-a613-45f4e2089844',time:'2026-10-20 11:05:33',merchantId:'14229',currency:'EUR',amount:800},
+  {person:'林晓',channel:'Airwallex',id:'a81d4402-17c9-4e20-b331-55e019001510',time:'2026-10-20 15:10:44',merchantId:'15301',currency:'EUR',amount:420},
+  {person:'林晓',channel:'Airwallex',id:'b22e5510-08aa-4f13-9d70-66c120001302',time:'2026-10-20 13:02:19',merchantId:'15301',currency:'EUR',amount:500},
+  {person:'林晓',channel:'Airwallex',id:'c33f6621-19bb-4a80-8e11-77d130000940',time:'2026-10-20 09:40:52',merchantId:'14229',currency:'EUR',amount:320}
+];
 let scene='messages', historyOpen={}, config={adEnabled:true,fulfillEnabled:true,count:3,first:'09:00',interval:180,byStore:true,byMerchant:true,byFrequent:true,frequentMin:3};
 let activeReceipt=null, useRecommend=true, attachments=[], pendingClaim=null, toastTimer;
 const $=s=>document.querySelector(s);
@@ -35,8 +49,8 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const money=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 function toast(text) { $('#toast').textContent=text; $('#toast').classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4000); }
 function render() {
-  document.querySelectorAll('[data-scene]').forEach(b=>b.classList.toggle('active',b.dataset.scene===scene));
-  $('#app').innerHTML=scene==='messages'?messages():scene==='digest'?digestPage():settingsPage();
+  document.querySelectorAll('[data-scene]').forEach(b=>b.classList.toggle('active',b.dataset.scene===scene||(scene==='board'&&b.dataset.scene==='digest')));
+  $('#app').innerHTML=scene==='messages'?messages():scene==='digest'?digestPage():scene==='board'?boardPage():settingsPage();
   if(scene==='settings') preview();
 }
 function messages() {
@@ -235,6 +249,29 @@ function digestPage() {
   </div></div></div></article>
   <div class="chat-end">演示消息 · 不统计真实认领</div></div></section></div>`;
 }
+function boardGroups() {
+  const order=[]; const map=new Map();
+  boardClaims.forEach(c=>{if(!map.has(c.person)){map.set(c.person,[]);order.push(c.person);}map.get(c.person).push(c);});
+  return order.map(person=>{
+    const rows=map.get(person).slice().sort((a,b)=>b.time.localeCompare(a.time));
+    const totals={};
+    rows.forEach(r=>{totals[r.currency]=(totals[r.currency]||0)+r.amount;});
+    return {person,rows,totals};
+  });
+}
+function boardPage() {
+  const groups=boardGroups();
+  const total=boardClaims.length;
+  const grand={};
+  boardClaims.forEach(r=>{grand[r.currency]=(grand[r.currency]||0)+r.amount;});
+  const stats=`<div class="board-stat"><b>${total}</b><span>认领笔数</span></div><div class="board-stat"><b>${groups.length}</b><span>组员</span></div>`+Object.entries(grand).map(([c,n])=>`<div class="board-stat"><b>${c} ${money(n)}</b><span>金额合计</span></div>`).join('');
+  const body=groups.map(g=>{
+    const totals=Object.entries(g.totals).map(([c,n])=>`${c} ${money(n)}`).join(' · ');
+    const rows=g.rows.map(r=>`<tr><td data-label="渠道">${esc(r.channel)}</td><td class="txn" data-label="交易号">${esc(r.id)}</td><td data-label="交易时间">${esc(r.time)}</td><td data-label="商户 ID">${esc(r.merchantId)}</td><td class="num" data-label="金额">${r.currency} ${money(r.amount)}</td></tr>`).join('');
+    return `<section class="board-group"><header class="board-person"><b>${esc(g.person)}</b><span>${g.rows.length} 笔</span><span class="amt">${totals}</span></header><div class="board-table-wrap"><table class="board-table"><thead><tr><th>渠道</th><th>交易号</th><th>交易时间</th><th>商户 ID</th><th class="num">金额</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  }).join('');
+  return `<main class="board-scene"><div class="board-head"><button type="button" class="text-button board-back" data-scene="digest">返回日报</button><div><h1>今日认领看板</h1><p>交付一组 · 2026-10-20 · 同一组员的流水排在一起，组内按交易时间从新到旧</p></div></div><div class="board-stats">${stats}</div>${body}<p class="prototype-hint">演示数据，与日报卡片的笔数和金额一致。金额按币种分开，不混加。</p></main>`;
+}
 function preview() {
   const f=$('#settings-form'),count=Number(f.elements.count.value);f.elements.interval.disabled=count===1;
   const result=schedule({count,first:f.elements.first.value,interval:count===1?config.interval:Number(f.elements.interval.value)});
@@ -250,7 +287,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.scene){scene=b.dataset.scene;render();return;}
   const action=b.dataset.action,r=receipts.find(x=>x.id===b.dataset.id);
   if(action==='toggle-history'){historyOpen[b.dataset.id]=!historyOpen[b.dataset.id];render();return;}
-  if(action==='open-board'){toast('演示：完整看板在飞书子应用打开，按组员查看当天每笔认领。');return;}
+  if(action==='open-board'){scene='board';render();return;}
   if(action==='claim')beginClaim(r);
   if(action==='return')returnModal(r);
   if(action==='mute'&&r?.status==='待认领'){r.stop=true;render();toast('已停止该笔后续提醒。');}

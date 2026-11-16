@@ -90,3 +90,25 @@
 .recipient p{margin:6px 0 0 24px;color:#919bac;font-size:12px;line-height:1.6}
 .threshold{display:flex;align-items:center;gap:8px;margin:8px 0 0 24px;font-size:12px;color:#646a73}
 .threshold input{width:72px;padding:6px 8px}
+.board-scene{max-width:1080px;margin:28px auto 48px;padding:0 24px}
+.board-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:16px}
+.board-head h1{font-size:22px;margin:2px 0 6px}
+.board-head p{margin:0;color:#8b93a1;font-size:13px}
+.board-back{padding:4px 8px 4px 0}
+.board-stats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.board-stat{background:#fff;border:1px solid #e5e9f0;border-radius:8px;padding:12px 16px;min-width:108px}
+.board-stat b{display:block;font-size:16px;color:#243d66;font-weight:600}
+.board-stat span{font-size:12px;color:#8b93a1}
+.board-group{background:#fff;border:1px solid #e5e9f0;border-radius:8px;margin-bottom:14px;overflow:hidden}
+.board-person{display:flex;align-items:baseline;gap:10px;padding:12px 16px;background:#f6f8fb;border-bottom:1px solid #eef1f5}
+.board-person b{font-size:15px}
+.board-person span{font-size:12px;color:#646a73}
+.board-person .amt{margin-left:auto;font-weight:600;color:#243d66;font-size:13px}
+.board-table{width:100%;border-collapse:collapse;font-size:13px}
+.board-table th{text-align:left;font-weight:500;color:#8b93a1;font-size:12px;padding:8px 16px;border-bottom:1px solid #eef1f5;white-space:nowrap}
+.board-table td{padding:10px 16px;border-bottom:1px solid #f4f6f8;vertical-align:top}
+.board-table tr:last-child td{border-bottom:0}
+.board-table .txn{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all}
+.board-table .num,.board-table th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.board-table td.num{font-weight:600;color:#243d66}
+@media(max-width:760px){.board-scene{margin:16px auto 32px;padding:0 12px}.board-head{flex-direction:column;gap:4px}.board-person{flex-wrap:wrap}.board-person .amt{margin-left:0}.board-table thead{display:none}.board-table,.board-table tbody,.board-table tr,.board-table td{display:block;width:100%}.board-table tr{padding:10px 14px;border-bottom:1px solid #f4f6f8}.board-table td{display:flex;justify-content:space-between;gap:12px;border:0;padding:3px 0;text-align:right}.board-table td:before{content:attr(data-label);color:#8b93a1;text-align:left;flex-shrink:0}.board-table td.num,.board-table .txn{text-align:right}}

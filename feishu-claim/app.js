@@ -4,9 +4,12 @@ const receipts = [
 ];
 // 演示商户；生产从 Fund 读取有权限且具备对应子业务账户的商户。
 const customers = [
-  {id:'14229',name:'星辰出海-广告主账户',lines:['广告']},
-  {id:'15301',name:'北辰广告-欧洲账户',lines:['广告']}
+  {id:'14229',name:'星辰出海-广告主账户',lines:['广告','履约']},
+  {id:'15301',name:'北辰广告-欧洲账户',lines:['广告']},
+  {id:'16880',name:'星辰出海-履约账户',lines:['履约']},
+  {id:'17021',name:'北辰拒付账户',lines:['拒付']}
 ];
+const bizLines = ['广告','履约','拒付'];
 // 北京时间近 3 个自然日、该商户已认领成功的记录。同金额在渲染时按当前流水计算。
 const claimHistory = {
   '14229': [
@@ -26,7 +29,7 @@ const digestRows = [
   {person:'林晓',count:3,amounts:['EUR 1,240.00'],last:'最近 15:10 · 北辰广告 · 广告'}
 ];
 let scene='messages', historyOpen={}, config={adEnabled:true,fulfillEnabled:true,count:3,first:'09:00',interval:180,byStore:true,byMerchant:true,byFrequent:true,frequentMin:3};
-let activeReceipt=null, activeRecommendation=null, attachments=[], pendingClaim=null, toastTimer;
+let activeReceipt=null, useRecommend=true, attachments=[], pendingClaim=null, toastTimer;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -48,7 +51,7 @@ function card(r) {
   const state=r.status==='已认领'?'已认领':r.returned?'已退回':r.stop?'已停止提醒':'待认领';
   return `<article class="message"><div class="bot-avatar">F</div><div class="message-content"><div class="sender">Fund 资金助手 <span>应用</span></div>
   <div class="message-card"><div class="card-head"><span>收款流水待认领推荐</span><span class="tag ${inactive?'done':''}">${state}</span></div><div class="card-body">
-  <dl class="card-fields"><dt>接收人</dt><dd>${r.owner}</dd><dt>渠道</dt><dd>${r.channel}</dd><dt>交易号</dt><dd class="transaction">${r.id}</dd><dt>交易时间</dt><dd>${r.time}</dd><dt>金额</dt><dd class="amount">${r.currency} ${money(r.amount)}</dd><dt>付款人</dt><dd>${r.payer}</dd><dt>推荐商户</dt><dd>${r.merchant}（${r.merchantId}）</dd><dt>推荐业务线</dt><dd>${r.biz}</dd><dt>可信度</dt><dd>${r.confidence}</dd><dt>简要原因</dt><dd>${r.reason}</dd></dl>
+  <dl class="card-fields"><dt>渠道</dt><dd>${r.channel}</dd><dt>交易号</dt><dd class="transaction">${r.id}</dd><dt>交易时间</dt><dd>${r.time}</dd><dt>金额</dt><dd class="amount">${r.currency} ${money(r.amount)}</dd><dt>付款人</dt><dd>${r.payer}</dd><dt>推荐商户</dt><dd>${r.merchant}（${r.merchantId}）</dd><dt>推荐业务线</dt><dd>${r.biz}</dd><dt>可信度</dt><dd>${r.confidence}</dd><dt>简要原因</dt><dd>${r.reason}</dd></dl>
   ${historyBlock(r)}
   ${r.status==='已认领'?`<div class="result success"><b>认领成功</b><br>商户：${esc(r.claimedCustomer.name)}（${r.claimedCustomer.id}）<br>子业务：${r.claimedBiz} · 金额：${r.currency} ${money(r.amount)}<br>Fund 已完成充值，后续不再提醒。</div>`:r.returned?`<div class="result">已退回，Fund 流水保持待认领，停止该笔提醒。<br>退回原因：${esc(r.returnReason||'未填写')}</div>`:r.stop?'<div class="result">已停止该笔后续提醒，仍可确定认领或退回。</div>':''}
   <p class="card-note">系统推荐仅供参考，请核对子业务、商户与金额后认领。</p>
@@ -71,17 +74,36 @@ function openModal(title,content,footer) {
   $('#modal').innerHTML=`<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close" aria-label="关闭认领弹窗">×</button></div>${content}<div class="modal-foot">${footer}</div>`;
   $('#modal').showModal();
 }
+function merchantOptions(biz, selectedId) {
+  const list=biz?customers.filter(c=>c.lines.includes(biz)):[];
+  return `<option value="">${biz?'请选择商户':'请先选择子业务'}</option>`+list.map(c=>`<option value="${c.id}" ${c.id===selectedId?'selected':''}>${esc(c.name)}（${c.id}）</option>`).join('');
+}
+function fillMerchants(biz, selectedId) {
+  const sel=$('#claim-customer'); if(!sel) return;
+  const list=biz?customers.filter(c=>c.lines.includes(biz)):[];
+  sel.innerHTML=merchantOptions(biz, list.some(c=>c.id===selectedId)?selectedId:'');
+}
+function syncRecommendFields() {
+  const r=activeReceipt, form=$('#claim-form'); if(!form||!r) return;
+  if(useRecommend) {
+    const radio=[...form.elements.biz].find(el=>el.value===r.biz);
+    if(radio) radio.checked=true;
+    fillMerchants(r.biz, r.merchantId);
+  } else {
+    [...form.elements.biz].forEach(el=>{el.checked=false;});
+    fillMerchants('','');
+  }
+}
 function beginClaim(r) {
   if(!isRecommended(r)||r.status!=='待认领'||r.returned) return toast('该流水当前不可认领，请查看最新卡片。');
-  activeReceipt=r; activeRecommendation={biz:r.biz,customerId:r.merchantId}; attachments=[]; pendingClaim=null;
+  activeReceipt=r; useRecommend=true; attachments=[]; pendingClaim=null;
   openModal('一键认领',`<form id="claim-form"><div class="modal-body">
     <div class="transaction-box"><div><span>交易 ID</span><b>${r.id}</b></div><div><span>交易时间（UTC+8）</span><b>${r.time}</b></div><div><span>支付渠道</span><b>${r.channel}</b></div><div><span>金额</span><b>${r.currency} ${money(r.amount)}</b></div></div>
-    ${historyBlock(r,true)}
-    <div class="form-grid"><div><span class="field-label">子业务</span><div class="recommended-value" aria-label="推荐子业务，只读">${r.biz}<span>Fund 推荐</span></div></div>
-    <div><span class="field-label">商户</span><div class="recommended-value" aria-label="推荐商户，只读">${r.merchant}（${r.merchantId}）<span>Fund 推荐</span></div></div></div>
-    <p class="form-hint">子业务与商户由 Fund 推荐，不可修改。请上传附件后确认；推荐不符请取消并退回。</p>
-    <label class="field-label" for="voucher"><em>*</em> 上传文件（支持图片/pdf格式文件，最多10个，单个文件20M内）</label>
-    <div class="upload-zone" id="drop-zone" tabindex="0" role="button" aria-label="上传文件区域，支持点击、拖拽或粘贴"><span class="upload-symbol">↥</span><p>点击或拖拽或粘贴文件到此区域上传</p><small>支持图片/pdf格式文件</small><input class="file-input" id="voucher" type="file" accept="image/*,.pdf" multiple aria-label="上传文件"></div>
+    <section class="recommend-box"><b>智能推荐</b><div class="recommend-grid"><span>推荐商户</span><strong>${esc(r.merchant)}（${r.merchantId}）</strong><span>子业务线</span><strong>${esc(r.biz)}</strong><span>可信度</span><strong>${esc(r.confidence)}</strong><span>使用推荐信息</span><label class="toggle"><input type="checkbox" id="use-recommend" checked aria-label="使用推荐信息"><i></i></label></div><p>系统推荐仅供参考。开启后预填子业务和商户，可再修改。</p></section>
+    <div class="form-grid"><div><span class="field-label">子业务</span><div class="radios">${bizLines.map(line=>`<label><input type="radio" name="biz" value="${line}" ${line===r.biz?'checked':''}>${line}</label>`).join('')}</div></div>
+    <div><label class="field-label" for="claim-customer">商户</label><select id="claim-customer" name="customer">${merchantOptions(r.biz, r.merchantId)}</select></div></div>
+    <label class="field-label" for="voucher">上传凭证（支持图片和PDF格式文件，最多10份，单个文件20MB以内）</label>
+    <div class="upload-zone" id="drop-zone" tabindex="0" role="button" aria-label="上传文件区域，支持点击、拖拽或粘贴"><span class="upload-symbol">↥</span><p>点击或拖拽文件到此处上传</p><input class="file-input" id="voucher" type="file" accept="image/*,.pdf" multiple aria-label="上传文件"></div>
     <div id="file-list"></div><div id="claim-error" class="error" role="alert"></div>
     <p class="prototype-hint">演示：附件仅在本地选择，不上传；此步骤不会入账。</p>
     </div></form>`, '<button data-action="close">取消</button><button class="primary" type="submit" form="claim-form">确认</button>');
@@ -108,25 +130,23 @@ function renderFiles() {
 function validateClaim(r,biz,customerId,files) {
   if(!r||r.status!=='待认领'||r.returned) return '该流水已处理，请刷新最新状态。';
   if(!isRecommended(r)) return '该流水不满足推荐条件，请刷新最新卡片。';
-  if(biz!==r.biz||customerId!==r.merchantId) return 'Fund 推荐信息已变化，请关闭弹窗并刷新后重新核对。';
-  if(!['广告','履约','拒付'].includes(biz)) return '推荐子业务无效，请退回处理。';
+  if(!bizLines.includes(biz)) return '请选择子业务。';
   const customer=customers.find(c=>c.id===customerId);
-  if(!customer) return '推荐商户无效，请退回处理。';
-  if(!customer.lines.includes(biz)) return '推荐商户与子业务不匹配，请退回处理。';
+  if(!customer) return '请选择商户。';
+  if(!customer.lines.includes(biz)) return '该商户没有所选子业务账户，请重新选择。';
   if(!files.length) return '请至少上传一个转账凭证。';
   return fileError(files);
 }
 function showSecondConfirmation() {
-  if(!activeRecommendation) return;
-  const {biz,customerId}=activeRecommendation;
+  const form=$('#claim-form'); if(!form||!activeReceipt) return;
+  const biz=form.elements.biz.value, customerId=form.elements.customer.value;
   const error=validateClaim(activeReceipt,biz,customerId,attachments);
   $('#claim-error').textContent=error;
   if(error) return;
   const customer=customers.find(c=>c.id===customerId);
   pendingClaim={receiptId:activeReceipt.id,biz,customerId,files:[...attachments]};
-  $('#confirm-modal').innerHTML=`<div class="modal-head"><h2 id="confirm-title">确认认领并充值？</h2><button class="icon-button" data-action="back" aria-label="返回修改">×</button></div><div class="modal-body"><div class="confirm-icon">!</div><p class="confirm-intro">请再次核对以下信息，确认后将直接充值至Fund 推荐商户对应子业务的账户。</p>
+  $('#confirm-modal').innerHTML=`<div class="modal-head"><h2 id="confirm-title">确认认领并充值？</h2><button class="icon-button" data-action="back" aria-label="返回修改">×</button></div><div class="modal-body"><div class="confirm-icon">!</div><p class="confirm-intro">请再次核对以下信息，确认后将充值至所选商户的对应子业务账户。</p>
     <dl class="confirm-fields"><dt>交易 ID</dt><dd>${activeReceipt.id}</dd><dt>子业务</dt><dd>${biz}</dd><dt>商户</dt><dd>${customer.name}（${customer.id}）</dd><dt>充值金额</dt><dd class="amount">${activeReceipt.currency} ${money(activeReceipt.amount)}</dd><dt>附件</dt><dd>${attachments.length} 个<br><small>${attachments.map(f=>esc(f.name)).join('<br>')}</small></dd></dl>
-    ${historyRows(activeReceipt).some(x=>x.same)?`<p class="history-alert">这笔金额近3日已有认领。请确认不是重复入账后再提交。</p>`:''}
     <p class="confirm-warning">确认后，Fund 流水变为已认领，并停止后续提醒。请勿重复操作。</p><p class="prototype-hint">当前为交互演示，不发生真实充值。</p><div id="confirm-error" class="error" role="alert"></div></div>
     <div class="modal-foot"><button data-action="back">返回修改</button><button class="primary" data-action="final-confirm">确认认领并充值</button></div>`;
   $('#confirm-modal').showModal();
@@ -208,7 +228,12 @@ document.addEventListener('click',e=>{
   if(action==='final-confirm')commitClaim();
   if(action==='remove-file'){attachments.splice(Number(b.dataset.index),1);renderFiles();$('#claim-error').textContent='';}
 });
-document.addEventListener('change',e=>{if(e.target.id==='voucher'){addFiles(Array.from(e.target.files));e.target.value='';}if(e.target.closest('#settings-form'))preview();});
+document.addEventListener('change',e=>{
+  if(e.target.id==='use-recommend'){useRecommend=e.target.checked;syncRecommendFields();return;}
+  if(e.target.name==='biz'&&e.target.closest('#claim-form')){fillMerchants(e.target.value,$('#claim-customer').value);return;}
+  if(e.target.id==='voucher'){addFiles(Array.from(e.target.files));e.target.value='';}
+  if(e.target.closest('#settings-form'))preview();
+});
 document.addEventListener('input',e=>{if(e.target.closest('#settings-form'))preview();});
 document.addEventListener('keydown',e=>{if(e.target.id==='drop-zone'&&['Enter',' '].includes(e.key)){e.preventDefault();$('#voucher').click();}});
 document.addEventListener('dragover',e=>{if(e.target.closest('#drop-zone')){e.preventDefault();e.dataTransfer.dropEffect='copy';}});
@@ -221,5 +246,5 @@ document.addEventListener('submit',e=>{
   if(f.id==='settings-form'){const c={adEnabled:f.elements.adEnabled.checked,fulfillEnabled:f.elements.fulfillEnabled.checked,count:Number(f.elements.count.value),first:f.elements.first.value,interval:Number(f.elements.interval.value)||config.interval,byStore:f.elements.byStore.checked,byMerchant:f.elements.byMerchant.checked,byFrequent:f.elements.byFrequent.checked,frequentMin:Number(f.elements.frequentMin.value)};if(schedule(c).error)return;if(!Number.isInteger(c.frequentMin)||c.frequentMin<1)return toast('高频阈值请填正整数。');config=c;render();toast('配置已保存（演示）。');}
 });
 $('#confirm-modal').addEventListener('cancel',()=>{pendingClaim=null;});
-$('#modal').addEventListener('close',()=>{activeReceipt=null;activeRecommendation=null;attachments=[];pendingClaim=null;});
+$('#modal').addEventListener('close',()=>{activeReceipt=null;useRecommend=true;attachments=[];pendingClaim=null;});
 render();

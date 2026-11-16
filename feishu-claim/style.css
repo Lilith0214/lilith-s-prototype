@@ -31,10 +31,10 @@
 #modal.fund-claim .toggle i:before{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;background:#fff;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .2s}
 #modal.fund-claim .toggle input:checked+i{background:#1677ff}
 #modal.fund-claim .toggle input:checked+i:before{transform:translateX(22px)}
-#modal.fund-claim .form-grid{margin-top:16px;grid-template-columns:220px minmax(0,1fr);gap:12px;align-items:start}
-#modal.fund-claim .field-label{margin:0 0 6px;font-size:13px;font-weight:400;line-height:20px;color:#595959}
-#modal.fund-claim .merchant-field .field-label{color:rgba(0,0,0,.65);line-height:1}
-#modal.fund-claim .radios{height:32px;gap:16px;padding:0}
+#modal.fund-claim .form-grid{margin-top:16px;grid-template-columns:220px minmax(0,1fr);column-gap:12px;align-items:start}
+#modal.fund-claim .form-grid>div{display:flex;flex-direction:column}
+#modal.fund-claim .field-label,#modal.fund-claim .merchant-field .field-label{height:20px;margin:0 0 6px;font-size:13px;font-weight:400;line-height:20px;color:#595959}
+#modal.fund-claim .radios{height:32px;margin:0;gap:16px;padding:0;align-items:center}
 #modal.fund-claim .radios label{gap:6px;font-size:13px;color:rgba(0,0,0,.88);cursor:pointer}
 #modal.fund-claim .radios input{appearance:none;width:16px;height:16px;margin:0;border:1px solid #d9d9d9;border-radius:50%;background:#fff;display:grid;place-items:center;accent-color:transparent}
 #modal.fund-claim .radios input:checked{border-color:#1677ff;background:radial-gradient(circle,#1677ff 0 4px,#fff 4.5px)}

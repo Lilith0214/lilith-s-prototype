@@ -138,13 +138,18 @@
     [aria-checked="true"] .radio::after { opacity: 1; transform: scale(1); }
     .account-copy { min-width: 0; }
     .account-title { display: block; font-size: 17px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
+    .fast {
+      display: inline-block; margin-left: 8px; padding: 0 7px; height: 20px; line-height: 20px;
+      border-radius: 10px; background: #e8f8ef; color: #17803d; font-size: 12px; font-style: normal;
+      font-weight: 700; vertical-align: 1px; letter-spacing: .2px;
+    }
     .account-meta { display: block; color: #556173; font-size: 14px; line-height: 1.3; margin-top: 3px; }
     .right { padding-top: 7px; min-width: 0; }
     .right-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 3px; min-height: 32px; }
     .text-button { background: transparent; border: 0; padding: 5px 0 5px 8px; color: #526076; font-size: 16px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
     .text-button:hover { color: var(--blue); }
     .details-row { display: flex; justify-content: space-between; align-items: start; gap: 16px; border-bottom: 1px solid #e9edf3; padding: 11px 0; font-size: 17px; line-height: 1.45; }
-    .details-label { color: #667287; flex: 0 0 34%; }
+    .details-label { color: #667287; flex: 0 1 46%; }
     .details-value { text-align: right; overflow-wrap: anywhere; min-width: 0; font-variant-numeric: tabular-nums; }
     .primary, .secondary { min-height: 53px; border-radius: 7px; padding: 12px 20px; font-size: 18px; transition: transform 100ms, background 150ms, box-shadow 150ms; }
     .primary { border: 1px solid var(--blue); background: var(--blue); color: white; font-weight: 600; }
@@ -286,24 +291,107 @@
     const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
     const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
     const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const companies = [['Beneficiary name', 'EXAMPLE COMPANY LIMITED']];
-    const bankAccount = (title, meta, bank, number, extra = []) => ({title, meta, details: [
-      ['Bank name', bank], ['Account number', number], ...companies, ...extra
+    const bankNotes = 'For US dollar regions, no crediting is available during off-hours and holidays, subject to bank channel restrictions.';
+    const bankAccount = (title, meta, bank, number) => ({title, meta, details: [
+      ['Bank name', bank], ['Account number', number], ['Beneficiary name', 'EXAMPLE COMPANY LIMITED']
     ]});
     const providers = [
       { id: 'payoneer', name: 'Payoneer', mark: 'P', accounts: [
-        {title: 'Payoneer to Payoneer', details: [['Payoneer Account', 'payments@example.com'], ...companies]},
-        bankAccount('US bank · Citibank', 'ACH / SWIFT', 'Citibank', '0000 0000 7390', [['Transfer method', 'ACH / SWIFT']]),
-        bankAccount('US bank · First Century Bank', 'ACH', 'First Century Bank', '0000 0000 9054', [['Transfer method', 'ACH']])
+        {title: 'Payoneer to Payoneer', faster: true, details: [
+          ['Payoneer Account', 'bestads01@163.com'],
+          ['Beneficiary name', 'BESTADS LIMITED']
+        ]},
+        {title: 'US bank · Citibank', meta: 'ACH / SWIFT', details: [
+          ['Payment settlement time', 'ACH: 1 business day; Swift: 1–3 business days'],
+          ['Beneficiary name', 'BESTADS LIMITED'],
+          ['Bank name', 'Citibank'],
+          ['Bank address', '111 Wall Street New York, NY 10043 USA'],
+          ['Routing (ABA)', '031100209'],
+          ['SWIFT', 'CITIUS33'],
+          ['Account number', '70585200002228282'],
+          ['Account type', 'CHECKING'],
+          ['Notes', bankNotes]
+        ]},
+        {title: 'US bank · First Century Bank', meta: 'ACH', details: [
+          ['Payment settlement time', 'ACH: 1 business day; Swift: 1–3 business days'],
+          ['Beneficiary name', 'HUACHAO TRADING LIMITED'],
+          ['Bank name', 'First Century Bank'],
+          ['Bank address', '1731 N Elm St Commerce, GA 30529 USA'],
+          ['Routing (ABA)', '061120084'],
+          ['Account number', '4023713418887'],
+          ['Account type', 'CHECKING'],
+          ['Notes', bankNotes]
+        ]}
       ]},
       { id: 'airwallex', name: 'Airwallex', mark: 'A', accounts: [
-        {title: 'Airwallex to Airwallex', details: [['Airwallex Account', '0000 0000 1268'], ...companies]},
-        bankAccount('US bank · Community Federal Savings Bank', 'ACH / Wire / SWIFT', 'Community Federal Savings Bank', '0000 0000 6812', [['Transfer method', 'ACH / Wire / SWIFT']]),
-        bankAccount('Hong Kong bank · DBS Bank (Hong Kong) Limited', 'Local / SWIFT', 'DBS Bank (Hong Kong) Limited', '0000 0000 3126', [['Transfer method', 'Local / SWIFT']])
+        {title: 'Airwallex to Airwallex', faster: true, details: [
+          ['Payment settlement time', 'About 1 hour'],
+          ['Account number', '10111068291322869'],
+          ['Account name', '牧雪贸易有限公司'],
+          ['Alternative account name', 'MUXUE TRADE LIMITED'],
+          ['Notes', 'Payment is not affected by weekends or holidays.']
+        ]},
+        {title: 'US bank · Community Federal Savings Bank', meta: 'ACH / Wire / SWIFT', details: [
+          ['Payment settlement time', 'ACH & Wire: 1 business day; Swift: 1–3 business days'],
+          ['Account name', 'MUXUE TRADE LIMITED'],
+          ['Bank account number', '8480040709'],
+          ['ACH routing number', '026073150'],
+          ['Fedwire routing number', '026073008'],
+          ['SWIFT code', 'CMFGUS33'],
+          ['Bank name', 'Community Federal Savings Bank'],
+          ['Account location', 'United States of America'],
+          ['Account type', 'Checking'],
+          ['Bank address', '89-16 Jamaica Ave'],
+          ['City', 'Woodhaven, NY'],
+          ['ZIP Code', '11421'],
+          ['Notes', 'For US dollar regions, no crediting is available during off-hours and holidays, subject to bank channel restrictions.']
+        ]},
+        {title: 'Hong Kong bank · DBS Bank (Hong Kong) Limited', meta: 'Local / SWIFT', details: [
+          ['Payment settlement time', '1 to 2 business days'],
+          ['Account name', 'MUXUE TRADE LIMITED'],
+          ['Bank account number', '795045636'],
+          ['Bank code', '016'],
+          ['Branch code', '478'],
+          ['SWIFT code', 'DHBKHKHH'],
+          ['Bank name', 'DBS Bank (Hong Kong) Limited'],
+          ['Account location', 'Hong Kong SAR'],
+          ['Account type', 'Current'],
+          ['Bank address', "18th Floor, The Center, 99 Queen's Road Central, Central"],
+          ['City', 'Hong Kong SAR'],
+          ['Notes', 'No credits can be processed during non-working days and rest days, which is affected by bank channel restrictions.']
+        ]}
       ]},
       { id: 'worldfirst', name: 'Worldfirst', mark: 'W', accounts: [
-        {title: 'Worldfirst to Worldfirst', details: [['Worldfirst Account', '0000 0000 5342'], ...companies]},
-        bankAccount('Hong Kong bank · HSBC', 'Local / SWIFT', 'HSBC Hong Kong', '0000 0000 1873', [['Transfer method', 'Local / SWIFT']])
+        {title: 'Worldfirst to Worldfirst', faster: true, details: [
+          ['Payment settlement time', 'About 10 minutes'],
+          ['Account number', 'WF-281024151920307013261793'],
+          ['Account name', 'MUXUE TRADE LIMITED'],
+          ['Notes', 'Payment must be made via WorldFirst']
+        ]},
+        {title: 'US bank · JP MORGAN CHASE BANK, N.A.', meta: 'ACH and SWIFT', details: [
+          ['Payment settlement time', 'ACH: same day; Swift: 1–3 business days'],
+          ['Account holder name', 'MUXUE TRADE LIMITED'],
+          ['Account number', '20000013041715'],
+          ['ACH routing number', '028000024'],
+          ['Wire remittance route number', '021000021'],
+          ['SWIFT/BIC', 'CHASUS33'],
+          ['Account type', 'Checking'],
+          ['Bank name', 'JP MORGAN CHASE BANK, N.A.'],
+          ['Bank address', '4 NEW YORK PLAZA FLOOR 15, New York, United States'],
+          ['Notes', bankNotes]
+        ]},
+        {title: 'Hong Kong bank · JP Morgan Chase HONG KONG BRANCH', meta: 'Local and SWIFT', details: [
+          ['Payment settlement time', '1 to 2 business days'],
+          ['Account holder name', 'MUXUE TRADE LIMITED'],
+          ['Account number', '63115233916'],
+          ['SWIFT/BIC', 'CHASHKHHXXX'],
+          ['Bank code', '007'],
+          ['Branch code', '863'],
+          ['Bank name', 'JP Morgan Chase HONG KONG BRANCH'],
+          ['Bank address', 'CHARTER HOUSE, 8 CONNAUGHT ROAD, CENTRAL'],
+          ['Bank region', 'HK'],
+          ['Notes', 'No credits can be processed during non-working days and rest days, which is affected by bank channel restrictions.']
+        ]}
       ]},
       { id: 'slash', name: 'Slash', mark: 'S', accounts: [bankAccount('Slash', '', 'Example Bank', '0000 0000 4821')] },
       { id: 'hsbc', name: 'HSBC', mark: 'H', accounts: [bankAccount('HSBC', '', 'HSBC', '0000 0000 6204')] }
@@ -376,7 +464,7 @@
       if (!provider) return;
       options.dataset.channel = provider.id;
       options.setAttribute('aria-label', `${provider.name} receiving account`);
-      options.innerHTML = provider.accounts.map((account, index) => `<button class="account-option" role="radio" aria-checked="${index === state.account}" tabindex="${index === state.account ? '0' : '-1'}" data-account="${index}"><span class="radio" aria-hidden="true"></span><span class="account-copy"><span class="account-title">${account.title}</span>${account.meta ? `<span class="account-meta">${account.meta}</span>` : ''}</span></button>`).join('');
+      options.innerHTML = provider.accounts.map((account, index) => `<button class="account-option" role="radio" aria-checked="${index === state.account}" tabindex="${index === state.account ? '0' : '-1'}" data-account="${index}"><span class="radio" aria-hidden="true"></span><span class="account-copy"><span class="account-title">${escapeHTML(account.title)}${account.faster ? '<em class="fast">Faster</em>' : ''}</span>${account.meta ? `<span class="account-meta">${escapeHTML(account.meta)}</span>` : ''}</span></button>`).join('');
     }
     async function transitionOptions() {
       const version = ++optionsVersion;
@@ -488,7 +576,7 @@
       if (state.provider === 'paypal') {
         return `<div class="right-header"><h3 class="section-heading">Online Payment</h3></div><div class="details-row"><span class="details-label">Payment Amount</span><span class="details-value" id="online-amount">${escapeHTML($('#amount').value || '—')} ${state.currency}</span></div><button class="primary confirm" data-action="pay">Pay Now</button>${reminderHTML()}`;
       }
-      return `<div class="right-header"><h3 class="section-heading">Transfer to Account</h3><button class="text-button" data-action="copy" aria-label="Copy all account details">copy all</button></div><div id="bank-details">${currentAccount().details.map(([label, value]) => `<div class="details-row"><span class="details-label">${label}</span><span class="details-value">${value}</span></div>`).join('')}</div><button class="primary confirm" data-action="confirm">Confirm Transfer Details</button>${reminderHTML()}`;
+      return `<div class="right-header"><h3 class="section-heading">Transfer to Account</h3><button class="text-button" data-action="copy" aria-label="Copy all account details">copy all</button></div><div id="bank-details">${currentAccount().details.map(([label, value]) => `<div class="details-row"><span class="details-label">${escapeHTML(label)}</span><span class="details-value">${escapeHTML(value)}</span></div>`).join('')}</div><button class="primary confirm" data-action="confirm">Confirm Transfer Details</button>${reminderHTML()}`;
     }
     function uploadHTML() {
       return `<button class="back" data-action="back">${icon('back')}Account details</button><div class="account-summary">${brand(currentProvider())}<span>${currentAccount().title}</span></div><input type="file" id="receipt-input" class="sr-only" tabindex="-1" accept="image/*,.pdf"><button class="uploader" id="uploader">${icon('upload')}<span>Upload bank receipt</span><small>Images or PDF</small></button><div class="receipt" id="receipt"${receiptName ? '' : ' hidden'}>${icon('check')}<span class="receipt-name" id="receipt-name">${escapeHTML(receiptName)}</span><button class="icon-button" data-action="remove-receipt" aria-label="Remove receipt">${icon('close')}</button></div><p id="receipt-error" role="status" style="color:#c52e3b;font-size:14px;margin-top:8px"${receiptError ? '' : ' hidden'}>${receiptError}</p><form class="upload-form" id="upload-form"><div class="upload-field"><label for="transfer-date"><span class="required">*</span>Transfer date</label><input type="date" id="transfer-date" value="${uploadDraft.date}"></div><div class="upload-field"><label for="transfer-amount">Transfer amount</label><div class="amount-wrap"><input id="transfer-amount" type="text" value="${escapeHTML($('#amount').value)}" placeholder="—" readonly><span class="amount-suffix">${state.currency}</span></div></div><div class="upload-field"><label for="transaction-id"><span class="required">*</span>Transaction ID</label><input id="transaction-id" type="text" placeholder="Enter transaction ID" autocomplete="off" value="${escapeHTML(uploadDraft.transaction)}"></div><div class="upload-field"><label for="payer-name"><span class="required">*</span>Payer name</label><input id="payer-name" type="text" placeholder="Enter payer name" autocomplete="off" value="${escapeHTML(uploadDraft.payer)}"></div><div class="form-actions"><button type="button" class="secondary" data-action="back">Cancel</button><button type="button" class="primary" data-action="submit">Submit for review</button></div></form>`;

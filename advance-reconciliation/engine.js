@@ -270,8 +270,8 @@
     rows.forEach(row=>{
       if(!dateOK(row.start)||!dateOK(row.end)||row.start>row.end) fail('请填写有效的起止日期');
       const orderStart=row.orderStart||row.start, orderEnd=row.orderEnd||row.end, flowStart=row.flowStart||row.start, flowEnd=row.flowEnd||row.end;
-      if(!dateOK(orderStart)||!dateOK(orderEnd)||orderStart>orderEnd) fail('请填写有效的订单取数时间');
-      if(!dateOK(flowStart)||!dateOK(flowEnd)||flowStart>flowEnd) fail('请填写有效的流水取数时间');
+      if(!dateOK(orderStart)||!dateOK(orderEnd)||orderStart>orderEnd) fail('请填写有效的订单时间');
+      if(!dateOK(flowStart)||!dateOK(flowEnd)||flowStart>flowEnd) fail('请填写有效的流水时间');
       if(row.id&&byId[row.id]){
         const cur=proposed.find(p=>p.id===row.id);
         if(!editable(byId[row.id])&&(cur.start!==row.start||cur.end!==row.end||(cur.orderStart||cur.start)!==orderStart||(cur.orderEnd||cur.end)!==orderEnd||(cur.flowStart||cur.start)!==flowStart||(cur.flowEnd||cur.end)!==flowEnd)) fail('已对账周期不能直接改日期');
@@ -286,7 +286,7 @@
     proposed.forEach(row=>{
       if(!row.id){
         const p={id:'P-'+(++s.seq),customer:cid,currency:c.currency,start:row.start,end:row.end,orderStart:row.orderStart,orderEnd:row.orderEnd,flowStart:row.flowStart,flowEnd:row.flowEnd,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]};
-        s.periods.push(p);audit(s,'生成周期',p.id,`${row.start} ~ ${row.end}；订单 ${row.orderStart} ~ ${row.orderEnd}；流水 ${row.flowStart} ~ ${row.flowEnd}`);
+        s.periods.push(p);audit(s,'生成周期',p.id,`${row.start} ~ ${row.end}；订单时间 ${row.orderStart} ~ ${row.orderEnd}；流水时间 ${row.flowStart} ~ ${row.flowEnd}`);
         return;
       }
       const p=byId[row.id];
@@ -295,7 +295,7 @@
       if(same) return;
       const old=`${p.start} ~ ${p.end}`;
       invalidate(s,p.id);p.start=row.start;p.end=row.end;p.orderStart=row.orderStart;p.orderEnd=row.orderEnd;p.flowStart=row.flowStart;p.flowEnd=row.flowEnd;
-      audit(s,'周期日期调整',p.id,`${old} → 周期 ${row.start} ~ ${row.end}；订单取数 ${row.orderStart} ~ ${row.orderEnd}；流水取数 ${row.flowStart} ~ ${row.flowEnd}`);
+      audit(s,'周期日期调整',p.id,`${old} → 周期 ${row.start} ~ ${row.end}；订单时间 ${row.orderStart} ~ ${row.orderEnd}；流水时间 ${row.flowStart} ~ ${row.flowEnd}`);
     });
     s.flows.filter(f=>f.customer===cid&&!f.override).forEach(f=>{
       const from=s.periods.find(p=>p.id===f.period);

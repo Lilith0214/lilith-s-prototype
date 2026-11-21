@@ -172,7 +172,7 @@
   }
   function marginRunning(s,cid) {
     const c=customer(s,cid), map={};
-    if(c.book==='excel'||c.reserveOpening==null) return map;
+    if(c.reserveOpening==null) return map;
     let bal=c.reserveOpening;
     s.periods.filter(p=>p.customer===cid).slice().sort((a,b)=>a.end<b.end?-1:a.end>b.end?1:0).forEach(p=>{
       const part=periodMarginParts(s,p);
@@ -183,14 +183,14 @@
   }
   function marginBalance(s,cid) {
     const c=customer(s,cid);
-    if(c.book==='excel'||c.reserveOpening==null) return null;
+    if(c.reserveOpening==null) return null;
     const map=marginRunning(s,cid);
     const posted=s.periods.filter(p=>p.customer===cid&&map[p.id]&&map[p.id].posted).sort((a,b)=>a.end<b.end?-1:1);
     return posted.length?map[posted[posted.length-1].id].bal:c.reserveOpening;
   }
   function setReserveOpening(s,cid,amount) {
     const c=customer(s,cid);
-    if(c.book==='excel') fail('Excel 手工维护客户不做保证金期初');
+    if(c.book!=='weekly'&&c.book!=='single'&&c.book!=='excel') fail('未知的客户类型');
     if(!Number.isSafeInteger(amount)||amount<0) fail('请填写有效的保证金期初');
     c.reserveOpening=amount;
     audit(s,'保证金期初',cid,`${amount/100} ${c.currency}`);
@@ -213,7 +213,9 @@
     audit(s,'生成 PayPal 对账单','单平台',`按周期生成 ${n} 张`);
     return n;
   }
-  function excelBalance(row) { return row.withdraw+row.eod; }
+  function excelBalance(row) {
+    return Number.isSafeInteger(row.available)?row.available:null;
+  }
   function syncExcelToFund(s,cid) {
     const c=customer(s,cid);
     if(c.book!=='excel') fail('只有 Excel 手工维护客户把日余额同步到 Fund');
@@ -221,6 +223,7 @@
     if(!rows.length) fail('没有可同步的日余额');
     const latest=rows[rows.length-1];
     const target=excelBalance(latest);
+    if(target==null) fail('客户可用余额还没有数');
     const acct=s.accounts.find(a=>a.customer===cid&&a.channel==='PayPal')||fail('没有 PayPal 资金账户');
     if(acct.opening===null){acct.opening=0;acct.openingAt=rows[0].date;}
     const key=`EXCEL-SYNC:${cid}:${latest.date}`;
@@ -502,11 +505,11 @@
     return st;
   }
   function seed() {
-    const s={schema:15,seq:100,customers:[
+    const s={schema:16,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000,book:'weekly',reserveOpening:80000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000,book:'weekly',reserveOpening:30000},
-      {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0,book:'excel',reserveOpening:null},
-      {id:'DEMO-1004',name:'示例商户 D',currency:'USD',days:7,service:640,reserve:1000,book:'single',reserveOpening:null}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
+      {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0,book:'excel',reserveOpening:45000},
+      {id:'DEMO-1004',name:'示例商户 D',currency:'USD',days:7,service:640,reserve:1000,book:'single',reserveOpening:60000}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
     [['A-PP','DEMO-1001','PayPal','EUR',100000,142000,8000],['A-OP','DEMO-1001','Oceanpayment','EUR',50000,62000,4000],['B-AW','DEMO-1002','Airwallex','USD',80000,240000,12000],['B-SP','DEMO-1002','ShopifyPayments','USD',20000,87000,9000],['C-PP','DEMO-1003','PayPal','USD',null,25000,0]].forEach(([id,cid,channel,currency,opening,channelBalance,frozen])=>s.accounts.push({id,customer:cid,channel,currency,opening,openingAt:opening===null?null:'2026-09-01',channelBalance,frozen,channelAt:'2026-10-27 08:00:00'}));
     s.customers.forEach((c,i)=>{if(c.book==='single')return;[13,20].forEach((day,j)=>s.periods.push({id:`P${i+1}${j+1}`,customer:c.id,currency:c.currency,start:`2026-10-${day}`,end:`2026-10-${day+6}`,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]}));});
     let n=0;
@@ -582,9 +585,9 @@
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};s.lastUpload={added:8,failed:2};
     s.paypalRate={pair:'USD/EUR',rate:'0.9214',source:'PayPal 后台自动获取',fetchedAt:'2026-11-20T16:00:00.000Z'};
     s.paypalDaily=[
-      {customer:'DEMO-1003',date:'2026-11-18',eod:250000,withdraw:40000},
-      {customer:'DEMO-1003',date:'2026-11-19',eod:180000,withdraw:12000},
-      {customer:'DEMO-1003',date:'2026-11-20',eod:210000,withdraw:0}
+      {customer:'DEMO-1003',account:'C-PP',date:'2026-11-18',currency:'USD',eod:250000,frozen:18000,withdraw:40000,available:268400,fetchedAt:'2026-11-18 23:59:12'},
+      {customer:'DEMO-1003',account:'C-PP',date:'2026-11-19',currency:'USD',eod:180000,frozen:15000,withdraw:12000,available:191500,fetchedAt:'2026-11-19 23:58:40'},
+      {customer:'DEMO-1003',account:'C-PP',date:'2026-11-20',currency:'USD',eod:210000,frozen:22000,withdraw:0,available:205000,fetchedAt:'2026-11-20 23:59:05'}
     ];
     s.accounts.push({id:'C-FW',customer:'DEMO-1003',channel:'垫资钱包',currency:'USD',opening:0,openingAt:'2026-09-01',channelBalance:0,frozen:0,channelAt:'2026-11-20 23:59:00'});
     s.accounts.push({id:'D-PP',customer:'DEMO-1004',channel:'PayPal',currency:'USD',opening:0,openingAt:'2026-09-01',channelBalance:0,frozen:0,channelAt:'2026-11-20 08:00:00'});
@@ -592,6 +595,10 @@
       {id:'PS-1',customer:'DEMO-1004',start:'2024-08-02',end:'2026-09-15',status:'confirmed',creator:'自动创建对账任务',createdAt:'2026-11-18T02:00:00.000Z',confirmedAt:'2026-11-18T03:00:00.000Z',rates:Object.assign({},MERT_RATES),rows:mertSampleRows()},
       {id:'PS-2',customer:'DEMO-1004',start:'2026-10-01',end:'2026-10-07',status:'draft',creator:'自动创建对账任务',createdAt:'2026-11-20T02:00:00.000Z',rates:Object.assign({},MERT_RATES),rows:blankMertRows()}
     ];
+    s.periods.push({id:'SD1',customer:'DEMO-1004',currency:'USD',start:'2026-10-13',end:'2026-10-19',status:'draft',version:1,service:640,reserve:1000,adjustments:[]});
+    s.periods.push({id:'SD2',customer:'DEMO-1004',currency:'USD',start:'2026-10-20',end:'2026-10-26',status:'draft',version:1,service:640,reserve:1000,adjustments:[]});
+    addReserveAdjustment(s,'SD1','add',2500,'单平台示例保证金');
+    review(s,'SD1');confirm(s,'SD1','演示单平台周期确认');syncSettlement(s,'SD1');
     s.periods.forEach(p=>{if(customer(s,p.customer).book==='weekly') p.paypalGeneratedAt='2026-11-20T16:00:00.000Z';});
     return s;
   }

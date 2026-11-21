@@ -496,16 +496,27 @@
     audit(s,'PayPal 对账',cid,`${start} ~ ${end} 已生成 PayPal 对账单 ${st.id}`);
     return st;
   }
+  function postAdvanceSettlement(s,st){
+    const cents=Math.round(r2(computeMert(st).summary.customerUsd)*100);
+    const acct=s.accounts.find(a=>a.customer===st.customer&&a.channel==='PayPal')||s.accounts.find(a=>a.customer===st.customer&&a.channel==='垫资钱包')||fail('没有可同步的垫资账户');
+    const key=`ADVANCE-SETTLE:${st.id}`;
+    if(!s.events.some(e=>e.id===key)){
+      s.events.push({id:key,kind:'advance-settlement',account:acct.id,customer:st.customer,currency:'USD',delta:cents,reference:st.id,time:st.confirmedAt||new Date().toISOString(),label:'垫资客户结算'});
+    }
+    audit(s,'垫资客户结算',st.id,`${cents/100} USD 已同步到 Fund ${acct.id}`);
+    return s.events.find(e=>e.id===key);
+  }
   function confirmPaypalStatement(s,id){
     const st=(s.paypalStatements||[]).find(x=>x.id===id)||fail('对账单不存在');
     if(st.status==='confirmed') return st;
     st.status='confirmed';
     st.confirmedAt=new Date().toISOString();
-    audit(s,'确认 PayPal 对账单',id,`客户余额 USD ${computeMert(st).summary.customerUsd} 已写入余额表`);
+    const ev=postAdvanceSettlement(s,st);
+    audit(s,'确认 PayPal 对账单',id,`客户余额 USD ${computeMert(st).summary.customerUsd} 已写入余额表；Fund 流水 ${ev.id} 类型 垫资客户结算`);
     return st;
   }
   function seed() {
-    const s={schema:16,seq:100,customers:[
+    const s={schema:17,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000,book:'weekly',reserveOpening:80000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000,book:'weekly',reserveOpening:30000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0,book:'excel',reserveOpening:45000},
@@ -599,6 +610,7 @@
     s.periods.push({id:'SD2',customer:'DEMO-1004',currency:'USD',start:'2026-10-20',end:'2026-10-26',status:'draft',version:1,service:640,reserve:1000,adjustments:[]});
     addReserveAdjustment(s,'SD1','add',2500,'单平台示例保证金');
     review(s,'SD1');confirm(s,'SD1','演示单平台周期确认');syncSettlement(s,'SD1');
+    s.paypalStatements.filter(st=>st.status==='confirmed').forEach(st=>postAdvanceSettlement(s,st));
     s.periods.forEach(p=>{if(customer(s,p.customer).book==='weekly') p.paypalGeneratedAt='2026-11-20T16:00:00.000Z';});
     return s;
   }

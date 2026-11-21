@@ -23,9 +23,6 @@
 .modal.cycle-modal .modal-body{overflow:auto}
 .cycle-wrap{overflow:auto;max-width:100%}
 .modal-body .cycle-table input{width:132px}
-.cycle-exclusion{margin-top:10px;color:#4e5969;font-size:12px;line-height:1.6}
-.cycle-exclusion p{margin:0 0 8px}
-.tag-occupied{background:#fff1f0;color:#cf3e45}
 .range-stack{display:flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:18px;white-space:normal;min-width:280px}
 .range-stack .sub{white-space:normal}
 .statement-filter .hint{margin:10px 0 0;color:#646a73}

@@ -17,6 +17,81 @@
   const customer = (s, id) => s.customers.find(c => c.id === id) || fail('客户不存在');
   const period = (s, id) => s.periods.find(p => p.id === id) || fail('周期不存在');
   const editable = p => ['draft', 'reviewed'].includes(p.status);
+  function windows(p) {
+    return {
+      start: p.start,
+      end: p.end,
+      orderStart: p.orderStart || p.start,
+      orderEnd: p.orderEnd || p.end,
+      flowStart: p.flowStart || p.start,
+      flowEnd: p.flowEnd || p.end
+    };
+  }
+  function covers(date, start, end) {
+    return !!(date && start && end && start <= end && date >= start && date <= end);
+  }
+  function owners(periods, items, kind) {
+    const list = periods.filter(p => p.start && p.end && p.start <= p.end).slice().sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+    const byId = new Map(list.filter(p => p.id).map(p => [p.id, p]));
+    const span = p => {
+      const w = windows(p);
+      return kind === 'order' ? [w.orderStart, w.orderEnd] : [w.flowStart, w.flowEnd];
+    };
+    const hit = (p, item) => covers(item.date, span(p)[0], span(p)[1]);
+    const owner = new Map();
+    items.forEach(item => {
+      if (item.override && item.period && byId.has(item.period)) { owner.set(item.id, item.period); return; }
+      const cur = item.period && byId.get(item.period);
+      if (cur && hit(cur, item)) owner.set(item.id, cur.id);
+    });
+    list.forEach(p => {
+      if (!editable(p)) return;
+      items.forEach(item => {
+        if (owner.has(item.id)) return;
+        if (hit(p, item)) owner.set(item.id, p.id);
+      });
+    });
+    return owner;
+  }
+  function exclusionReport(periods, orders, flows) {
+    const orderOwner = owners(periods, orders, 'order');
+    const flowOwner = owners(periods, flows, 'flow');
+    const label = new Map(periods.map(p => [p.id, `${p.start} ~ ${p.end}`]));
+    const describe = (items, owner, start, end, id) => items.filter(item => covers(item.date, start, end) && owner.get(item.id) && owner.get(item.id) !== id).map(item => ({
+      id: item.id, date: item.date, time: item.time || '', kind: item.kind || '', owner: label.get(owner.get(item.id)) || owner.get(item.id)
+    }));
+    return periods.map(p => {
+      const w = windows(p);
+      return {
+        id: p.id,
+        orderExcluded: describe(orders, orderOwner, w.orderStart, w.orderEnd, p.id),
+        flowExcluded: describe(flows, flowOwner, w.flowStart, w.flowEnd, p.id)
+      };
+    });
+  }
+  function assignFetch(s, cid) {
+    const periods = s.periods.filter(p => p.customer === cid);
+    const orders = s.orders.filter(o => o.customer === cid);
+    const flows = s.flows.filter(f => f.customer === cid);
+    const orderOwner = owners(periods, orders, 'order');
+    const flowOwner = owners(periods, flows, 'flow');
+    orders.forEach(o => {
+      if (o.override) return;
+      const next = orderOwner.get(o.id) || null;
+      if ((o.period || null) !== next) o.period = next;
+    });
+    flows.forEach(f => {
+      if (f.override) return;
+      const next = flowOwner.get(f.id) || null;
+      if ((f.period || null) === next) return;
+      const from = f.period && s.periods.find(p => p.id === f.period);
+      const to = next && s.periods.find(p => p.id === next);
+      if (from && !editable(from)) return;
+      if (from && editable(from)) invalidate(s, from.id);
+      if (to && editable(to)) invalidate(s, to.id);
+      f.period = next;
+    });
+  }
   const flowKey = f => [f.channel, f.account, f.eventId].join('|');
   function matches(s, f) {
     return s.orders.filter(o => o.customer === f.customer && o.account === f.account && o.currency === f.currency && o.refs.includes(f.bill));
@@ -122,8 +197,12 @@
       if(next && next.id!==f.period){ensureEditable(s,f.period); ensureEditable(s,next.id); moves.push([f,next.id]);}
     });
     const old=`${p.start} ~ ${p.end}`;
+    const orderDefault=(p.orderStart||p.start)===p.start&&(p.orderEnd||p.end)===p.end;
+    const flowDefault=(p.flowStart||p.start)===p.start&&(p.flowEnd||p.end)===p.end;
     const changed=new Set([id]); moves.forEach(([f,to])=>{changed.add(f.period);changed.add(to);f.period=to;});
     changed.forEach(x=>invalidate(s,x)); p.start=start;p.end=end;
+    if(orderDefault){p.orderStart=start;p.orderEnd=end;}
+    if(flowDefault){p.flowStart=start;p.flowEnd=end;}
     audit(s,'周期日期调整',id,`${old} → ${start} ~ ${end}；${moves.length} 笔自动重分配，手动改期流水保留；${reason}`);
   }
   function addAdjustment(s,id,accountId,amount,reason) {
@@ -232,7 +311,7 @@
       if(old){duplicates++;return;}
       const a=s.accounts.find(a=>a.id===f.account);
       if(!a||a.customer!==f.customer||a.channel!==f.channel||a.currency!==f.currency){quarantined++;return;}
-      const p=s.periods.find(p=>p.customer===f.customer&&p.currency===f.currency&&f.date>=p.start&&f.date<=p.end);
+      const p=s.periods.find(p=>p.customer===f.customer&&p.currency===f.currency&&covers(f.date, (p.flowStart||p.start), (p.flowEnd||p.end)));
       if(!p||!editable(p)){quarantined++;return;}
       f.period=p.id;f.originalPeriod=p.id;f.source='Fund';s.flows.push(f);invalidate(s,p.id);added++;
     });
@@ -244,7 +323,7 @@
     if(!dateOK(start)) fail('起始日期无效');
     const end=endOverride || addDays(start,c.days-1);
     if(!dateOK(end)||end<start||s.periods.some(p=>p.customer===cid&&p.start<=end&&p.end>=start)) fail('日期无效或与已有周期重叠');
-    const p={id:'P-'+(++s.seq),customer:cid,currency:c.currency,start,end,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]};
+    const p={id:'P-'+(++s.seq),customer:cid,currency:c.currency,start,end,orderStart:start,orderEnd:end,flowStart:start,flowEnd:end,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]};
     s.periods.push(p);audit(s,'生成周期',p.id,`${start} ~ ${end}；${c.days} 天；Asia/Shanghai`);return p;
   }
   function saveCyclePlan(s,cid,days,rows) {
@@ -252,14 +331,17 @@
     if(!Number.isInteger(days)||days<1||days>90) fail('周期天数须为 1–90 的整数（原型输入范围）');
     const mine=s.periods.filter(p=>p.customer===cid);
     const byId=Object.fromEntries(mine.map(p=>[p.id,p]));
-    const proposed=mine.map(p=>({id:p.id,start:p.start,end:p.end}));
+    const proposed=mine.map(p=>({id:p.id,start:p.start,end:p.end,orderStart:p.orderStart||p.start,orderEnd:p.orderEnd||p.end,flowStart:p.flowStart||p.start,flowEnd:p.flowEnd||p.end}));
     rows.forEach(row=>{
       if(!dateOK(row.start)||!dateOK(row.end)||row.start>row.end) fail('请填写有效的起止日期');
+      const orderStart=row.orderStart||row.start, orderEnd=row.orderEnd||row.end, flowStart=row.flowStart||row.start, flowEnd=row.flowEnd||row.end;
+      if(!dateOK(orderStart)||!dateOK(orderEnd)||orderStart>orderEnd) fail('请填写有效的订单取数时间');
+      if(!dateOK(flowStart)||!dateOK(flowEnd)||flowStart>flowEnd) fail('请填写有效的流水取数时间');
       if(row.id&&byId[row.id]){
         const cur=proposed.find(p=>p.id===row.id);
-        if(!editable(byId[row.id])&&(cur.start!==row.start||cur.end!==row.end)) fail('已对账周期不能直接改日期');
-        cur.start=row.start;cur.end=row.end;
-      }else proposed.push({id:null,start:row.start,end:row.end});
+        if(!editable(byId[row.id])&&(cur.start!==row.start||cur.end!==row.end||(cur.orderStart||cur.start)!==orderStart||(cur.orderEnd||cur.end)!==orderEnd||(cur.flowStart||cur.start)!==flowStart||(cur.flowEnd||cur.end)!==flowEnd)) fail('已对账周期不能直接改日期');
+        cur.start=row.start;cur.end=row.end;cur.orderStart=orderStart;cur.orderEnd=orderEnd;cur.flowStart=flowStart;cur.flowEnd=flowEnd;
+      }else proposed.push({id:null,start:row.start,end:row.end,orderStart,orderEnd,flowStart,flowEnd});
     });
     for(let i=0;i<proposed.length;i++) for(let j=i+1;j<proposed.length;j++){
       const a=proposed[i],b=proposed[j];
@@ -268,22 +350,19 @@
     if(days!==c.days) configure(s,cid,days,c.service,c.reserve);
     proposed.forEach(row=>{
       if(!row.id){
-        const p={id:'P-'+(++s.seq),customer:cid,currency:c.currency,start:row.start,end:row.end,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]};
-        s.periods.push(p);audit(s,'生成周期',p.id,`${row.start} ~ ${row.end}；${days} 天`);
+        const p={id:'P-'+(++s.seq),customer:cid,currency:c.currency,start:row.start,end:row.end,orderStart:row.orderStart,orderEnd:row.orderEnd,flowStart:row.flowStart,flowEnd:row.flowEnd,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]};
+        s.periods.push(p);audit(s,'生成周期',p.id,`${row.start} ~ ${row.end}；订单 ${row.orderStart} ~ ${row.orderEnd}；流水 ${row.flowStart} ~ ${row.flowEnd}`);
         return;
       }
       const p=byId[row.id];
-      if(!editable(p)||(p.start===row.start&&p.end===row.end)) return;
+      if(!editable(p)) return;
+      const same=p.start===row.start&&p.end===row.end&&(p.orderStart||p.start)===row.orderStart&&(p.orderEnd||p.end)===row.orderEnd&&(p.flowStart||p.start)===row.flowStart&&(p.flowEnd||p.end)===row.flowEnd;
+      if(same) return;
       const old=`${p.start} ~ ${p.end}`;
-      invalidate(s,p.id);p.start=row.start;p.end=row.end;
-      audit(s,'周期日期调整',p.id,`${old} → ${row.start} ~ ${row.end}`);
+      invalidate(s,p.id);p.start=row.start;p.end=row.end;p.orderStart=row.orderStart;p.orderEnd=row.orderEnd;p.flowStart=row.flowStart;p.flowEnd=row.flowEnd;
+      audit(s,'周期日期调整',p.id,`${old} → 周期 ${row.start} ~ ${row.end}；订单取数 ${row.orderStart} ~ ${row.orderEnd}；流水取数 ${row.flowStart} ~ ${row.flowEnd}`);
     });
-    s.flows.filter(f=>f.customer===cid&&!f.override).forEach(f=>{
-      const from=s.periods.find(p=>p.id===f.period);
-      const next=s.periods.find(p=>p.customer===cid&&p.currency===f.currency&&f.date>=p.start&&f.date<=p.end);
-      if(!from||!next||next.id===f.period||!editable(from)||!editable(next)) return;
-      invalidate(s,from.id);invalidate(s,next.id);f.period=next.id;
-    });
+    assignFetch(s,cid);
   }
   function configure(s,cid,days,service,reserve) {
     if(!Number.isInteger(days)||days<1||days>90) fail('周期天数须为 1–90 的整数（原型输入范围）');
@@ -297,7 +376,7 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:8,seq:100,customers:[
+    const s={schema:9,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
@@ -362,8 +441,23 @@
     approve(s,liveB.id,true);execute(s,liveB.id);
     stamp(liveA,'2026-11-03T08:00:00.000Z');
     stamp(liveB,'2026-11-03T08:10:00.000Z');
+    const snap={gross:0,refund:0,dispute:0,fee:0,service:0,reserve:0,manual:0,total:0,unresolved:0,matched:0,excluded:0,platform:0,other:0,byAccount:{}};
+    const a=s.customers[0];
+    const periodBase={customer:a.id,currency:a.currency,version:1,service:a.service,reserve:a.reserve,adjustments:[]};
+    s.periods.push({...periodBase,id:'NA1',start:'2026-11-04',end:'2026-11-10',orderStart:'2026-11-04',orderEnd:'2026-11-10',flowStart:'2026-11-04',flowEnd:'2026-11-10',status:'confirmed',snapshot:snap});
+    s.periods.push({...periodBase,id:'NA2',start:'2026-11-11',end:'2026-11-17',orderStart:'2026-11-10',orderEnd:'2026-11-17',flowStart:'2026-11-11',flowEnd:'2026-11-18',status:'draft',snapshot:null});
+    s.periods.push({...periodBase,id:'NA3',start:'2026-11-18',end:'2026-11-24',orderStart:'2026-11-18',orderEnd:'2026-11-24',flowStart:'2026-11-18',flowEnd:'2026-11-25',status:'draft',snapshot:null});
+    s.periods.push({...periodBase,id:'NA4',start:'2026-12-01',end:'2026-12-07',orderStart:'2026-11-30',orderEnd:'2026-12-06',flowStart:'2026-12-01',flowEnd:'2026-12-08',status:'draft',snapshot:null});
+    const demoOrder=(id,date,time,amount,period)=>{s.orders.push({id,customer:a.id,account:'A-PP',store:'示例店铺 Alpha',currency:'EUR',date,time,amount,refs:['REF-'+id],period,override:false});};
+    const demoFlow=(id,date,time,amount,period)=>{s.flows.push({id,eventId:'TX-'+id,customer:a.id,account:'A-PP',channel:'PayPal',currency:'EUR',date,time,bill:'BILL-'+id,period,originalPeriod:period,override:false,source:'Fund',type:'payment',amount,fee:-100});};
+    demoOrder('ORDER-1110-AM','2026-11-10','09:12',4200,'NA1');
+    demoOrder('ORDER-1110-PM','2026-11-10','16:40',2800,'NA2');
+    demoFlow('FLOW-1118-AM','2026-11-18','10:05',3600,'NA2');
+    demoFlow('FLOW-1118-PM','2026-11-18','15:48',5100,'NA3');
+    demoOrder('ORDER-1130','2026-11-30','18:20',1900,'NA4');
+    demoFlow('FLOW-1208','2026-12-08','11:16',2600,'NA4');
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};s.lastUpload={added:8,failed:2};
     return s;
   }
-  return {channels,clone,roundRate,addDays,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,createPeriod,configure,saveCyclePlan,correction,audit,seed};
+  return {channels,clone,roundRate,addDays,windows,covers,exclusionReport,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,createPeriod,configure,saveCyclePlan,correction,audit,seed};
 });

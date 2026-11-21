@@ -260,6 +260,27 @@
     audit(s,'渠道流水同步',target.id,`${opts.channel} ${opts.start} ~ ${opts.end} → ${target.start} ~ ${target.end}；新增 ${added}；重复 ${duplicates}；待处理 ${quarantined}`);
     return s.lastSync;
   }
+  function ingestOrders(s,batch,opts) {
+    const target=period(s,opts&&opts.periodId);
+    if(!opts||!opts.customer||target.customer!==opts.customer) fail('请选择该客户的结算周期');
+    if(!editable(target)) fail('已对账周期不能直接写入订单');
+    if(!dateOK(opts.start)||!dateOK(opts.end)||opts.start>opts.end) fail('请填写有效的订单时间');
+    let added=0,duplicates=0,quarantined=0;
+    batch.forEach(raw=>{
+      if(raw.customer!==opts.customer) return;
+      if(!raw.date||raw.date<opts.start||raw.date>opts.end) return;
+      const o=clone(raw);
+      if(!o.id){quarantined++;return;}
+      if(s.orders.some(x=>x.id===o.id)){duplicates++;return;}
+      const a=s.accounts.find(a=>a.id===o.account);
+      if(!a||a.customer!==o.customer||a.currency!==o.currency){quarantined++;return;}
+      o.period=target.id;o.originalPeriod=target.id;o.override=false;s.orders.push(o);added++;
+    });
+    if(added) invalidate(s,target.id);
+    s.lastOrderSync={time:new Date().toISOString(),added,duplicates,quarantined};
+    audit(s,'订单明细同步',target.id,`${opts.start} ~ ${opts.end} → ${target.start} ~ ${target.end}；新增 ${added}；重复 ${duplicates}；待处理 ${quarantined}`);
+    return s.lastOrderSync;
+  }
   function createPeriod(s,cid,start,endOverride) {
     const c=customer(s,cid);
     if(!dateOK(start)) fail('起始日期无效');
@@ -313,7 +334,7 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:11,seq:100,customers:[
+    const s={schema:12,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
@@ -384,8 +405,12 @@
       {id:'SYNC-A1',eventId:'TX-SYNC-A1',customer:a.id,account:'A-PP',channel:'PayPal',currency:'EUR',date:'2026-11-18',bill:'BILL-SYNC-A1',type:'payment',amount:3200,fee:-80},
       {id:'SYNC-A2',eventId:'TX-SYNC-A2',customer:a.id,account:'A-PP',channel:'PayPal',currency:'EUR',date:'2026-11-20',bill:'BILL-SYNC-A2',type:'payment',amount:4500,fee:-90}
     ];
+    s.orderInbox=[
+      {id:'ORDER-SYNC-18',shopifyId:'9100000000018',customer:a.id,account:'A-PP',store:'示例店铺 Alpha',currency:'EUR',date:'2026-11-18',amount:8800,refs:['REF-SYNC-ORD-18']},
+      {id:'ORDER-SYNC-20',shopifyId:'9100000000020',customer:a.id,account:'A-PP',store:'示例店铺 Alpha',currency:'EUR',date:'2026-11-20',amount:12600,refs:['REF-SYNC-ORD-20']}
+    ];
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};s.lastUpload={added:8,failed:2};
     return s;
   }
-  return {channels,clone,roundRate,addDays,windows,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,createPeriod,configure,saveCyclePlan,correction,audit,seed};
+  return {channels,clone,roundRate,addDays,windows,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,ingestOrders,createPeriod,configure,saveCyclePlan,correction,audit,seed};
 });

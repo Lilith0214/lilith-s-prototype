@@ -239,19 +239,26 @@
     s.operations.filter(o=>o.execution==='执行成功').forEach(o=>o.callback='已回传');
     audit(s,'Fund 余额回传','全部账户','按账户更新余额快照；不再次计入结算收入');
   }
-  function ingest(s,batch) {
+  function ingest(s,batch,opts) {
+    const target=period(s,opts&&opts.periodId);
+    if(!opts||!opts.customer||target.customer!==opts.customer) fail('请选择该客户的结算周期');
+    if(!editable(target)) fail('已对账周期不能直接写入流水');
+    if(!opts.channel) fail('请选择渠道');
+    if(!dateOK(opts.start)||!dateOK(opts.end)||opts.start>opts.end) fail('请填写有效的流水时间');
     let added=0,duplicates=0,quarantined=0;
     batch.forEach(raw=>{
+      if(raw.customer!==opts.customer||raw.channel!==opts.channel) return;
+      if(!raw.date||raw.date<opts.start||raw.date>opts.end) return;
       const f=clone(raw), old=s.flows.find(x=>flowKey(x)===flowKey(f));
       if(old){duplicates++;return;}
       const a=s.accounts.find(a=>a.id===f.account);
       if(!a||a.customer!==f.customer||a.channel!==f.channel||a.currency!==f.currency){quarantined++;return;}
-      const p=s.periods.find(p=>p.customer===f.customer&&p.currency===f.currency&&f.date>=p.start&&f.date<=p.end);
-      if(!p||!editable(p)){quarantined++;return;}
-      f.period=p.id;f.originalPeriod=p.id;f.source='Fund';s.flows.push(f);invalidate(s,p.id);added++;
+      f.period=target.id;f.originalPeriod=target.id;f.source='Fund';f.override=false;s.flows.push(f);added++;
     });
+    if(added) invalidate(s,target.id);
     s.lastSync={time:new Date().toISOString(),added,duplicates,quarantined};
-    audit(s,'渠道流水同步','四渠道',`新增 ${added}；重复 ${duplicates}；待处理 ${quarantined}`);return s.lastSync;
+    audit(s,'渠道流水同步',target.id,`${opts.channel} ${opts.start} ~ ${opts.end} → ${target.start} ~ ${target.end}；新增 ${added}；重复 ${duplicates}；待处理 ${quarantined}`);
+    return s.lastSync;
   }
   function createPeriod(s,cid,start,endOverride) {
     const c=customer(s,cid);
@@ -269,14 +276,11 @@
     const proposed=mine.map(p=>({id:p.id,start:p.start,end:p.end,orderStart:p.orderStart||p.start,orderEnd:p.orderEnd||p.end,flowStart:p.flowStart||p.start,flowEnd:p.flowEnd||p.end}));
     rows.forEach(row=>{
       if(!dateOK(row.start)||!dateOK(row.end)||row.start>row.end) fail('请填写有效的起止日期');
-      const orderStart=row.orderStart||row.start, orderEnd=row.orderEnd||row.end, flowStart=row.flowStart||row.start, flowEnd=row.flowEnd||row.end;
-      if(!dateOK(orderStart)||!dateOK(orderEnd)||orderStart>orderEnd) fail('请填写有效的订单时间');
-      if(!dateOK(flowStart)||!dateOK(flowEnd)||flowStart>flowEnd) fail('请填写有效的流水时间');
       if(row.id&&byId[row.id]){
         const cur=proposed.find(p=>p.id===row.id);
-        if(!editable(byId[row.id])&&(cur.start!==row.start||cur.end!==row.end||(cur.orderStart||cur.start)!==orderStart||(cur.orderEnd||cur.end)!==orderEnd||(cur.flowStart||cur.start)!==flowStart||(cur.flowEnd||cur.end)!==flowEnd)) fail('已对账周期不能直接改日期');
-        cur.start=row.start;cur.end=row.end;cur.orderStart=orderStart;cur.orderEnd=orderEnd;cur.flowStart=flowStart;cur.flowEnd=flowEnd;
-      }else proposed.push({id:null,start:row.start,end:row.end,orderStart,orderEnd,flowStart,flowEnd});
+        if(!editable(byId[row.id])&&(cur.start!==row.start||cur.end!==row.end)) fail('已对账周期不能直接改日期');
+        cur.start=row.start;cur.end=row.end;
+      }else proposed.push({id:null,start:row.start,end:row.end});
     });
     for(let i=0;i<proposed.length;i++) for(let j=i+1;j<proposed.length;j++){
       const a=proposed[i],b=proposed[j];
@@ -285,23 +289,16 @@
     if(days!==c.days) configure(s,cid,days,c.service,c.reserve);
     proposed.forEach(row=>{
       if(!row.id){
-        const p={id:'P-'+(++s.seq),customer:cid,currency:c.currency,start:row.start,end:row.end,orderStart:row.orderStart,orderEnd:row.orderEnd,flowStart:row.flowStart,flowEnd:row.flowEnd,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]};
-        s.periods.push(p);audit(s,'生成周期',p.id,`${row.start} ~ ${row.end}；订单时间 ${row.orderStart} ~ ${row.orderEnd}；流水时间 ${row.flowStart} ~ ${row.flowEnd}`);
+        const p={id:'P-'+(++s.seq),customer:cid,currency:c.currency,start:row.start,end:row.end,orderStart:row.start,orderEnd:row.end,flowStart:row.start,flowEnd:row.end,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]};
+        s.periods.push(p);audit(s,'生成周期',p.id,`${row.start} ~ ${row.end}`);
         return;
       }
       const p=byId[row.id];
       if(!editable(p)) return;
-      const same=p.start===row.start&&p.end===row.end&&(p.orderStart||p.start)===row.orderStart&&(p.orderEnd||p.end)===row.orderEnd&&(p.flowStart||p.start)===row.flowStart&&(p.flowEnd||p.end)===row.flowEnd;
-      if(same) return;
+      if(p.start===row.start&&p.end===row.end) return;
       const old=`${p.start} ~ ${p.end}`;
-      invalidate(s,p.id);p.start=row.start;p.end=row.end;p.orderStart=row.orderStart;p.orderEnd=row.orderEnd;p.flowStart=row.flowStart;p.flowEnd=row.flowEnd;
-      audit(s,'周期日期调整',p.id,`${old} → 周期 ${row.start} ~ ${row.end}；订单时间 ${row.orderStart} ~ ${row.orderEnd}；流水时间 ${row.flowStart} ~ ${row.flowEnd}`);
-    });
-    s.flows.filter(f=>f.customer===cid&&!f.override).forEach(f=>{
-      const from=s.periods.find(p=>p.id===f.period);
-      const next=s.periods.find(p=>p.customer===cid&&p.currency===f.currency&&f.date>=p.start&&f.date<=p.end);
-      if(!from||!next||next.id===f.period||!editable(from)||!editable(next)) return;
-      invalidate(s,from.id);invalidate(s,next.id);f.period=next.id;
+      invalidate(s,p.id);p.start=row.start;p.end=row.end;p.orderStart=row.start;p.orderEnd=row.end;p.flowStart=row.start;p.flowEnd=row.end;
+      audit(s,'周期日期调整',p.id,`${old} → ${row.start} ~ ${row.end}`);
     });
   }
   function configure(s,cid,days,service,reserve) {
@@ -316,7 +313,7 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:10,seq:100,customers:[
+    const s={schema:11,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
@@ -382,7 +379,11 @@
     stamp(liveA,'2026-11-03T08:00:00.000Z');
     stamp(liveB,'2026-11-03T08:10:00.000Z');
     const a=s.customers[0];
-    s.periods.push({id:'NA4',customer:a.id,currency:a.currency,start:'2026-12-01',end:'2026-12-07',orderStart:'2026-11-30',orderEnd:'2026-12-06',flowStart:'2026-12-01',flowEnd:'2026-12-08',status:'draft',version:1,service:a.service,reserve:a.reserve,adjustments:[],snapshot:null});
+    s.periods.push({id:'NA4',customer:a.id,currency:a.currency,start:'2026-12-01',end:'2026-12-07',orderStart:'2026-12-01',orderEnd:'2026-12-07',flowStart:'2026-12-01',flowEnd:'2026-12-07',status:'draft',version:1,service:a.service,reserve:a.reserve,adjustments:[],snapshot:null});
+    s.inbox=[
+      {id:'SYNC-A1',eventId:'TX-SYNC-A1',customer:a.id,account:'A-PP',channel:'PayPal',currency:'EUR',date:'2026-11-18',bill:'BILL-SYNC-A1',type:'payment',amount:3200,fee:-80},
+      {id:'SYNC-A2',eventId:'TX-SYNC-A2',customer:a.id,account:'A-PP',channel:'PayPal',currency:'EUR',date:'2026-11-20',bill:'BILL-SYNC-A2',type:'payment',amount:4500,fee:-90}
+    ];
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};s.lastUpload={added:8,failed:2};
     return s;
   }

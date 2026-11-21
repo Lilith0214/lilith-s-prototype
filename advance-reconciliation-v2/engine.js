@@ -378,6 +378,7 @@
   }
   function saveCyclePlan(s,cid,days,rows) {
     const c=customer(s,cid);
+    if(c.book==='excel'||c.book==='single') fail('这类客户不做周期设置');
     if(!Number.isInteger(days)||days<1||days>90) fail('周期天数须为 1–90 的整数（原型输入范围）');
     const mine=s.periods.filter(p=>p.customer===cid);
     const byId=Object.fromEntries(mine.map(p=>[p.id,p]));
@@ -420,13 +421,94 @@
     s.corrections.push({id:'COR-'+(++s.seq),period:id,reason,status:'待财务处理'});
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
+  const MERT_CCY=['AUD','CAD','CHF','EUR','GBP','NZD','USD'];
+  const MERT_TX=['express','expressFee','card','cardFee','normal','ipr','iprFee','recur','recurFee','refund','refundFee','voidPay','voidFee','chargeback','cbFee','dispute','preapprove','preapproveFee','disputeDebit','reviewHold'];
+  const MERT_RATES={AUD:0.6746,CAD:0.7082,CHF:1.2373,EUR:1.1123,GBP:1.2992,NZD:0.5676,USD:1};
+  function r2(n){return Math.round((Number(n)||0)*100)/100;}
+  function blankMertRow(){
+    const row={opening:0,fxOut:0,fxIn:0,withdraw:0,withdrawFee:0,generalHold:0,reserveHold:0};
+    MERT_TX.forEach(k=>{row[k]=0;});
+    return row;
+  }
+  function blankMertRows(){
+    const rows={};
+    MERT_CCY.forEach(ccy=>{rows[ccy]=blankMertRow();});
+    return rows;
+  }
+  function mertSampleRows(){
+    const rows=blankMertRows();
+    Object.assign(rows.AUD,{express:1224.36,expressFee:-51.93,reserveHold:-351.76});
+    Object.assign(rows.CAD,{express:345.81,expressFee:-14.69,reserveHold:-99.34});
+    Object.assign(rows.CHF,{express:24893.26,expressFee:-1377.16,refund:-32.9,refundFee:1.83,voidPay:-31.95,voidFee:1.8,chargeback:-59.95,dispute:-8,fxOut:-23162.52,reserveHold:-42.43});
+    Object.assign(rows.EUR,{express:733461.97,expressFee:-36209.33,normal:-1440,refund:-4515.83,refundFee:186.91,voidPay:-1553.39,voidFee:73.24,chargeback:-498.69,dispute:-434,preapprove:3360.44,preapproveFee:-322.99,disputeDebit:-32.23,fxOut:-696673.84,reserveHold:-69.44});
+    Object.assign(rows.GBP,{express:45239.32,expressFee:-2150.8,refund:-249.92,refundFee:10.83,voidPay:-42.85,voidFee:2.07,chargeback:-68.7,dispute:-12,fxOut:-41901.47,reserveHold:-243.7});
+    Object.assign(rows.NZD,{express:168,expressFee:-7.46,reserveHold:-48.16});
+    Object.assign(rows.USD,{express:1933.08,expressFee:-83.83,normal:-3950,preapprove:99.92,preapproveFee:-4.79,fxIn:804269.02,withdraw:-830000,withdrawFee:-735,reserveHold:-430.72});
+    return rows;
+  }
+  function computeMert(st){
+    const rates=st.rates||MERT_RATES;
+    const lines=MERT_CCY.map(ccy=>{
+      const src=st.rows&&st.rows[ccy]||blankMertRow();
+      const tx=MERT_TX.map(k=>r2(src[k]));
+      const total=r2(tx.reduce((n,v)=>n+v,0));
+      const paypal=r2(total+r2(src.fxOut)+r2(src.fxIn)+r2(src.withdraw)+r2(src.withdrawFee)+r2(src.generalHold)+r2(src.reserveHold)+r2(src.opening));
+      const rate=Number(rates[ccy])||0;
+      return {ccy,opening:r2(src.opening),tx,total,fxOut:r2(src.fxOut),fxIn:r2(src.fxIn),withdraw:r2(src.withdraw),withdrawFee:r2(src.withdrawFee),generalHold:r2(src.generalHold),reserveHold:r2(src.reserveHold),paypal,usd:r2(paypal*rate),rate};
+    });
+    const usdOf=pick=>r2(lines.reduce((n,l)=>n+r2(pick(l)*l.rate),0));
+    const absUsd=pick=>r2(lines.reduce((n,l)=>n+Math.abs(r2(pick(l)*l.rate)),0));
+    const total={
+      opening:usdOf(l=>l.opening),
+      tx:MERT_TX.map((_,i)=>usdOf(l=>l.tx[i])),
+      total:usdOf(l=>l.total),
+      fxOut:usdOf(l=>l.fxOut),fxIn:usdOf(l=>l.fxIn),
+      withdraw:absUsd(l=>l.withdraw),withdrawFee:absUsd(l=>l.withdrawFee),
+      generalHold:absUsd(l=>l.generalHold),reserveHold:absUsd(l=>l.reserveHold),
+      paypal:usdOf(l=>l.paypal),
+      usd:r2(lines.reduce((n,l)=>n+l.usd,0))
+    };
+    const base=r2(total.tx[0]+total.tx[16]);
+    const revenue=r2(total.reserveHold+total.usd+total.withdraw+total.withdrawFee+total.generalHold);
+    const hold20=r2(total.reserveHold*0.2);
+    const available=r2(total.usd+total.withdraw-hold20);
+    const fee=r2(base*0.031);
+    const reserveFee=r2(base*0.065);
+    const payout=r2(available-fee-reserveFee);
+    return {lines,total,rates,summary:{revenue,hold20,available,fee,reserve:reserveFee,payout,customerUsd:total.usd}};
+  }
+  function paypalCustomerBalance(s,cid){
+    const list=(s.paypalStatements||[]).filter(st=>st.customer===cid&&st.status==='confirmed');
+    if(!list.length) return null;
+    return Math.round(r2(list.reduce((n,st)=>n+computeMert(st).summary.customerUsd,0))*100);
+  }
+  function createPaypalStatement(s,cid,start,end){
+    const c=customer(s,cid);
+    if(c.book==='excel') fail('Excel 手工维护客户不做 PayPal 对账单');
+    if(!dateOK(start)||!dateOK(end)||start>end) fail('请填写有效的起止日期');
+    if((s.paypalStatements||[]).some(st=>st.customer===cid&&!(end<st.start||start>st.end))) fail('日期与已有对账单重叠');
+    const st={id:'PS-'+(++s.seq),customer:cid,start,end,status:'draft',creator:'自动创建对账任务',createdAt:new Date().toISOString(),rates:Object.assign({},MERT_RATES),rows:blankMertRows()};
+    s.paypalStatements=s.paypalStatements||[];
+    s.paypalStatements.unshift(st);
+    audit(s,'PayPal 对账',cid,`${start} ~ ${end} 已生成 PayPal 对账单 ${st.id}`);
+    return st;
+  }
+  function confirmPaypalStatement(s,id){
+    const st=(s.paypalStatements||[]).find(x=>x.id===id)||fail('对账单不存在');
+    if(st.status==='confirmed') return st;
+    st.status='confirmed';
+    st.confirmedAt=new Date().toISOString();
+    audit(s,'确认 PayPal 对账单',id,`客户余额 USD ${computeMert(st).summary.customerUsd} 已写入余额表`);
+    return st;
+  }
   function seed() {
-    const s={schema:14,seq:100,customers:[
+    const s={schema:15,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000,book:'weekly',reserveOpening:80000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000,book:'weekly',reserveOpening:30000},
-      {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0,book:'excel',reserveOpening:null}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
+      {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0,book:'excel',reserveOpening:null},
+      {id:'DEMO-1004',name:'示例商户 D',currency:'USD',days:7,service:640,reserve:1000,book:'single',reserveOpening:null}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
     [['A-PP','DEMO-1001','PayPal','EUR',100000,142000,8000],['A-OP','DEMO-1001','Oceanpayment','EUR',50000,62000,4000],['B-AW','DEMO-1002','Airwallex','USD',80000,240000,12000],['B-SP','DEMO-1002','ShopifyPayments','USD',20000,87000,9000],['C-PP','DEMO-1003','PayPal','USD',null,25000,0]].forEach(([id,cid,channel,currency,opening,channelBalance,frozen])=>s.accounts.push({id,customer:cid,channel,currency,opening,openingAt:opening===null?null:'2026-09-01',channelBalance,frozen,channelAt:'2026-10-27 08:00:00'}));
-    s.customers.forEach((c,i)=>{[13,20].forEach((day,j)=>s.periods.push({id:`P${i+1}${j+1}`,customer:c.id,currency:c.currency,start:`2026-10-${day}`,end:`2026-10-${day+6}`,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]}));});
+    s.customers.forEach((c,i)=>{if(c.book==='single')return;[13,20].forEach((day,j)=>s.periods.push({id:`P${i+1}${j+1}`,customer:c.id,currency:c.currency,start:`2026-10-${day}`,end:`2026-10-${day+6}`,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]}));});
     let n=0;
     const payment=(aid,pid,day,amount,fee,refund=0)=>{
       const a=account(s,aid), ref='REF-DEMO-'+(++n), oid='ORDER-DEMO-'+n;
@@ -456,10 +538,11 @@
     stamp(transfer,'2026-10-16T02:00:00.000Z');
     stamp(adjust,'2026-10-17T02:00:00.000Z');
     pending.time='2026-10-18T02:00:00.000Z';
-    s.customers.forEach((c,i)=>s.periods.push({id:`P${i+1}3`,customer:c.id,currency:c.currency,start:'2026-10-27',end:'2026-11-02',status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]}));
+    s.customers.forEach((c,i)=>{if(c.book==='single')return;s.periods.push({id:`P${i+1}3`,customer:c.id,currency:c.currency,start:'2026-10-27',end:'2026-11-02',status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]});});
     ['2026-09-08','2026-09-15','2026-09-22','2026-09-29','2026-10-06'].forEach((start,j)=>{
       const end=addDays(start,6);
       s.customers.forEach((c,i)=>{
+        if(c.book==='single') return;
         const id=`H${i+1}${j+1}`;
         s.periods.push({id,customer:c.id,currency:c.currency,start,end,status:'draft',version:1,service:c.service,reserve:c.reserve,adjustments:[]});
         if(c.id==='DEMO-1003') return;
@@ -504,8 +587,13 @@
       {customer:'DEMO-1003',date:'2026-11-20',eod:210000,withdraw:0}
     ];
     s.accounts.push({id:'C-FW',customer:'DEMO-1003',channel:'垫资钱包',currency:'USD',opening:0,openingAt:'2026-09-01',channelBalance:0,frozen:0,channelAt:'2026-11-20 23:59:00'});
+    s.accounts.push({id:'D-PP',customer:'DEMO-1004',channel:'PayPal',currency:'USD',opening:0,openingAt:'2026-09-01',channelBalance:0,frozen:0,channelAt:'2026-11-20 08:00:00'});
+    s.paypalStatements=[
+      {id:'PS-1',customer:'DEMO-1004',start:'2024-08-02',end:'2026-09-15',status:'confirmed',creator:'自动创建对账任务',createdAt:'2026-11-18T02:00:00.000Z',confirmedAt:'2026-11-18T03:00:00.000Z',rates:Object.assign({},MERT_RATES),rows:mertSampleRows()},
+      {id:'PS-2',customer:'DEMO-1004',start:'2026-10-01',end:'2026-10-07',status:'draft',creator:'自动创建对账任务',createdAt:'2026-11-20T02:00:00.000Z',rates:Object.assign({},MERT_RATES),rows:blankMertRows()}
+    ];
     s.periods.forEach(p=>{if(customer(s,p.customer).book==='weekly') p.paypalGeneratedAt='2026-11-20T16:00:00.000Z';});
     return s;
   }
-  return {channels,clone,roundRate,addDays,windows,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,addReserveAdjustment,periodMarginParts,marginRunning,marginBalance,setReserveOpening,fetchPaypalRate,generatePaypalStatements,excelBalance,syncExcelToFund,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,ingestOrders,createPeriod,configure,saveCyclePlan,correction,audit,seed};
+  return {channels,clone,roundRate,addDays,windows,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,addReserveAdjustment,periodMarginParts,marginRunning,marginBalance,setReserveOpening,fetchPaypalRate,generatePaypalStatements,excelBalance,syncExcelToFund,MERT_CCY,MERT_TX,MERT_RATES,computeMert,paypalCustomerBalance,createPaypalStatement,confirmPaypalStatement,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,ingestOrders,createPeriod,configure,saveCyclePlan,correction,audit,seed};
 });

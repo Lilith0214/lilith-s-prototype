@@ -150,7 +150,7 @@
   }
   function addReserveAdjustment(s,id,direction,amount,reason) {
     const p=ensureEditable(s,id);
-    if(customer(s,p.customer).book==='excel') fail('Excel 手工维护客户不做保证金调整');
+    if(customer(s,p.customer).book==='excel') fail('手工维护客户不做保证金调整');
     if(direction!=='add'&&direction!=='sub') fail('请选择增加或减少');
     if(!Number.isSafeInteger(amount)||amount<=0) fail('保证金调整金额须大于 0');
     if(!reason.trim()) fail('请填写保证金调整原因');
@@ -218,7 +218,7 @@
   }
   function syncExcelToFund(s,cid) {
     const c=customer(s,cid);
-    if(c.book!=='excel') fail('只有 Excel 手工维护客户把日余额同步到 Fund');
+    if(c.book!=='excel') fail('只有手工维护客户把日余额同步到 Fund');
     const rows=(s.paypalDaily||[]).filter(r=>r.customer===cid).slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     if(!rows.length) fail('没有可同步的日余额');
     const latest=rows[rows.length-1];
@@ -228,12 +228,12 @@
     if(acct.opening===null){acct.opening=0;acct.openingAt=rows[0].date;}
     const key=`EXCEL-SYNC:${cid}:${latest.date}`;
     if(s.events.some(e=>e.id===key)){
-      audit(s,'Excel 余额同步',cid,`${latest.date} 已同步，未重复入账`);
+      audit(s,'手工维护客户余额同步',cid,`${latest.date} 已同步，未重复入账`);
       return {added:false,balance:fundBalance(s,acct.id),date:latest.date,account:acct.id};
     }
     const delta=target-fundBalance(s,acct.id);
     s.events.push({id:key,kind:'excel-sync',account:acct.id,customer:cid,currency:c.currency,delta,reference:latest.date,time:latest.date+'T23:59:00.000Z'});
-    audit(s,'Excel 余额同步',cid,`${latest.date} 客户余额 ${target/100} ${c.currency} 已同步到 Fund ${acct.id}`);
+    audit(s,'手工维护客户余额同步',cid,`${latest.date} 客户余额 ${target/100} ${c.currency} 已同步到 Fund ${acct.id}`);
     mirror(s);
     return {added:true,balance:fundBalance(s,acct.id),date:latest.date,account:acct.id};
   }
@@ -487,7 +487,7 @@
   }
   function createPaypalStatement(s,cid,start,end){
     const c=customer(s,cid);
-    if(c.book==='excel') fail('Excel 手工维护客户不做 PayPal 对账单');
+    if(c.book==='excel') fail('手工维护客户不做 PayPal 对账单');
     if(!dateOK(start)||!dateOK(end)||start>end) fail('请填写有效的起止日期');
     if((s.paypalStatements||[]).some(st=>st.customer===cid&&!(end<st.start||start>st.end))) fail('日期与已有对账单重叠');
     const st={id:'PS-'+(++s.seq),customer:cid,start,end,status:'draft',creator:'自动创建对账任务',createdAt:new Date().toISOString(),rates:Object.assign({},MERT_RATES),rows:blankMertRows()};
@@ -516,7 +516,7 @@
     return st;
   }
   function seed() {
-    const s={schema:17,seq:100,customers:[
+    const s={schema:18,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000,book:'weekly',reserveOpening:80000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000,book:'weekly',reserveOpening:30000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0,book:'excel',reserveOpening:45000},
@@ -611,6 +611,11 @@
     addReserveAdjustment(s,'SD1','add',2500,'单平台示例保证金');
     review(s,'SD1');confirm(s,'SD1','演示单平台周期确认');syncSettlement(s,'SD1');
     s.paypalStatements.filter(st=>st.status==='confirmed').forEach(st=>postAdvanceSettlement(s,st));
+    s.operations.unshift({id:'OP-C-ADJ',type:'adjust',source:'C-PP',target:null,amount:12000,reason:'Fund 手工调额，计入垫资对账余额',approval:'已通过',execution:'执行成功',callback:'已回传',time:'2026-11-19T09:00:00.000Z',executedAt:'2026-11-19T09:00:00.000Z'});
+    s.events.push({id:'OP-C-ADJ:C-PP',kind:'adjust',account:'C-PP',customer:'DEMO-1003',currency:'USD',delta:12000,reference:'OP-C-ADJ',time:'2026-11-19T09:00:00.000Z'});
+    s.operations.unshift({id:'OP-C-TR',type:'transfer',source:'C-FW',target:'C-PP',amount:8000,reason:'Fund 资金调拨，计入垫资对账余额',approval:'已通过',execution:'执行成功',callback:'已回传',time:'2026-11-20T11:00:00.000Z',executedAt:'2026-11-20T11:00:00.000Z'});
+    s.events.push({id:'OP-C-TR:C-FW',kind:'transfer',account:'C-FW',customer:'DEMO-1003',currency:'USD',delta:-8000,reference:'OP-C-TR',time:'2026-11-20T11:00:00.000Z'});
+    s.events.push({id:'OP-C-TR:C-PP',kind:'transfer',account:'C-PP',customer:'DEMO-1003',currency:'USD',delta:8000,reference:'OP-C-TR',time:'2026-11-20T11:00:00.000Z'});
     s.periods.forEach(p=>{if(customer(s,p.customer).book==='weekly') p.paypalGeneratedAt='2026-11-20T16:00:00.000Z';});
     return s;
   }

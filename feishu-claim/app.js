@@ -4,18 +4,53 @@ const receipts = [
 ];
 // 演示商户；生产从 Fund 读取有权限且具备对应子业务账户的商户。
 const customers = [
-  {id:'14229',name:'星辰出海-广告主账户',lines:['广告']},
-  {id:'15301',name:'北辰广告-欧洲账户',lines:['广告']}
+  {id:'14229',name:'星辰出海-广告主账户',lines:['广告','履约']},
+  {id:'15301',name:'北辰广告-欧洲账户',lines:['广告']},
+  {id:'16880',name:'星辰出海-履约账户',lines:['履约']},
+  {id:'17021',name:'北辰拒付账户',lines:['拒付']}
 ];
-let scene='messages', config={enabled:true,count:3,first:'09:00',interval:180};
-let activeReceipt=null, activeRecommendation=null, attachments=[], pendingClaim=null, toastTimer;
+const bizLines = ['广告','履约','拒付'];
+// 北京时间近 3 个自然日、该商户已认领成功的记录。同金额在渲染时按当前流水计算。
+const claimHistory = {
+  '14229': [
+    {time:'10-19 16:02',currency:'USD',amount:320,biz:'广告',person:'周宁'},
+    {time:'10-19 09:18',currency:'USD',amount:1500,biz:'广告',person:'林晓'},
+    {time:'10-18 14:40',currency:'USD',amount:320,biz:'代发',person:'陈可'},
+    {time:'10-18 11:05',currency:'EUR',amount:800,biz:'广告',person:'周宁'},
+    {time:'10-17 18:22',currency:'USD',amount:960,biz:'广告',person:'周宁'}
+  ],
+  '15301': [
+    {time:'10-19 15:10',currency:'EUR',amount:420,biz:'广告',person:'林晓'}
+  ]
+};
+const digestRows = [
+  {person:'周宁',count:6,amounts:['USD 4,280.00'],last:'最近 16:02 · 星辰出海 · 广告'},
+  {person:'陈可',count:2,amounts:['USD 1,640.00','EUR 800.00'],last:'最近 14:40 · 星辰出海 · 代发'},
+  {person:'林晓',count:3,amounts:['EUR 1,240.00'],last:'最近 15:10 · 北辰广告 · 广告'}
+];
+// 与日报汇总一致：周宁 6 笔 USD 4,280；陈可 2 笔 USD 1,640 + EUR 800；林晓 3 笔 EUR 1,240。同一组员排在一起。
+const boardClaims = [
+  {person:'周宁',channel:'Airwallex',id:'8f21c0aa-6d14-4a77-9c31-10aa77e20101',time:'2026-10-20 16:02:11',merchantId:'14229',currency:'USD',amount:1500},
+  {person:'周宁',channel:'Airwallex',id:'b70e11c2-88a1-4d09-a552-66c10e880214',time:'2026-10-20 14:26:40',merchantId:'14229',currency:'USD',amount:960},
+  {person:'周宁',channel:'Payoneer',id:'c11a90de-02b7-4e61-8f40-91dd22001880',time:'2026-10-20 13:05:18',merchantId:'15301',currency:'USD',amount:800},
+  {person:'周宁',channel:'Airwallex',id:'d4e20817-55c0-4b18-9a77-30cc66110921',time:'2026-10-20 11:18:02',merchantId:'14229',currency:'USD',amount:520},
+  {person:'周宁',channel:'Airwallex',id:'e90b6612-1aa4-4c55-b210-77e014220033',time:'2026-10-20 10:02:47',merchantId:'14229',currency:'USD',amount:320},
+  {person:'周宁',channel:'Airwallex',id:'f12c7708-9e30-4a81-c664-18aa90330014',time:'2026-10-20 09:11:25',merchantId:'16880',currency:'USD',amount:180},
+  {person:'陈可',channel:'Airwallex',id:'91ab20c1-3e18-4d20-9c55-0b71e4aa9021',time:'2026-10-20 14:40:06',merchantId:'16880',currency:'USD',amount:1640},
+  {person:'陈可',channel:'Payoneer',id:'c0b11e3a-88d2-4f7e-a613-45f4e2089844',time:'2026-10-20 11:05:33',merchantId:'14229',currency:'EUR',amount:800},
+  {person:'林晓',channel:'Airwallex',id:'a81d4402-17c9-4e20-b331-55e019001510',time:'2026-10-20 15:10:44',merchantId:'15301',currency:'EUR',amount:420},
+  {person:'林晓',channel:'Airwallex',id:'b22e5510-08aa-4f13-9d70-66c120001302',time:'2026-10-20 13:02:19',merchantId:'15301',currency:'EUR',amount:500},
+  {person:'林晓',channel:'Airwallex',id:'c33f6621-19bb-4a80-8e11-77d130000940',time:'2026-10-20 09:40:52',merchantId:'14229',currency:'EUR',amount:320}
+];
+let scene='messages', historyOpen={}, config={adEnabled:true,fulfillEnabled:true,count:3,first:'09:00',interval:180,byStore:true,byMerchant:true,byFrequent:true,frequentMin:3};
+let activeReceipt=null, useRecommend=true, attachments=[], pendingClaim=null, toastTimer;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 function toast(text) { $('#toast').textContent=text; $('#toast').classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4000); }
 function render() {
-  document.querySelectorAll('[data-scene]').forEach(b=>b.classList.toggle('active',b.dataset.scene===scene));
-  $('#app').innerHTML=scene==='messages'?messages():settingsPage();
+  document.querySelectorAll('[data-scene]').forEach(b=>b.classList.toggle('active',b.dataset.scene===scene||(scene==='board'&&b.dataset.scene==='digest')));
+  $('#app').innerHTML=scene==='messages'?messages():scene==='digest'?digestPage():scene==='board'?boardPage():settingsPage();
   if(scene==='settings') preview();
 }
 function messages() {
@@ -30,29 +65,89 @@ function card(r) {
   const state=r.status==='已认领'?'已认领':r.returned?'已退回':r.stop?'已停止提醒':'待认领';
   return `<article class="message"><div class="bot-avatar">F</div><div class="message-content"><div class="sender">Fund 资金助手 <span>应用</span></div>
   <div class="message-card"><div class="card-head"><span>收款流水待认领推荐</span><span class="tag ${inactive?'done':''}">${state}</span></div><div class="card-body">
-  <dl class="card-fields"><dt>接收人</dt><dd>${r.owner}</dd><dt>渠道</dt><dd>${r.channel}</dd><dt>交易号</dt><dd class="transaction">${r.id}</dd><dt>金额</dt><dd class="amount">${r.currency} ${money(r.amount)}</dd><dt>付款人</dt><dd>${r.payer}</dd><dt>推荐商户</dt><dd>${r.merchant}（${r.merchantId}）</dd><dt>推荐业务线</dt><dd>${r.biz}</dd><dt>可信度</dt><dd>${r.confidence}</dd><dt>简要原因</dt><dd>${r.reason}</dd></dl>
+  <dl class="card-fields"><dt>渠道</dt><dd>${r.channel}</dd><dt>交易号</dt><dd class="transaction">${r.id}</dd><dt>交易时间</dt><dd>${r.time}</dd><dt>金额</dt><dd class="amount">${r.currency} ${money(r.amount)}</dd><dt>付款人</dt><dd>${r.payer}</dd><dt>推荐商户</dt><dd>${r.merchant}（${r.merchantId}）</dd><dt>推荐业务线</dt><dd>${r.biz}</dd><dt>可信度</dt><dd>${r.confidence}</dd><dt>简要原因</dt><dd>${r.reason}</dd></dl>
+  ${historyBlock(r)}
   ${r.status==='已认领'?`<div class="result success"><b>认领成功</b><br>商户：${esc(r.claimedCustomer.name)}（${r.claimedCustomer.id}）<br>子业务：${r.claimedBiz} · 金额：${r.currency} ${money(r.amount)}<br>Fund 已完成充值，后续不再提醒。</div>`:r.returned?`<div class="result">已退回，Fund 流水保持待认领，停止该笔提醒。<br>退回原因：${esc(r.returnReason||'未填写')}</div>`:r.stop?'<div class="result">已停止该笔后续提醒，仍可确定认领或退回。</div>':''}
   <p class="card-note">系统推荐仅供参考，请核对子业务、商户与金额后认领。</p>
-  <div class="card-actions"><button class="primary" data-action="claim" data-id="${r.id}" ${inactive?'disabled':''}>确定认领</button><button data-action="return" data-id="${r.id}" ${inactive?'disabled':''}>退回</button>${!r.stop&&!inactive?`<button class="text-button" data-action="mute" data-id="${r.id}">不再提醒</button>`:''}</div>
+  <div class="card-actions"><button class="primary" data-action="claim" data-id="${r.id}" ${inactive?'disabled':''}>确定认领</button><button data-action="return" data-id="${r.id}" ${inactive?'disabled':''}>推荐有误</button>${!r.stop&&!inactive?`<button class="text-button" data-action="mute" data-id="${r.id}">不再提醒</button>`:''}</div>
   </div></div></div></article>`;
 }
-function openModal(title,content,footer) {
-  $('#modal').innerHTML=`<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close" aria-label="关闭认领弹窗">×</button></div>${content}<div class="modal-foot">${footer}</div>`;
-  $('#modal').showModal();
+function historyRows(r) {
+  return (claimHistory[r.merchantId]||[]).map(h=>({...h,same:h.currency===r.currency&&Number(h.amount)===Number(r.amount)}))
+    .sort((a,b)=>Number(b.same)-Number(a.same)||b.time.localeCompare(a.time));
+}
+function historyBlock(r, expanded) {
+  const rows=historyRows(r), same=rows.filter(x=>x.same), open=expanded||historyOpen[r.id];
+  const shown=open?rows:rows.slice(0,3), rest=rows.length-shown.length;
+  const list=rows.length?shown.map(h=>`<div class="history-row${h.same?' same':''}"><b>${h.currency} ${money(h.amount)}</b>${h.same?'<span class="same-tag">同金额</span>':''}<div class="who">${h.time} · ${esc(h.biz)} · ${esc(h.person)}</div></div>`).join(''):'<p class="history-empty">该商户近3个自然日没有已认领记录。</p>';
+  const more=!expanded&&rows.length>3?`<button type="button" class="history-more" data-action="toggle-history" data-id="${r.id}">${open?'收起':`还有 ${rest} 笔`}</button>`:'';
+  const alert=same.length?`<p class="history-alert">近3日已有 ${same.length} 笔 ${r.currency} ${money(r.amount)}。同金额请对照时间和认领人。</p>`:'';
+  return `<section class="history"><div class="history-head"><b>近3日该商户认领</b><span>${rows.length} 笔${same.length?` · ${same.length} 笔同金额`:''}</span></div><p class="history-scope">北京时间近3个自然日 · 该商户全部业务线 · 仅已认领</p>${alert}${list}${more}</section>`;
+}
+const closeIcon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+const chevronIcon='<svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+let merchantQuery='';
+function openModal(title,content,footer,options={}) {
+  const modal=$('#modal');
+  modal.className=options.className||'';
+  modal.innerHTML=`<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="icon-button" data-action="close" aria-label="关闭认领弹窗">${options.closeHtml||'×'}</button></div>${content}<div class="modal-foot">${footer}</div>`;
+  modal.showModal();
+}
+function setMerchant(id){const input=$('#claim-customer');if(input)input.value=id||'';}
+function renderMerchantPicker(){
+  const form=$('#claim-form');if(!form)return;
+  const biz=form.elements.biz.value;
+  const list=biz?customers.filter(c=>c.lines.includes(biz)):[];
+  const input=$('#claim-customer');
+  if(input.value&&!list.some(c=>c.id===input.value))input.value='';
+  const chosen=list.find(c=>c.id===input.value);
+  const label=$('#merchant-label');
+  label.textContent=chosen?`${chosen.name} (${chosen.id})`:'请输入商户名搜索';
+  label.classList.toggle('is-placeholder',!chosen);
+  const q=merchantQuery.trim().toLowerCase();
+  const shown=list.filter(c=>!q||`${c.name}${c.id}`.toLowerCase().includes(q));
+  $('#merchant-listbox').innerHTML=shown.length?shown.map(c=>`<li><button type="button" role="option" class="merchant-option${c.id===input.value?' selected':''}" data-action="pick-merchant" data-id="${c.id}" aria-selected="${c.id===input.value}">${esc(c.name)} (${c.id})</button></li>`).join(''):`<li class="merchant-empty">${biz?'无匹配商户':'请先选择子业务'}</li>`;
+  syncSubmit();
+}
+function setMerchantOpen(open){
+  const pop=$('#merchant-pop'),btn=$('#claim-customer-btn');if(!pop||!btn)return;
+  pop.hidden=!open;btn.setAttribute('aria-expanded',String(open));btn.classList.toggle('open',open);
+  if(open){merchantQuery='';const search=$('#merchant-search');if(search)search.value='';renderMerchantPicker();setTimeout(()=>search&&search.focus(),0);}
+}
+function syncSubmit(){
+  const form=$('#claim-form'),btn=$('#claim-submit');if(!form||!btn)return;
+  const ok=!!(form.elements.biz.value&&$('#claim-customer').value);
+  btn.disabled=!ok;
+  const wrap=$('#claim-submit-wrap');if(wrap)wrap.title=ok?'':'请先选择子业务和商户';
+}
+function syncRecommendFields() {
+  const r=activeReceipt, form=$('#claim-form'); if(!form||!r) return;
+  const hint=$('#recommend-hint'); if(hint) hint.hidden=!useRecommend;
+  if(useRecommend) {
+    const radio=[...form.elements.biz].find(el=>el.value===r.biz);
+    if(radio) radio.checked=true;
+    setMerchant(r.merchantId);
+  } else {
+    [...form.elements.biz].forEach(el=>{el.checked=false;});
+    setMerchant('');
+  }
+  merchantQuery='';
+  renderMerchantPicker();
 }
 function beginClaim(r) {
   if(!isRecommended(r)||r.status!=='待认领'||r.returned) return toast('该流水当前不可认领，请查看最新卡片。');
-  activeReceipt=r; activeRecommendation={biz:r.biz,customerId:r.merchantId}; attachments=[]; pendingClaim=null;
+  activeReceipt=r; useRecommend=true; attachments=[]; pendingClaim=null; merchantQuery='';
+  const conf=r.confidence==='高'?'high':'mid';
   openModal('一键认领',`<form id="claim-form"><div class="modal-body">
-    <div class="transaction-box"><div><span>交易 ID</span><b>${r.id}</b></div><div><span>交易时间（UTC+8）</span><b>${r.time}</b></div><div><span>支付渠道</span><b>${r.channel}</b></div><div><span>金额</span><b>${r.currency} ${money(r.amount)}</b></div></div>
-    <div class="form-grid"><div><span class="field-label">子业务</span><div class="recommended-value" aria-label="推荐子业务，只读">${r.biz}<span>Fund 推荐</span></div></div>
-    <div><span class="field-label">商户</span><div class="recommended-value" aria-label="推荐商户，只读">${r.merchant}（${r.merchantId}）<span>Fund 推荐</span></div></div></div>
-    <p class="form-hint">子业务与商户由 Fund 推荐，不可修改。请上传附件后确认；推荐不符请取消并退回。</p>
-    <label class="field-label" for="voucher"><em>*</em> 上传文件（支持图片/pdf格式文件，最多10个，单个文件20M内）</label>
-    <div class="upload-zone" id="drop-zone" tabindex="0" role="button" aria-label="上传文件区域，支持点击、拖拽或粘贴"><span class="upload-symbol">↥</span><p>点击或拖拽或粘贴文件到此区域上传</p><small>支持图片/pdf格式文件</small><input class="file-input" id="voucher" type="file" accept="image/*,.pdf" multiple aria-label="上传文件"></div>
-    <div id="file-list"></div><div id="claim-error" class="error" role="alert"></div>
-    <p class="prototype-hint">演示：附件仅在本地选择，不上传；此步骤不会入账。</p>
-    </div></form>`, '<button data-action="close">取消</button><button class="primary" type="submit" form="claim-form">确认</button>');
+    <dl class="txn-summary"><div><dt>交易 ID</dt><dd>${r.id}</dd></div><div><dt>交易时间（UTC+8）</dt><dd>${r.time}</dd></div><div><dt>支付渠道</dt><dd>${r.channel}</dd></div><div><dt>金额</dt><dd>${r.currency} ${money(r.amount)}</dd></div></dl>
+    <section class="recommend-box"><h3>智能推荐</h3><dl class="recommend-grid"><dt>推荐商户</dt><dd>${esc(r.merchant)} (${r.merchantId})</dd><dt>子业务线</dt><dd>${esc(r.biz)}</dd><dt>可信度</dt><dd><span class="confidence ${conf}">${esc(r.confidence)}</span></dd><dt>使用推荐信息</dt><dd><label class="toggle"><input type="checkbox" id="use-recommend" checked aria-label="使用推荐信息"><i></i></label></dd></dl><p class="recommend-hint" id="recommend-hint">系统推荐仅供参考。开启后预填子业务和商户，可再修改。</p></section>
+    <div class="form-grid"><div><div class="field-label">子业务</div><div class="radios" role="radiogroup" aria-label="子业务">${bizLines.map(line=>`<label><input type="radio" name="biz" value="${line}" ${line===r.biz?'checked':''}>${line}</label>`).join('')}</div></div>
+    <div class="merchant-field"><label class="field-label" for="claim-customer-btn">商户</label><button type="button" id="claim-customer-btn" class="merchant-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="merchant-listbox"><span id="merchant-label" class="is-placeholder">请输入商户名搜索</span>${chevronIcon}</button><input type="hidden" id="claim-customer" name="customer" value="${r.merchantId}"><div class="merchant-pop" id="merchant-pop" hidden><input id="merchant-search" type="text" placeholder="搜索商户" aria-label="搜索商户" autocomplete="off"><ul id="merchant-listbox" role="listbox" aria-label="商户"></ul></div></div></div>
+    <div class="upload-block"><div class="upload-label">上传凭证<span>（支持图片和PDF格式文件，最多10份，单个文件20MB以内）</span></div>
+    <div class="upload-zone" id="drop-zone" tabindex="0" role="button" aria-label="上传文件区域，支持点击、拖拽或粘贴">点击或拖拽文件到此处上传<input class="file-input" id="voucher" type="file" accept="image/*,.pdf" multiple aria-label="上传文件"></div>
+    <ul class="file-list" id="file-list"></ul><div id="claim-error" class="error" role="alert"></div></div>
+    </div></form>`, '<button data-action="close">取消</button><span id="claim-submit-wrap"><button class="primary" id="claim-submit" type="submit" form="claim-form">确认</button></span>', {className:'fund-claim',closeHtml:closeIcon});
+  renderMerchantPicker();
 }
 function fileError(files) {
   if(files.length>10) return '最多上传 10 个文件，请移除多余附件。';
@@ -71,28 +166,27 @@ function addFiles(newFiles) {
   attachments=unique; renderFiles(); return true;
 }
 function renderFiles() {
-  $('#file-list').innerHTML=attachments.map((f,i)=>`<div class="file-row"><span>▤　${esc(f.name)} <small>${(f.size/1024/1024).toFixed(2)} MB</small></span><button type="button" class="text-button" data-action="remove-file" data-index="${i}" aria-label="移除附件 ${esc(f.name)}">移除</button></div>`).join('');
+  $('#file-list').innerHTML=attachments.map((f,i)=>`<li class="file-row"><span title="${esc(f.name)}">${esc(f.name)}</span><button type="button" class="text-button" data-action="remove-file" data-index="${i}" aria-label="移除附件 ${esc(f.name)}">移除</button></li>`).join('');
 }
 function validateClaim(r,biz,customerId,files) {
   if(!r||r.status!=='待认领'||r.returned) return '该流水已处理，请刷新最新状态。';
   if(!isRecommended(r)) return '该流水不满足推荐条件，请刷新最新卡片。';
-  if(biz!==r.biz||customerId!==r.merchantId) return 'Fund 推荐信息已变化，请关闭弹窗并刷新后重新核对。';
-  if(!['广告','履约','拒付'].includes(biz)) return '推荐子业务无效，请退回处理。';
+  if(!bizLines.includes(biz)) return '请选择子业务。';
   const customer=customers.find(c=>c.id===customerId);
-  if(!customer) return '推荐商户无效，请退回处理。';
-  if(!customer.lines.includes(biz)) return '推荐商户与子业务不匹配，请退回处理。';
+  if(!customer) return '请选择商户。';
+  if(!customer.lines.includes(biz)) return '该商户没有所选子业务账户，请重新选择。';
   if(!files.length) return '请至少上传一个转账凭证。';
   return fileError(files);
 }
 function showSecondConfirmation() {
-  if(!activeRecommendation) return;
-  const {biz,customerId}=activeRecommendation;
+  const form=$('#claim-form'); if(!form||!activeReceipt) return;
+  const biz=form.elements.biz.value, customerId=form.elements.customer.value;
   const error=validateClaim(activeReceipt,biz,customerId,attachments);
   $('#claim-error').textContent=error;
   if(error) return;
   const customer=customers.find(c=>c.id===customerId);
   pendingClaim={receiptId:activeReceipt.id,biz,customerId,files:[...attachments]};
-  $('#confirm-modal').innerHTML=`<div class="modal-head"><h2 id="confirm-title">确认认领并充值？</h2><button class="icon-button" data-action="back" aria-label="返回修改">×</button></div><div class="modal-body"><div class="confirm-icon">!</div><p class="confirm-intro">请再次核对以下信息，确认后将直接充值至Fund 推荐商户对应子业务的账户。</p>
+  $('#confirm-modal').innerHTML=`<div class="modal-head"><h2 id="confirm-title">确认认领并充值？</h2><button class="icon-button" data-action="back" aria-label="返回修改">×</button></div><div class="modal-body"><div class="confirm-icon">!</div><p class="confirm-intro">请再次核对以下信息，确认后将充值至所选商户的对应子业务账户。</p>
     <dl class="confirm-fields"><dt>交易 ID</dt><dd>${activeReceipt.id}</dd><dt>子业务</dt><dd>${biz}</dd><dt>商户</dt><dd>${customer.name}（${customer.id}）</dd><dt>充值金额</dt><dd class="amount">${activeReceipt.currency} ${money(activeReceipt.amount)}</dd><dt>附件</dt><dd>${attachments.length} 个<br><small>${attachments.map(f=>esc(f.name)).join('<br>')}</small></dd></dl>
     <p class="confirm-warning">确认后，Fund 流水变为已认领，并停止后续提醒。请勿重复操作。</p><p class="prototype-hint">当前为交互演示，不发生真实充值。</p><div id="confirm-error" class="error" role="alert"></div></div>
     <div class="modal-foot"><button data-action="back">返回修改</button><button class="primary" data-action="final-confirm">确认认领并充值</button></div>`;
@@ -124,10 +218,59 @@ function schedule(c) {
   return {times:Array.from({length:c.count},(_,i)=>{const n=start+i*c.interval;return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');})};
 }
 function settingsPage() {
-  return `<main class="settings-scene"><div class="settings-heading"><span class="eyebrow">FUND 端配置示意 · 非飞书聊天功能</span><h1>推荐配置</h1><p>资金中台设置发送计划，飞书仅接收逐笔通知。</p></div>
-  <form id="settings-form"><section class="settings-panel"><div class="switch-row"><div><h2>启用飞书通知</h2><p>关闭后停止发送，不影响 Fund 的推荐结果。</p></div><input type="checkbox" name="enabled" aria-label="启用飞书通知" ${config.enabled?'checked':''}></div></section>
+  return `<main class="settings-scene"><div class="settings-heading"><span class="eyebrow">FUND 端配置示意 · 非飞书聊天功能</span><h1>推荐配置</h1><p>广告和代发各自开关、各自接收人。飞书只接收已经算好的通知。</p></div>
+  <form id="settings-form"><section class="settings-panel"><h2>推送开关</h2><p class="form-hint">关掉一边时，另一边继续按自己的接收人发送。推荐结果本身不受开关影响。</p>
+    <div class="switch-row"><div><h2>广告</h2><p>向广告配置的接收人发送逐笔推荐。</p></div><input type="checkbox" name="adEnabled" aria-label="启用广告飞书通知" ${config.adEnabled?'checked':''}></div>
+    <div class="switch-row" style="margin-top:16px"><div><h2>代发</h2><p>向代发配置的接收人发送逐笔推荐。</p></div><input type="checkbox" name="fulfillEnabled" aria-label="启用代发飞书通知" ${config.fulfillEnabled?'checked':''}></div>
+  </section>
+  <section class="settings-panel"><h2>接收人</h2><p class="form-hint">三种来源可以同时打开。同一个人命中多个来源时只发一次。名单在各业务线内自行维护。</p>
+    <label class="recipient"><input type="checkbox" name="byStore" ${config.byStore?'checked':''}><b>交付中心，按店铺</b><p>推给该店铺配置的交付人员。店铺由历史付款账号对应；对不上店铺时，原型不把整个商户的交付都推一遍。</p></label>
+    <label class="recipient"><input type="checkbox" name="byMerchant" ${config.byMerchant?'checked':''}><b>业务组销售，按商户</b><p>推给该商户配置的销售。</p></label>
+    <label class="recipient"><input type="checkbox" name="byFrequent" ${config.byFrequent?'checked':''}><b>近 30 天高频认领的交付</b><p>同一商户、近 30 天认领成功次数达到阈值的交付人员，每天重算，与手工名单去重。</p></label>
+    <div class="threshold">阈值 <input name="frequentMin" type="number" min="1" step="1" value="${config.frequentMin}" aria-label="高频认领阈值"> 次</div>
+    <p class="prototype-hint">「对不上店铺是否改推该商户全部交付」以及阈值默认 3 次，都是待业务确认的建议。</p>
+  </section>
   <section class="settings-panel"><h2>通知频次</h2><p class="form-hint">北京时间（UTC+8） · 每个计划时点逐笔发送</p><div class="schedule-grid"><div><label for="count">每日提醒次数</label><input id="count" name="count" type="number" value="${config.count}" min="1" max="24" step="1" required></div><div><label for="first">首次提醒时间</label><input id="first" name="first" type="time" value="${config.first}" required></div><div><label for="interval">提醒间隔（分钟）</label><input id="interval" name="interval" type="number" value="${config.interval}" min="1" step="1" required></div></div>
-  <div class="schedule-preview"><b>当天发送时间预览</b><div id="time-preview"></div><div id="schedule-error" class="error" role="alert"></div></div><p class="form-hint">每日一次时无需配置间隔。保存后按后续时点执行，不补发已错过的时点。已认领、退回或停止提醒的流水不再发送。</p><p class="prototype-hint">每日 3 次、09:00、间隔 180 分钟为演示默认值；次数范围 1～24 为待评审建议。</p><button type="submit" class="primary">保存配置</button></section></form></main>`;
+  <div class="schedule-preview"><b>当天发送时间预览</b><div id="time-preview"></div><div id="schedule-error" class="error" role="alert"></div></div><p class="form-hint">每日一次时无需配置间隔。保存后按后续时点执行，不补发已错过的时点。已认领、退回或停止提醒的流水不再发送。交付组长日报不走这个频次，固定每天 18:00 另发一条。</p><p class="prototype-hint">每日 3 次、09:00、间隔 180 分钟为演示默认值；次数范围 1～24 为待评审建议。</p><button type="submit" class="primary">保存配置</button></section></form></main>`;
+}
+function digestPage() {
+  const total=digestRows.reduce((n,r)=>n+r.count,0);
+  const rows=digestRows.map(r=>`<div class="digest-row"><div class="digest-top"><b>${esc(r.person)}</b><span>${r.count} 笔</span></div><div class="digest-amt">${r.amounts.map(esc).join(' · ')}</div><div class="who">${esc(r.last)}</div></div>`).join('');
+  return `<div class="feishu-shell">
+  <aside class="app-rail" aria-label="飞书场景装饰"><div class="feishu-mark">✦</div><div class="rail-avatar">周</div><div class="rail-selected">▣<small>消息</small></div><div>▦<small>日历</small></div><div>▤<small>云文档</small></div><div>▧<small>工作台</small></div></aside>
+  <section class="conversation-list"><div class="search">⌕　搜索</div><div class="list-heading">消息 <span>＋</span></div><div class="chat-selected"><div class="bot-avatar">F</div><div><b>Fund 资金助手</b><p>今日认领情况</p></div></div><div class="chat-explain">发给交付组长<br>每天一条，不按流水拆开</div></section>
+  <section class="chat"><header class="chat-head"><div class="bot-avatar">F</div><div><h1>Fund 资金助手 <span class="app-tag">应用</span></h1><p>资金中台通知 · 飞书消息</p></div><span class="chat-menu">⌕　⋯</span></header><div class="chat-scroll"><div class="date-line">今天　18:00</div>
+  <article class="message"><div class="bot-avatar">F</div><div class="message-content"><div class="sender">Fund 资金助手 <span>应用</span></div>
+  <div class="message-card"><div class="card-head"><span>今日认领情况</span><span class="tag done">日报</span></div><div class="card-body">
+  <div class="digest-summary"><div><b>${total}</b>本组认领笔数</div><div><b>${digestRows.length}</b>有认领的组员</div></div>
+  <div class="digest-list">${rows}</div>
+  <p class="card-note">交付一组 · 当天认领成功。金额按币种分开，不混加。超过卡片能放下的行数时，这里保留汇总和各组员一行，完整明细进子应用。</p>
+  <div class="card-actions"><button class="primary" type="button" data-action="open-board">查看完整看板</button></div>
+  </div></div></div></article>
+  <div class="chat-end">演示消息 · 不统计真实认领</div></div></section></div>`;
+}
+function boardGroups() {
+  const order=[]; const map=new Map();
+  boardClaims.forEach(c=>{if(!map.has(c.person)){map.set(c.person,[]);order.push(c.person);}map.get(c.person).push(c);});
+  return order.map(person=>{
+    const rows=map.get(person).slice().sort((a,b)=>b.time.localeCompare(a.time));
+    const totals={};
+    rows.forEach(r=>{totals[r.currency]=(totals[r.currency]||0)+r.amount;});
+    return {person,rows,totals};
+  });
+}
+function boardPage() {
+  const groups=boardGroups();
+  const total=boardClaims.length;
+  const grand={};
+  boardClaims.forEach(r=>{grand[r.currency]=(grand[r.currency]||0)+r.amount;});
+  const stats=`<div class="board-stat"><b>${total}</b><span>认领笔数</span></div><div class="board-stat"><b>${groups.length}</b><span>组员</span></div>`+Object.entries(grand).map(([c,n])=>`<div class="board-stat"><b>${c} ${money(n)}</b><span>金额合计</span></div>`).join('');
+  const body=groups.map(g=>{
+    const totals=Object.entries(g.totals).map(([c,n])=>`${c} ${money(n)}`).join(' · ');
+    const rows=g.rows.map(r=>`<tr><td data-label="渠道">${esc(r.channel)}</td><td class="txn" data-label="交易号">${esc(r.id)}</td><td data-label="交易时间">${esc(r.time)}</td><td data-label="商户 ID">${esc(r.merchantId)}</td><td class="num" data-label="金额">${r.currency} ${money(r.amount)}</td></tr>`).join('');
+    return `<section class="board-group"><header class="board-person"><b>${esc(g.person)}</b><span>${g.rows.length} 笔</span><span class="amt">${totals}</span></header><div class="board-table-wrap"><table class="board-table"><thead><tr><th>渠道</th><th>交易号</th><th>交易时间</th><th>商户 ID</th><th class="num">金额</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  }).join('');
+  return `<main class="board-scene"><div class="board-head"><button type="button" class="text-button board-back" data-scene="digest">返回日报</button><div><h1>今日认领看板</h1><p>交付一组 · 2026-10-20 · 同一组员的流水排在一起，组内按交易时间从新到旧</p></div></div><div class="board-stats">${stats}</div>${body}<p class="prototype-hint">演示数据，与日报卡片的笔数和金额一致。金额按币种分开，不混加。</p></main>`;
 }
 function preview() {
   const f=$('#settings-form'),count=Number(f.elements.count.value);f.elements.interval.disabled=count===1;
@@ -136,9 +279,15 @@ function preview() {
   $('#schedule-error').textContent=result.error||'';f.querySelector('button[type="submit"]').disabled=!!result.error;
 }
 document.addEventListener('click',e=>{
+  const pop=$('#merchant-pop');
+  if(pop&&!pop.hidden&&!e.target.closest('.merchant-field'))setMerchantOpen(false);
   const b=e.target.closest('button');if(!b)return;
+  if(b.id==='claim-customer-btn'){setMerchantOpen(pop.hidden);return;}
+  if(b.dataset.action==='pick-merchant'){setMerchant(b.dataset.id);merchantQuery='';setMerchantOpen(false);renderMerchantPicker();return;}
   if(b.dataset.scene){scene=b.dataset.scene;render();return;}
   const action=b.dataset.action,r=receipts.find(x=>x.id===b.dataset.id);
+  if(action==='toggle-history'){historyOpen[b.dataset.id]=!historyOpen[b.dataset.id];render();return;}
+  if(action==='open-board'){scene='board';render();return;}
   if(action==='claim')beginClaim(r);
   if(action==='return')returnModal(r);
   if(action==='mute'&&r?.status==='待认领'){r.stop=true;render();toast('已停止该笔后续提醒。');}
@@ -147,9 +296,21 @@ document.addEventListener('click',e=>{
   if(action==='final-confirm')commitClaim();
   if(action==='remove-file'){attachments.splice(Number(b.dataset.index),1);renderFiles();$('#claim-error').textContent='';}
 });
-document.addEventListener('change',e=>{if(e.target.id==='voucher'){addFiles(Array.from(e.target.files));e.target.value='';}if(e.target.closest('#settings-form'))preview();});
-document.addEventListener('input',e=>{if(e.target.closest('#settings-form'))preview();});
-document.addEventListener('keydown',e=>{if(e.target.id==='drop-zone'&&['Enter',' '].includes(e.key)){e.preventDefault();$('#voucher').click();}});
+document.addEventListener('change',e=>{
+  if(e.target.id==='use-recommend'){useRecommend=e.target.checked;syncRecommendFields();return;}
+  if(e.target.name==='biz'&&e.target.closest('#claim-form')){renderMerchantPicker();return;}
+  if(e.target.id==='voucher'){addFiles(Array.from(e.target.files));e.target.value='';}
+  if(e.target.closest('#settings-form'))preview();
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='merchant-search'){merchantQuery=e.target.value;renderMerchantPicker();return;}
+  if(e.target.closest('#settings-form'))preview();
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.id==='drop-zone'&&['Enter',' '].includes(e.key)){e.preventDefault();$('#voucher').click();}
+  if(e.target.id==='merchant-search'&&e.key==='Enter')e.preventDefault();
+  if(e.key==='Escape'&&$('#merchant-pop')&&!$('#merchant-pop').hidden){e.preventDefault();e.stopPropagation();setMerchantOpen(false);}
+});
 document.addEventListener('dragover',e=>{if(e.target.closest('#drop-zone')){e.preventDefault();e.dataTransfer.dropEffect='copy';}});
 document.addEventListener('drop',e=>{if($('#modal').open&&$('#claim-form')){e.preventDefault();if(e.target.closest('#drop-zone'))addFiles(Array.from(e.dataTransfer.files));}});
 document.addEventListener('paste',e=>{if($('#modal').open&&$('#claim-form')){const files=Array.from(e.clipboardData?.files||[]);if(files.length){e.preventDefault();addFiles(files);}}});
@@ -157,8 +318,8 @@ document.addEventListener('submit',e=>{
   e.preventDefault();const f=e.target;
   if(f.id==='claim-form'){showSecondConfirmation();return;}
   if(f.id==='return-form'){const r=activeReceipt;if(r.status!=='待认领'||r.returned)return toast('流水已处理。');r.returned=true;r.returnReason=f.elements.reason.value.trim();r.stop=true;$('#modal').close();render();toast('已退回，停止该笔提醒。');return;}
-  if(f.id==='settings-form'){const c={enabled:f.elements.enabled.checked,count:Number(f.elements.count.value),first:f.elements.first.value,interval:Number(f.elements.interval.value)||config.interval};if(schedule(c).error)return;config=c;render();toast('配置已保存（演示）。');}
+  if(f.id==='settings-form'){const c={adEnabled:f.elements.adEnabled.checked,fulfillEnabled:f.elements.fulfillEnabled.checked,count:Number(f.elements.count.value),first:f.elements.first.value,interval:Number(f.elements.interval.value)||config.interval,byStore:f.elements.byStore.checked,byMerchant:f.elements.byMerchant.checked,byFrequent:f.elements.byFrequent.checked,frequentMin:Number(f.elements.frequentMin.value)};if(schedule(c).error)return;if(!Number.isInteger(c.frequentMin)||c.frequentMin<1)return toast('高频阈值请填正整数。');config=c;render();toast('配置已保存（演示）。');}
 });
 $('#confirm-modal').addEventListener('cancel',()=>{pendingClaim=null;});
-$('#modal').addEventListener('close',()=>{activeReceipt=null;activeRecommendation=null;attachments=[];pendingClaim=null;});
+$('#modal').addEventListener('close',()=>{activeReceipt=null;useRecommend=true;attachments=[];pendingClaim=null;merchantQuery='';$('#modal').className='';});
 render();

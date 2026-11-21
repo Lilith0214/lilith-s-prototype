@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>行下展开 · Payment Demo</title>
+  <style>
+    :root {
+      --blue: #0069ff;
+      --blue-light: #eaf3ff;
+      --text: #15191f;
+      --muted: #596477;
+      --border: #e1e5ec;
+      --ease: cubic-bezier(.22, 1, .36, 1);
+      font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: #f0f3f7;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px 32px 6px; }
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; cursor: pointer; }
+    button, a, input { outline-offset: 4px; }
+    :focus-visible { outline: 2px solid var(--blue); }
+    button:disabled { cursor: default; }
+    button { color: inherit; }
+    [hidden] { display: none !important; }
+    h1, h2, h3, p { margin: 0; }
+    .icon { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
+    .icon-button {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border: 0; border-radius: 6px;
+      background: transparent; color: #7c8595;
+      transition: color 140ms, background 140ms, transform 100ms;
+    }
+    .icon-button:hover { color: var(--blue); background: #edf4ff; }
+    button:active:not(:disabled) { transform: scale(.985); }
+    .masthead { text-align: center; margin-bottom: 25px; }
+    .masthead h1 { font-size: 40px; line-height: 1.3; letter-spacing: -1.5px; font-weight: 650; }
+    .masthead p { margin-top: 8px; font-size: 20px; color: #7a8596; line-height: 1.5; }
+    .modal {
+      max-width: 1296px; margin: auto; background: white;
+      border: 1px solid #e3e7ed; border-radius: 20px;
+      box-shadow: 0 14px 36px #26354a05; overflow: hidden;
+    }
+    .modal-header {
+      min-height: 72px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #e9ecf1; padding: 18px 26px;
+    }
+    .modal-header h2 { font-size: 22px; letter-spacing: -.5px; font-weight: 600; }
+    .modal-header .icon-button { margin-right: -3px; }
+    .modal-body { display: grid; grid-template-columns: 1.07fr 1fr; gap: 48px; padding: 26px; align-items: start; }
+    .selection { border: 1px solid var(--border); border-radius: 13px; padding: 18px 20px 20px; min-width: 0; }
+    .section-heading { font-size: 20px; font-weight: 600; letter-spacing: -.4px; display: flex; align-items: center; gap: 10px; line-height: 1.5; }
+    .section-heading::before { content: ""; width: 4px; height: 20px; border-radius: 2px; background: var(--blue); flex-shrink: 0; }
+    .field { margin-top: 13px; }
+    .label { display: block; color: #4c586b; font-size: 17px; line-height: 1.5; margin-bottom: 9px; }
+    .required { color: #ef3e45; margin-right: 3px; }
+    .currencies { display: flex; gap: 8px; }
+    .currency {
+      height: 39px; padding: 0 16px; border: 1px solid #dce1e9; background: white; border-radius: 7px;
+      font-size: 16px; transition: background 150ms, border-color 150ms, color 150ms, transform 100ms;
+    }
+    .currency[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: white; font-weight: 600; }
+    .currency:not([aria-pressed="true"]):hover { background: #f6f9ff; border-color: #adcaff; }
+    .amount-wrap { position: relative; }
+    .amount-wrap input { width: 100%; padding-right: 64px; }
+    .amount-suffix { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #7b8496; font-size: 16px; pointer-events: none; }
+    input[type="text"], input[type="date"] {
+      height: 44px; border: 1px solid #d8dee8; background: white; border-radius: 7px;
+      padding: 0 13px; color: var(--text); min-width: 0;
+      transition: border-color 150ms, box-shadow 150ms;
+    }
+    input::placeholder { color: #777; opacity: 1; }
+    input:focus { outline: 0; border-color: var(--blue); box-shadow: 0 0 0 3px #0069ff10; }
+    .amount-wrap input { padding-right: 64px; }
+    .payment-label { margin: 14px 0 13px; color: #4c586b; font-size: 17px; }
+    .subheading { font-size: 17px; color: #4c586b; margin: 0 0 11px; font-weight: 400; line-height: 1.45; }
+    .transfer-subheading { margin-top: 13px; }
+    .channel-row { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 10px; }
+    .channel-row:first-child { margin-top: 0; }
+    .channel-card {
+      min-width: 0; width: 100%; min-height: 52px; display: flex; align-items: center; gap: 12px;
+      border: 1px solid #e2e5eb; border-radius: 9px; background: #f6f7f9; padding: 10px 13px;
+      text-align: left; font-size: 18px; position: relative;
+      transition: background 150ms, border-color 150ms, box-shadow 150ms, transform 100ms;
+    }
+    .channel-card:hover { background: #eff3fa; border-color: #c4d3e8; }
+    .channel-card[aria-pressed="true"] { background: var(--blue-light); border-color: var(--blue); box-shadow: inset 0 0 0 .3px var(--blue); }
+    .channel-card[aria-pressed="true"] .channel-name { font-weight: 600; }
+    .channel-name { min-width: 0; overflow-wrap: anywhere; line-height: 1.3; }
+    .brand {
+      display: inline-flex; width: 30px; height: 30px; border-radius: 7px; color: white;
+      align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; font-weight: 600;
+      user-select: none; letter-spacing: -.5px;
+    }
+    .brand.paypal { background: #003087; font-size: 12px; }
+    .brand.payoneer { background: #ff7300; }
+    .brand.airwallex { background: #ff4852; }
+    .brand.worldfirst { background: #ef258c; }
+    .brand.slash { background: #242424; }
+    .brand.hsbc { background: #df0025; }
+    .card-indicator { margin-left: auto; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; color: #788293; flex-shrink: 0; }
+    .card-indicator .icon { width: 16px; height: 16px; transition: transform 200ms var(--ease), color 150ms; }
+    .channel-card[aria-expanded="true"] .card-indicator .icon { transform: rotate(180deg); color: var(--blue); }
+    .channel-card[aria-pressed="true"] .card-indicator { color: var(--blue); }
+    .channel-card[aria-pressed="false"] .single-indicator { visibility: hidden; }
+    .accounts-shell {
+      height: 0; opacity: 0; overflow: hidden; pointer-events: none;
+      transition: height 280ms var(--ease), opacity 150ms ease;
+    }
+    .accounts-shell.is-open { opacity: 1; pointer-events: auto; }
+    .panel-space { padding-top: 14px; padding-bottom: 2px; }
+    .accounts-panel { position: relative; border: 1px solid #9ec4ff; border-radius: 12px; background: #fbfcff; --pointer: 25%; }
+    .accounts-panel::before {
+      content: ""; position: absolute; z-index: 1; left: var(--pointer); top: -7px;
+      width: 12px; height: 12px; background: #fbfcff; border-top: 1px solid #9ec4ff; border-left: 1px solid #9ec4ff;
+      transform: translateX(-50%) rotate(45deg); transition: left 280ms var(--ease);
+    }
+    .account-options { border-radius: 11px; overflow: hidden; position: relative; }
+    .account-option {
+      position: relative; min-height: 60px; width: 100%; padding: 9px 18px 9px 22px;
+      background: transparent; border: 0; border-bottom: 1px solid #e2e8f1; text-align: left;
+      display: flex; align-items: center; gap: 15px; transition: background 150ms ease;
+    }
+    .account-option:last-child { border-bottom: 0; }
+    .account-option:hover { background: #f1f6ff; }
+    .account-option[aria-checked="true"] { background: var(--blue-light); }
+    .account-option:focus-visible { outline-offset: -4px; border-radius: 7px; }
+    .radio {
+      width: 23px; height: 23px; border: 1.5px solid #bdc7d6; border-radius: 50%; background: white;
+      display: grid; place-items: center; flex-shrink: 0; transition: border-color 150ms;
+    }
+    .radio::after { content: ""; width: 13px; height: 13px; border-radius: 50%; background: var(--blue); opacity: 0; transform: scale(.4); transition: opacity 120ms, transform 180ms var(--ease); }
+    [aria-checked="true"] .radio { border-color: var(--blue); }
+    [aria-checked="true"] .radio::after { opacity: 1; transform: scale(1); }
+    .account-copy { min-width: 0; }
+    .account-title { display: block; font-size: 17px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
+    .fast {
+      display: inline-block; margin-left: 8px; padding: 0 7px; height: 20px; line-height: 20px;
+      border-radius: 10px; background: #e8f8ef; color: #17803d; font-size: 12px; font-style: normal;
+      font-weight: 700; vertical-align: 1px; letter-spacing: .2px;
+    }
+    .account-meta { display: block; color: #556173; font-size: 14px; line-height: 1.3; margin-top: 3px; }
+    .right { padding-top: 7px; min-width: 0; }
+    .right-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 3px; min-height: 32px; }
+    .text-button { background: transparent; border: 0; padding: 5px 0 5px 8px; color: #526076; font-size: 16px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .text-button:hover { color: var(--blue); }
+    .details-row { display: flex; justify-content: space-between; align-items: start; gap: 16px; border-bottom: 1px solid #e9edf3; padding: 11px 0; font-size: 17px; line-height: 1.45; }
+    .details-label { color: #667287; flex: 0 1 46%; }
+    .details-value { text-align: right; overflow-wrap: anywhere; min-width: 0; font-variant-numeric: tabular-nums; }
+    .primary, .secondary { min-height: 53px; border-radius: 7px; padding: 12px 20px; font-size: 18px; transition: transform 100ms, background 150ms, box-shadow 150ms; }
+    .primary { border: 1px solid var(--blue); background: var(--blue); color: white; font-weight: 600; }
+    .primary:hover { background: #005ce5; box-shadow: 0 4px 12px #0069ff18; }
+    .primary:active { background: #0052cc; }
+    .secondary { background: white; border: 1px solid #d8dee8; }
+    .secondary:hover { border-color: #97b9ef; background: #f8faff; }
+    .confirm { width: 100%; margin-top: 20px; }
+    .reminder { margin-top: 26px; }
+    .reminder h3 { font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
+    .reminder ul { padding-left: 19px; margin: 9px 0 0; color: #4e5b70; font-size: 16px; line-height: 1.52; }
+    .reminder li { padding-left: 2px; margin-top: 9px; }
+    .reminder li:first-child { margin-top: 0; }
+    .back { display: inline-flex; align-items: center; gap: 10px; padding: 6px 0; margin: 0 0 18px; color: #49566b; background: transparent; border: 0; font-size: 17px; }
+    .back:hover { color: var(--blue); }
+    .account-summary { display: flex; align-items: center; gap: 10px; min-height: 48px; background: #f6f7f9; padding: 9px 12px; border-radius: 8px; margin-bottom: 18px; font-weight: 600; }
+    .account-summary .brand { width: 25px; height: 25px; font-size: 15px; }
+    .uploader { width: 100%; min-height: 128px; border: 1px dashed #a8bcdb; border-radius: 9px; background: #fbfcff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; color: var(--blue); padding: 18px; transition: background 150ms, border-color 150ms; }
+    .uploader:hover, .uploader.dragging { background: #eff5ff; border-color: var(--blue); }
+    .uploader .icon { width: 27px; height: 27px; }
+    .uploader small { color: #8792a3; font-size: 13px; }
+    .receipt { border: 1px solid #dbe6f6; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-top: 10px; background: #f8fbff; }
+    .receipt > .icon { color: var(--blue); }
+    .receipt-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+    .upload-form { margin-top: 23px; display: grid; gap: 19px; }
+    .upload-field { display: grid; gap: 8px; }
+    .upload-field label { color: #4d5a70; font-size: 16px; }
+    .upload-field input { width: 100%; }
+    input[readonly] { background: #f5f6f8; color: #7b8697; }
+    .form-actions { margin-top: 8px; display: grid; grid-template-columns: 1fr 1.8fr; gap: 12px; }
+    .footer { max-width: 1296px; margin: 9px auto 0; color: #8490a2; text-align: right; font-size: 13px; line-height: 1.5; }
+    .reopen { display: block; margin: 100px auto; }
+    .toast { position: fixed; left: 50%; bottom: 25px; z-index: 5; transform: translate(-50%, 12px); opacity: 0; pointer-events: none; background: #1c2638; color: white; border-radius: 9px; padding: 12px 18px; box-shadow: 0 5px 20px #23334a20; font-size: 14px; transition: opacity 150ms, transform 180ms var(--ease); }
+    .toast.visible { opacity: 1; transform: translate(-50%, 0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+    @media (max-width: 1000px) {
+      body { padding: 24px 20px; }
+      .masthead h1 { font-size: 32px; }
+      .masthead p { font-size: 16px; }
+      .modal-body { gap: 25px; padding: 22px; }
+      .selection { padding: 18px 16px; }
+      .channel-card { padding: 10px; gap: 9px; font-size: 16px; }
+      .brand { width: 25px; height: 25px; font-size: 15px; }
+      .account-option { padding: 11px 12px; gap: 10px; }
+      .account-title { font-size: 15px; }
+      .section-heading { font-size: 18px; }
+      .details-row { font-size: 15px; }
+      .reminder ul { font-size: 14px; }
+    }
+    @media (max-width: 760px) {
+      body { padding: 20px 14px; }
+      .masthead { margin-bottom: 24px; }
+      .masthead h1 { font-size: 29px; }
+      .masthead p { font-size: 14px; margin-top: 5px; }
+      .modal { border-radius: 14px; }
+      .modal-header { min-height: 60px; padding: 15px 18px; }
+      .modal-header h2 { font-size: 19px; }
+      .modal-body { grid-template-columns: 1fr; padding: 16px; gap: 25px; }
+      .selection { padding: 16px 14px; }
+      .right { padding: 0 2px; }
+      .label, .payment-label, .subheading { font-size: 15px; }
+      .field { margin-top: 15px; }
+      .channel-row { gap: 9px; }
+      .channel-card { min-height: 49px; gap: 8px; font-size: 15px; padding: 9px; }
+      .channel-card .brand { width: 24px; height: 24px; }
+      .card-indicator { width: 14px; }
+      .card-indicator .icon { width: 13px; height: 13px; }
+      .account-option { min-height: 59px; }
+      .account-title { font-size: 15px; }
+      .account-meta { font-size: 13px; }
+      .radio { width: 20px; height: 20px; }
+      .radio::after { width: 11px; height: 11px; }
+      .details-label { flex-basis: 33%; }
+      .details-row { gap: 12px; }
+      .primary, .secondary { font-size: 16px; padding: 12px; }
+      .footer { text-align: center; margin-top: 13px; font-size: 11px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Ant Design Icons (MIT), embedded from @ant-design/icons-svg. -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-down" viewBox="64 64 896 896"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></symbol>
+    <symbol id="i-check" viewBox="64 64 896 896"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></symbol>
+    <symbol id="i-close" viewBox="64 64 896 896"><path d="M799.86 166.31c.02 0 .04.02.08.06l57.69 57.7c.04.03.05.05.06.08a.12.12 0 010 .06c0 .03-.02.05-.06.09L569.93 512l287.7 287.7c.04.04.05.06.06.09a.12.12 0 010 .07c0 .02-.02.04-.06.08l-57.7 57.69c-.03.04-.05.05-.07.06a.12.12 0 01-.07 0c-.03 0-.05-.02-.09-.06L512 569.93l-287.7 287.7c-.04.04-.06.05-.09.06a.12.12 0 01-.07 0c-.02 0-.04-.02-.08-.06l-57.69-57.7c-.04-.03-.05-.05-.06-.07a.12.12 0 010-.07c0-.03.02-.05.06-.09L454.07 512l-287.7-287.7c-.04-.04-.05-.06-.06-.09a.12.12 0 010-.07c0-.02.02-.04.06-.08l57.7-57.69c.03-.04.05-.05.07-.06a.12.12 0 01.07 0c.03 0 .05.02.09.06L512 454.07l287.7-287.7c.04-.04.06-.05.09-.06a.12.12 0 01.07 0z"/></symbol>
+    <symbol id="i-back" viewBox="64 64 896 896"><path d="M872 474H286.9l350.2-304c5.6-4.9 2.2-14-5.2-14h-88.5c-3.9 0-7.6 1.4-10.5 3.9L155 487.8a31.96 31.96 0 000 48.3L535.1 866c1.5 1.3 3.3 2 5.2 2h91.5c7.4 0 10.8-9.2 5.2-14L286.9 550H872c4.4 0 8-3.6 8-8v-60c0-4.4-3.6-8-8-8z"/></symbol>
+    <symbol id="i-copy" viewBox="64 64 896 896"><path d="M832 64H296c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h496v688c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V96c0-17.7-14.3-32-32-32zM704 192H192c-17.7 0-32 14.3-32 32v530.7c0 8.5 3.4 16.6 9.4 22.6l173.3 173.3c2.2 2.2 4.7 4 7.4 5.5v1.9h4.2c3.5 1.3 7.2 2 11 2H704c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32zM350 856.2L263.9 770H350v86.2zM664 888H414V746c0-22.1-17.9-40-40-40H232V264h432v624z"/></symbol>
+    <symbol id="i-upload" viewBox="64 64 896 896"><path d="M400 317.7h73.9V656c0 4.4 3.6 8 8 8h60c4.4 0 8-3.6 8-8V317.7H624c6.7 0 10.4-7.7 6.3-12.9L518.3 163a8 8 0 00-12.6 0l-112 141.7c-4.1 5.3-.4 13 6.3 13zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></symbol>
+  </svg>
+
+  <header class="masthead" lang="zh-CN">
+    <h1>行下展开</h1>
+    <p>账号嵌入当前行下方，其余卡片平滑下移</p>
+  </header>
+
+  <main class="modal" id="payment-demo" aria-labelledby="dialog-title">
+    <header class="modal-header">
+      <h2 id="dialog-title">Recharge/Transfer</h2>
+      <button class="icon-button" id="close-demo" aria-label="Close demo"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </header>
+    <div class="modal-body">
+      <section class="selection" aria-labelledby="selection-heading">
+        <h3 class="section-heading" id="selection-heading">Select Payment Method</h3>
+        <div class="field">
+          <span class="label" id="currency-label">Payment Currency</span>
+          <div class="currencies" role="group" aria-labelledby="currency-label">
+            <button class="currency" data-currency="USD" aria-pressed="true">USD</button>
+            <button class="currency" data-currency="EUR" aria-pressed="false">EUR</button>
+            <button class="currency" data-currency="GBP" aria-pressed="false">GBP</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label" for="amount"><span class="required">*</span>Payment Amount</label>
+          <div class="amount-wrap">
+            <input id="amount" type="text" inputmode="decimal" placeholder="Please enter recharge amount" autocomplete="off">
+            <span class="amount-suffix" id="currency-suffix">USD</span>
+          </div>
+        </div>
+        <p class="payment-label">Payment Method</p>
+        <h4 class="subheading">Online Payment</h4>
+        <button class="channel-card" id="paypal" aria-pressed="false"><span class="brand paypal" aria-hidden="true">PP</span><span class="channel-name">PayPal</span></button>
+        <h4 class="subheading transfer-subheading" id="channels-heading">Transfer to Account</h4>
+        <div class="channel-grid" id="channel-grid" role="group" aria-labelledby="channels-heading"></div>
+      </section>
+      <section class="right" id="right" aria-label="Payment information"></section>
+    </div>
+  </main>
+
+  <button class="primary reopen" id="reopen-demo" hidden>Open payment demo</button>
+  <footer class="footer">Interactive concept · Sample account details · No data is sent</footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    'use strict';
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+    const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const bankNotes = 'For US dollar regions, no crediting is available during off-hours and holidays, subject to bank channel restrictions.';
+    const bankAccount = (title, meta, bank, number) => ({title, meta, details: [
+      ['Bank name', bank], ['Account number', number], ['Beneficiary name', 'EXAMPLE COMPANY LIMITED']
+    ]});
+    const providers = [
+      { id: 'payoneer', name: 'Payoneer', mark: 'P', accounts: [
+        {title: 'Payoneer to Payoneer', faster: true, details: [
+          ['Payoneer Account', 'bestads01@163.com'],
+          ['Beneficiary name', 'BESTADS LIMITED']
+        ]},
+        {title: 'US bank · Citibank', meta: 'ACH / SWIFT', details: [
+          ['Payment settlement time', 'ACH: 1 business day; Swift: 1–3 business days'],
+          ['Beneficiary name', 'BESTADS LIMITED'],
+          ['Bank name', 'Citibank'],
+          ['Bank address', '111 Wall Street New York, NY 10043 USA'],
+          ['Routing (ABA)', '031100209'],
+          ['SWIFT', 'CITIUS33'],
+          ['Account number', '70585200002228282'],
+          ['Account type', 'CHECKING'],
+          ['Notes', bankNotes]
+        ]},
+        {title: 'US bank · First Century Bank', meta: 'ACH', details: [
+          ['Payment settlement time', 'ACH: 1 business day; Swift: 1–3 business days'],
+          ['Beneficiary name', 'HUACHAO TRADING LIMITED'],
+          ['Bank name', 'First Century Bank'],
+          ['Bank address', '1731 N Elm St Commerce, GA 30529 USA'],
+          ['Routing (ABA)', '061120084'],
+          ['Account number', '4023713418887'],
+          ['Account type', 'CHECKING'],
+          ['Notes', bankNotes]
+        ]}
+      ]},
+      { id: 'airwallex', name: 'Airwallex', mark: 'A', accounts: [
+        {title: 'Airwallex to Airwallex', faster: true, details: [
+          ['Payment settlement time', 'About 1 hour'],
+          ['Account number', '10111068291322869'],
+          ['Account name', '牧雪贸易有限公司'],
+          ['Alternative account name', 'MUXUE TRADE LIMITED'],
+          ['Notes', 'Payment is not affected by weekends or holidays.']
+        ]},
+        {title: 'US bank · Community Federal Savings Bank', meta: 'ACH / Wire / SWIFT', details: [
+          ['Payment settlement time', 'ACH & Wire: 1 business day; Swift: 1–3 business days'],
+          ['Account name', 'MUXUE TRADE LIMITED'],
+          ['Bank account number', '8480040709'],
+          ['ACH routing number', '026073150'],
+          ['Fedwire routing number', '026073008'],
+          ['SWIFT code', 'CMFGUS33'],
+          ['Bank name', 'Community Federal Savings Bank'],
+          ['Account location', 'United States of America'],
+          ['Account type', 'Checking'],
+          ['Bank address', '89-16 Jamaica Ave'],
+          ['City', 'Woodhaven, NY'],
+          ['ZIP Code', '11421'],
+          ['Notes', 'For US dollar regions, no crediting is available during off-hours and holidays, subject to bank channel restrictions.']
+        ]},
+        {title: 'Hong Kong bank · DBS Bank (Hong Kong) Limited', meta: 'Local / SWIFT', details: [
+          ['Payment settlement time', '1 to 2 business days'],
+          ['Account name', 'MUXUE TRADE LIMITED'],
+          ['Bank account number', '795045636'],
+          ['Bank code', '016'],
+          ['Branch code', '478'],
+          ['SWIFT code', 'DHBKHKHH'],
+          ['Bank name', 'DBS Bank (Hong Kong) Limited'],
+          ['Account location', 'Hong Kong SAR'],
+          ['Account type', 'Current'],
+          ['Bank address', "18th Floor, The Center, 99 Queen's Road Central, Central"],
+          ['City', 'Hong Kong SAR'],
+          ['Notes', 'No credits can be processed during non-working days and rest days, which is affected by bank channel restrictions.']
+        ]}
+      ]},
+      { id: 'worldfirst', name: 'Worldfirst', mark: 'W', accounts: [
+        {title: 'Worldfirst to Worldfirst', faster: true, details: [
+          ['Payment settlement time', 'About 10 minutes'],
+          ['Account number', 'WF-281024151920307013261793'],
+          ['Account name', 'MUXUE TRADE LIMITED'],
+          ['Notes', 'Payment must be made via WorldFirst']
+        ]},
+        {title: 'US bank · JP MORGAN CHASE BANK, N.A.', meta: 'ACH and SWIFT', details: [
+          ['Payment settlement time', 'ACH: same day; Swift: 1–3 business days'],
+          ['Account holder name', 'MUXUE TRADE LIMITED'],
+          ['Account number', '20000013041715'],
+          ['ACH routing number', '028000024'],
+          ['Wire remittance route number', '021000021'],
+          ['SWIFT/BIC', 'CHASUS33'],
+          ['Account type', 'Checking'],
+          ['Bank name', 'JP MORGAN CHASE BANK, N.A.'],
+          ['Bank address', '4 NEW YORK PLAZA FLOOR 15, New York, United States'],
+          ['Notes', bankNotes]
+        ]},
+        {title: 'Hong Kong bank · JP Morgan Chase HONG KONG BRANCH', meta: 'Local and SWIFT', details: [
+          ['Payment settlement time', '1 to 2 business days'],
+          ['Account holder name', 'MUXUE TRADE LIMITED'],
+          ['Account number', '63115233916'],
+          ['SWIFT/BIC', 'CHASHKHHXXX'],
+          ['Bank code', '007'],
+          ['Branch code', '863'],
+          ['Bank name', 'JP Morgan Chase HONG KONG BRANCH'],
+          ['Bank address', 'CHARTER HOUSE, 8 CONNAUGHT ROAD, CENTRAL'],
+          ['Bank region', 'HK'],
+          ['Notes', 'No credits can be processed during non-working days and rest days, which is affected by bank channel restrictions.']
+        ]}
+      ]},
+      { id: 'slash', name: 'Slash', mark: 'S', accounts: [bankAccount('Slash', '', 'Example Bank', '0000 0000 4821')] },
+      { id: 'hsbc', name: 'HSBC', mark: 'H', accounts: [bankAccount('HSBC', '', 'HSBC', '0000 0000 6204')] }
+    ];
+    const reminders = [
+      'Do not include sensitive notes when creating a payment (e.g., "topup ads", "order"). We recommend using a numeric code instead.',
+      'Enter the correct amount, currency, and payment time. Please do not submit the same transaction more than once.',
+      "Upload the payment proof/receipt. Without it, we can’t verify the transfer or credit your balance in time.",
+      'After submission, your balance will be credited based on the actual received amount. Transfers submitted during business hours are processed the same day; those submitted outside business hours will be processed on the next business day.',
+      'For platform-to-platform transfers (e.g., Payoneer → Payoneer), there may be a ~10-minute delay. Please wait patiently.',
+      'For advertising funds: if the received currency is non-USD, an additional 0.6% fee applies. PayPal payments incur an additional 2.5% fee.',
+      'If you have any questions, please contact Customer Support.'
+    ];
+    const state = { provider: 'payoneer', account: 0, open: true, currency: 'USD', view: 'details' };
+    const grid = $('#channel-grid');
+    const right = $('#right');
+    const shell = document.createElement('div');
+    shell.className = 'accounts-shell';
+    shell.id = 'account-panel';
+    shell.innerHTML = '<div class="panel-space"><div class="accounts-panel"><div class="account-options" role="radiogroup" aria-label="Receiving account"></div></div></div>';
+    const panel = $('.accounts-panel', shell);
+    const options = $('.account-options', shell);
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    const flips = new WeakMap();
+    let optionsVersion = 0;
+    let rightVersion = 0;
+    let toastTimer;
+    let receiptName = '';
+    let receiptError = '';
+    const uploadDraft = { date: localDate(), transaction: '', payer: '' };
+
+    function localDate() {
+      const date = new Date();
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+    const currentProvider = () => providers.find(p => p.id === state.provider);
+    const currentAccount = () => currentProvider()?.accounts[state.account];
+    const brand = provider => `<span class="brand ${provider.id}" aria-hidden="true">${provider.mark}</span>`;
+    const reminderHTML = () => `<aside class="reminder"><h3>Friendly Reminder</h3><ul>${reminders.map(text => `<li>${text}</li>`).join('')}</ul></aside>`;
+
+    for (let index = 0; index < providers.length; index += 2) {
+      const row = document.createElement('div');
+      row.className = 'channel-row';
+      row.innerHTML = providers.slice(index, index + 2).map(provider => `<button class="channel-card" data-provider="${provider.id}" aria-pressed="false">${brand(provider)}<span class="channel-name">${provider.name}</span><span class="card-indicator${provider.accounts.length === 1 ? ' single-indicator' : ''}">${icon(provider.accounts.length > 1 ? 'down' : 'check')}</span></button>`).join('');
+      grid.append(row);
+    }
+    const rows = $$('.channel-row', grid);
+
+    function captureLayout() {
+      const elements = [...rows, shell];
+      const boxes = new Map(elements.map(element => [element, element.getBoundingClientRect()]));
+      for (const element of elements) flips.get(element)?.cancel();
+      return boxes;
+    }
+    function animateLayout(before) {
+      if (reducedMotion.matches) return;
+      for (const [element, previous] of before) {
+        if (previous.height === 0 && element === shell) continue;
+        const next = element.getBoundingClientRect();
+        const x = previous.left - next.left;
+        const y = previous.top - next.top;
+        if (Math.abs(x) + Math.abs(y) < .5) continue;
+        flips.set(element, element.animate([
+          {transform: `translate(${x}px, ${y}px)`}, {transform: 'translate(0, 0)'}
+        ], {duration: 280, easing: 'cubic-bezier(.22, 1, .36, 1)'}));
+      }
+    }
+    function renderOptions() {
+      const provider = currentProvider();
+      if (!provider) return;
+      options.dataset.channel = provider.id;
+      options.setAttribute('aria-label', `${provider.name} receiving account`);
+      options.innerHTML = provider.accounts.map((account, index) => `<button class="account-option" role="radio" aria-checked="${index === state.account}" tabindex="${index === state.account ? '0' : '-1'}" data-account="${index}"><span class="radio" aria-hidden="true"></span><span class="account-copy"><span class="account-title">${escapeHTML(account.title)}${account.faster ? '<em class="fast">Faster</em>' : ''}</span>${account.meta ? `<span class="account-meta">${escapeHTML(account.meta)}</span>` : ''}</span></button>`).join('');
+    }
+    async function transitionOptions() {
+      const version = ++optionsVersion;
+      const opacity = getComputedStyle(options).opacity;
+      for (const animation of options.getAnimations()) animation.cancel();
+      options.inert = true;
+      if (!currentProvider() || currentProvider().accounts.length === 1) return;
+      const fade = !reducedMotion.matches && shell.getBoundingClientRect().height > 1;
+      if (fade) {
+        await options.animate([{opacity}, {opacity: 0}], {duration: 80, fill: 'forwards'}).finished.catch(() => {});
+        if (version !== optionsVersion) return;
+      }
+      for (const animation of options.getAnimations()) animation.cancel();
+      renderOptions();
+      updatePanelHeight();
+      options.inert = false;
+      if (fade) options.animate([{opacity: 0}, {opacity: 1}], {duration: 140, easing: 'ease-out'});
+    }
+    function updateCards() {
+      for (const button of $$('.channel-card[data-provider]', grid)) {
+        const provider = providers.find(p => p.id === button.dataset.provider);
+        const selected = provider.id === state.provider;
+        const multiple = provider.accounts.length > 1;
+        button.setAttribute('aria-pressed', String(selected));
+        if (multiple) {
+          button.setAttribute('aria-expanded', String(selected && state.open));
+          button.setAttribute('aria-controls', shell.id);
+        }
+      }
+      $('#paypal').setAttribute('aria-pressed', String(state.provider === 'paypal'));
+    }
+    function updatePanelHeight() {
+      const visible = Boolean(currentProvider()?.accounts.length > 1 && state.open);
+      const height = visible ? $('.panel-space', shell).getBoundingClientRect().height : 0;
+      const target = `${height}px`;
+      if (shell.style.height !== target) shell.style.height = target;
+    }
+    function syncPanel(animate = true) {
+      animate = animate && !reducedMotion.matches;
+      const provider = currentProvider();
+      const visible = Boolean(provider && provider.accounts.length > 1 && state.open);
+      const position = provider ? providers.indexOf(provider) : -1;
+      const targetRow = visible ? rows[Math.floor(position / 2)] : null;
+      const moving = targetRow && shell.previousElementSibling !== targetRow;
+      const before = animate && moving ? captureLayout() : null;
+      if (!animate || moving) {
+        const height = shell.getBoundingClientRect().height;
+        const opacity = getComputedStyle(shell).opacity;
+        // Reparenting cancels CSS transitions; pin the current frame before moving.
+        shell.style.transition = 'none';
+        shell.style.height = `${height}px`;
+        shell.style.opacity = opacity;
+        if (moving) targetRow.after(shell);
+        shell.getBoundingClientRect();
+        if (animate) {
+          shell.style.removeProperty('transition');
+          shell.getBoundingClientRect();
+        }
+        shell.style.removeProperty('opacity');
+      }
+      if (visible) {
+        panel.style.setProperty('--pointer', position % 2 ? '75%' : '25%');
+      }
+      shell.classList.toggle('is-open', visible);
+      shell.inert = !visible;
+      shell.setAttribute('aria-hidden', String(!visible));
+      updatePanelHeight();
+      updateCards();
+      if (!animate) {
+        shell.getBoundingClientRect();
+        shell.style.removeProperty('transition');
+      }
+      if (before) animateLayout(before);
+    }
+    function selectProvider(id) {
+      if (state.provider === id) {
+        if (currentProvider()?.accounts.length > 1) { state.open = !state.open; syncPanel(); }
+        return;
+      }
+      state.provider = id;
+      state.account = 0;
+      state.open = id !== 'paypal' && currentProvider().accounts.length > 1;
+      state.view = 'details';
+      resetDraft();
+      transitionOptions();
+      syncPanel();
+      renderRight();
+    }
+    function selectAccount(index) {
+      if (options.inert || options.dataset.channel !== state.provider || !currentProvider()?.accounts[index] || index === state.account) return;
+      state.account = index;
+      state.view = 'details';
+      resetDraft();
+      for (const button of $$('.account-option', options)) {
+        const selected = Number(button.dataset.account) === index;
+        button.setAttribute('aria-checked', String(selected));
+        button.tabIndex = selected ? 0 : -1;
+      }
+      renderRight();
+    }
+    function resetDraft() {
+      receiptName = '';
+      receiptError = '';
+      uploadDraft.date = localDate();
+      uploadDraft.transaction = '';
+      uploadDraft.payer = '';
+    }
+    function detailsHTML() {
+      if (state.provider === 'paypal') {
+        return `<div class="right-header"><h3 class="section-heading">Online Payment</h3></div><div class="details-row"><span class="details-label">Payment Amount</span><span class="details-value" id="online-amount">${escapeHTML($('#amount').value || '—')} ${state.currency}</span></div><button class="primary confirm" data-action="pay">Pay Now</button>${reminderHTML()}`;
+      }
+      return `<div class="right-header"><h3 class="section-heading">Transfer to Account</h3><button class="text-button" data-action="copy" aria-label="Copy all account details">copy all</button></div><div id="bank-details">${currentAccount().details.map(([label, value]) => `<div class="details-row"><span class="details-label">${escapeHTML(label)}</span><span class="details-value">${escapeHTML(value)}</span></div>`).join('')}</div><button class="primary confirm" data-action="confirm">Confirm Transfer Details</button>${reminderHTML()}`;
+    }
+    function uploadHTML() {
+      return `<button class="back" data-action="back">${icon('back')}Account details</button><div class="account-summary">${brand(currentProvider())}<span>${currentAccount().title}</span></div><input type="file" id="receipt-input" class="sr-only" tabindex="-1" accept="image/*,.pdf"><button class="uploader" id="uploader">${icon('upload')}<span>Upload bank receipt</span><small>Images or PDF</small></button><div class="receipt" id="receipt"${receiptName ? '' : ' hidden'}>${icon('check')}<span class="receipt-name" id="receipt-name">${escapeHTML(receiptName)}</span><button class="icon-button" data-action="remove-receipt" aria-label="Remove receipt">${icon('close')}</button></div><p id="receipt-error" role="status" style="color:#c52e3b;font-size:14px;margin-top:8px"${receiptError ? '' : ' hidden'}>${receiptError}</p><form class="upload-form" id="upload-form"><div class="upload-field"><label for="transfer-date"><span class="required">*</span>Transfer date</label><input type="date" id="transfer-date" value="${uploadDraft.date}"></div><div class="upload-field"><label for="transfer-amount">Transfer amount</label><div class="amount-wrap"><input id="transfer-amount" type="text" value="${escapeHTML($('#amount').value)}" placeholder="—" readonly><span class="amount-suffix">${state.currency}</span></div></div><div class="upload-field"><label for="transaction-id"><span class="required">*</span>Transaction ID</label><input id="transaction-id" type="text" placeholder="Enter transaction ID" autocomplete="off" value="${escapeHTML(uploadDraft.transaction)}"></div><div class="upload-field"><label for="payer-name"><span class="required">*</span>Payer name</label><input id="payer-name" type="text" placeholder="Enter payer name" autocomplete="off" value="${escapeHTML(uploadDraft.payer)}"></div><div class="form-actions"><button type="button" class="secondary" data-action="back">Cancel</button><button type="button" class="primary" data-action="submit">Submit for review</button></div></form>`;
+    }
+    async function renderRight({immediate = false, direction = 1, focus = false} = {}) {
+      const version = ++rightVersion;
+      const opacity = getComputedStyle(right).opacity;
+      for (const animation of right.getAnimations()) animation.cancel();
+      if (!immediate && !reducedMotion.matches && right.childElementCount) {
+        right.inert = true;
+        await right.animate([{opacity}, {opacity: 0}], {duration: 85, fill: 'forwards'}).finished.catch(() => {});
+        if (version !== rightVersion) return;
+      }
+      for (const animation of right.getAnimations()) animation.cancel();
+      right.innerHTML = state.view === 'upload' ? uploadHTML() : detailsHTML();
+      right.inert = false;
+      if (!immediate && !reducedMotion.matches) {
+        right.animate([{opacity: 0, transform: `translateY(${direction * 6}px)`}, {opacity: 1, transform: 'translateY(0)'}], {duration: 135, easing: 'ease-out'});
+      }
+      if (state.view === 'upload') bindUploader();
+      if (focus) {
+        const target = state.view === 'upload' ? $('.back', right) : $('[data-action="confirm"]', right);
+        target?.focus({preventScroll: true});
+      }
+    }
+    function toast(message) {
+      const element = $('#toast');
+      clearTimeout(toastTimer);
+      element.textContent = message;
+      element.classList.add('visible');
+      toastTimer = setTimeout(() => element.classList.remove('visible'), 2200);
+    }
+    async function copyDetails(button) {
+      const text = currentAccount().details.map(([label, value]) => `${label}: ${value}`).join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        button.innerHTML = icon('check');
+        button.setAttribute('aria-label', 'Copied');
+        setTimeout(() => { if (button.isConnected) { button.textContent = 'copy all'; button.setAttribute('aria-label', 'Copy all account details'); } }, 1400);
+      } catch {
+        toast('Clipboard unavailable. You can select and copy the account details.');
+      }
+    }
+    function bindUploader() {
+      const drop = $('#uploader');
+      const input = $('#receipt-input');
+      function acceptFile(file) {
+        if (!file) return;
+        const valid = file.type.startsWith('image/') || file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+        receiptError = valid ? '' : 'Please choose an image or PDF.';
+        $('#receipt-error').textContent = receiptError;
+        $('#receipt-error').hidden = !receiptError;
+        if (!valid) return;
+        receiptName = file.name;
+        $('#receipt-name').textContent = receiptName;
+        $('#receipt').hidden = false;
+      }
+      drop.addEventListener('click', () => input.click());
+      input.addEventListener('change', () => { acceptFile(input.files[0]); input.value = ''; });
+      drop.addEventListener('dragover', event => { event.preventDefault(); drop.classList.add('dragging'); });
+      drop.addEventListener('dragleave', () => drop.classList.remove('dragging'));
+      drop.addEventListener('drop', event => { event.preventDefault(); drop.classList.remove('dragging'); acceptFile(event.dataTransfer.files[0]); });
+      $('#transfer-date').addEventListener('input', event => { uploadDraft.date = event.target.value; });
+      $('#transaction-id').addEventListener('input', event => { uploadDraft.transaction = event.target.value; });
+      $('#payer-name').addEventListener('input', event => { uploadDraft.payer = event.target.value; });
+      $('#upload-form').addEventListener('submit', event => event.preventDefault());
+    }
+    grid.addEventListener('click', event => {
+      const provider = event.target.closest('[data-provider]');
+      if (provider) selectProvider(provider.dataset.provider);
+      const account = event.target.closest('[data-account]');
+      if (account) selectAccount(Number(account.dataset.account));
+    });
+    options.addEventListener('keydown', event => {
+      const keys = ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'];
+      if (!keys.includes(event.key)) return;
+      event.preventDefault();
+      const count = currentProvider().accounts.length;
+      let index = state.account;
+      if (event.key === 'Home') index = 0;
+      else if (event.key === 'End') index = count - 1;
+      else index = (index + (['ArrowDown', 'ArrowRight'].includes(event.key) ? 1 : -1) + count) % count;
+      selectAccount(index);
+      $(`[data-account="${index}"]`, options).focus();
+    });
+    $('#paypal').addEventListener('click', () => selectProvider('paypal'));
+    $('.currencies').addEventListener('click', event => {
+      const button = event.target.closest('[data-currency]');
+      if (!button || button.dataset.currency === state.currency) return;
+      state.currency = button.dataset.currency;
+      for (const currency of $$('.currency')) currency.setAttribute('aria-pressed', String(currency === button));
+      $('#currency-suffix').textContent = state.currency;
+      const suffix = $('.amount-suffix', right);
+      if (suffix) suffix.textContent = state.currency;
+      if (state.provider === 'paypal') renderRight();
+    });
+    $('#amount').addEventListener('input', event => {
+      const input = event.target;
+      const value = input.value.replace(/[^\d.]/g, '');
+      const [whole, ...decimals] = value.split('.');
+      input.value = whole + (decimals.length ? `.${decimals.join('').slice(0, 2)}` : '');
+      if ($('#transfer-amount')) $('#transfer-amount').value = input.value;
+      if ($('#online-amount')) $('#online-amount').textContent = `${input.value || '—'} ${state.currency}`;
+    });
+    right.addEventListener('click', event => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.dataset.action;
+      if (action === 'confirm') { state.view = 'upload'; renderRight({focus: true}); }
+      if (action === 'back') { state.view = 'details'; renderRight({direction: -1, focus: true}); }
+      if (action === 'copy') copyDetails(button);
+      if (action === 'remove-receipt') { receiptName = ''; $('#receipt').hidden = true; $('#uploader').focus(); }
+      // Submission and online payment are deliberately visual-only in this demo.
+    });
+    $('#close-demo').addEventListener('click', () => {
+      $('#payment-demo').hidden = true;
+      $('#reopen-demo').hidden = false;
+      $('#reopen-demo').focus();
+    });
+    $('#reopen-demo').addEventListener('click', () => {
+      $('#payment-demo').hidden = false;
+      $('#reopen-demo').hidden = true;
+      syncPanel(false);
+      $('#close-demo').focus();
+    });
+    new ResizeObserver(() => {
+      if (!$('#payment-demo').hidden) updatePanelHeight();
+    }).observe($('.panel-space', shell));
+    renderOptions();
+    syncPanel(false);
+    renderRight({immediate: true});
+  </script>
+</body>
+</html>

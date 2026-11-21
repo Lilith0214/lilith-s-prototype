@@ -1,5 +1,7 @@
 # lilith-s-prototype
 
+垫资对账 v2 在 `advance-reconciliation-v2/`，页面 `#balances`、`#statements`、`#flows`。原来的 `advance-reconciliation/` 不改。
+
 静态 HTML 原型，用浏览器打开即可，不用安装依赖，也不用构建。
 
 ## 垫资期初余额

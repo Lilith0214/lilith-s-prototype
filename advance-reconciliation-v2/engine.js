@@ -214,6 +214,26 @@
     return n;
   }
   function excelBalance(row) { return row.withdraw+row.eod; }
+  function syncExcelToFund(s,cid) {
+    const c=customer(s,cid);
+    if(c.book!=='excel') fail('只有 Excel 手工维护客户把日余额同步到 Fund');
+    const rows=(s.paypalDaily||[]).filter(r=>r.customer===cid).slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    if(!rows.length) fail('没有可同步的日余额');
+    const latest=rows[rows.length-1];
+    const target=excelBalance(latest);
+    const acct=s.accounts.find(a=>a.customer===cid&&a.channel==='PayPal')||fail('没有 PayPal 资金账户');
+    if(acct.opening===null){acct.opening=0;acct.openingAt=rows[0].date;}
+    const key=`EXCEL-SYNC:${cid}:${latest.date}`;
+    if(s.events.some(e=>e.id===key)){
+      audit(s,'Excel 余额同步',cid,`${latest.date} 已同步，未重复入账`);
+      return {added:false,balance:fundBalance(s,acct.id),date:latest.date,account:acct.id};
+    }
+    const delta=target-fundBalance(s,acct.id);
+    s.events.push({id:key,kind:'excel-sync',account:acct.id,customer:cid,currency:c.currency,delta,reference:latest.date,time:latest.date+'T23:59:00.000Z'});
+    audit(s,'Excel 余额同步',cid,`${latest.date} 客户余额 ${target/100} ${c.currency} 已同步到 Fund ${acct.id}`);
+    mirror(s);
+    return {added:true,balance:fundBalance(s,acct.id),date:latest.date,account:acct.id};
+  }
   function review(s,id) {
     const p=ensureEditable(s,id), result=calc(s,id);
     if(result.unresolved) fail('仍有未匹配或多重匹配记录，请先处理订单匹配');
@@ -401,7 +421,7 @@
     audit(s,'更正申请',id,reason+'；原对账单和已入账金额保持不变');
   }
   function seed() {
-    const s={schema:13,seq:100,customers:[
+    const s={schema:14,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000,book:'weekly',reserveOpening:80000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000,book:'weekly',reserveOpening:30000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0,book:'excel',reserveOpening:null}],accounts:[],periods:[],orders:[],flows:[],events:[],operations:[],mirrors:[],audit:[],corrections:[],lastSync:null};
@@ -483,8 +503,9 @@
       {customer:'DEMO-1003',date:'2026-11-19',eod:180000,withdraw:12000},
       {customer:'DEMO-1003',date:'2026-11-20',eod:210000,withdraw:0}
     ];
+    s.accounts.push({id:'C-FW',customer:'DEMO-1003',channel:'垫资钱包',currency:'USD',opening:0,openingAt:'2026-09-01',channelBalance:0,frozen:0,channelAt:'2026-11-20 23:59:00'});
     s.periods.forEach(p=>{if(customer(s,p.customer).book==='weekly') p.paypalGeneratedAt='2026-11-20T16:00:00.000Z';});
     return s;
   }
-  return {channels,clone,roundRate,addDays,windows,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,addReserveAdjustment,periodMarginParts,marginRunning,marginBalance,setReserveOpening,fetchPaypalRate,generatePaypalStatements,excelBalance,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,ingestOrders,createPeriod,configure,saveCyclePlan,correction,audit,seed};
+  return {channels,clone,roundRate,addDays,windows,account,customer,period,editable,flowKey,matches,flowStatus,calc,fundBalance,summary,moveFlow,moveOrder,adjustPeriod,addAdjustment,addReserveAdjustment,periodMarginParts,marginRunning,marginBalance,setReserveOpening,fetchPaypalRate,generatePaypalStatements,excelBalance,syncExcelToFund,review,confirm,syncSettlement,initialise,requestOperation,approve,execute,mirror,ingest,ingestOrders,createPeriod,configure,saveCyclePlan,correction,audit,seed};
 });

@@ -150,7 +150,7 @@
   }
   function addReserveAdjustment(s,id,direction,amount,reason) {
     const p=ensureEditable(s,id);
-    if(customer(s,p.customer).book==='excel') fail('手工维护客户不做保证金调整');
+    if(customer(s,p.customer).book==='excel') fail('无手续费客户不做保证金调整');
     if(direction!=='add'&&direction!=='sub') fail('请选择增加或减少');
     if(!Number.isSafeInteger(amount)||amount<=0) fail('保证金调整金额须大于 0');
     if(!reason.trim()) fail('请填写保证金调整原因');
@@ -218,7 +218,7 @@
   }
   function syncExcelToFund(s,cid) {
     const c=customer(s,cid);
-    if(c.book!=='excel') fail('只有手工维护客户把日余额同步到 Fund');
+    if(c.book!=='excel') fail('只有无手续费客户把日余额同步到 Fund');
     const rows=(s.paypalDaily||[]).filter(r=>r.customer===cid).slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     if(!rows.length) fail('没有可同步的日余额');
     const latest=rows[rows.length-1];
@@ -228,12 +228,12 @@
     if(acct.opening===null){acct.opening=0;acct.openingAt=rows[0].date;}
     const key=`EXCEL-SYNC:${cid}:${latest.date}`;
     if(s.events.some(e=>e.id===key)){
-      audit(s,'手工维护客户余额同步',cid,`${latest.date} 已同步，未重复入账`);
+      audit(s,'无手续费客户余额同步',cid,`${latest.date} 已同步，未重复入账`);
       return {added:false,balance:fundBalance(s,acct.id),date:latest.date,account:acct.id};
     }
     const delta=target-fundBalance(s,acct.id);
     s.events.push({id:key,kind:'excel-sync',account:acct.id,customer:cid,currency:c.currency,delta,reference:latest.date,time:latest.date+'T23:59:00.000Z'});
-    audit(s,'手工维护客户余额同步',cid,`${latest.date} 客户余额 ${target/100} ${c.currency} 已同步到 Fund ${acct.id}`);
+    audit(s,'无手续费客户余额同步',cid,`${latest.date} 客户余额 ${target/100} ${c.currency} 已同步到 Fund ${acct.id}`);
     mirror(s);
     return {added:true,balance:fundBalance(s,acct.id),date:latest.date,account:acct.id};
   }
@@ -487,7 +487,7 @@
   }
   function createPaypalStatement(s,cid,start,end){
     const c=customer(s,cid);
-    if(c.book==='excel') fail('手工维护客户不做 PayPal 对账单');
+    if(c.book==='excel') fail('无手续费客户不做 PayPal 对账单');
     if(!dateOK(start)||!dateOK(end)||start>end) fail('请填写有效的起止日期');
     if((s.paypalStatements||[]).some(st=>st.customer===cid&&!(end<st.start||start>st.end))) fail('日期与已有对账单重叠');
     const st={id:'PS-'+(++s.seq),customer:cid,start,end,status:'draft',creator:'自动创建对账任务',createdAt:new Date().toISOString(),rates:Object.assign({},MERT_RATES),rows:blankMertRows()};

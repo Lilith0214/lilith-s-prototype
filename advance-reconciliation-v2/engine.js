@@ -152,8 +152,8 @@
     const p=ensureEditable(s,id);
     if(customer(s,p.customer).book==='excel') fail('无手续费客户不做保证金调整');
     if(direction!=='add'&&direction!=='sub') fail('请选择增加或减少');
-    if(!Number.isSafeInteger(amount)||amount<=0) fail('保证金调整金额须大于 0');
-    if(!reason.trim()) fail('请填写保证金调整原因');
+    if(!Number.isSafeInteger(amount)||amount<=0) fail('保证金释放金额须大于 0');
+    if(!reason.trim()) fail('请填写保证金释放原因');
     if(!p.reserveAdjustments) p.reserveAdjustments=[];
     p.reserveAdjustments.push({id:'RADJ-'+(++s.seq),direction,amount,reason,posted:false});
     audit(s,'保证金调整',id,`${direction==='add'?'增加':'减少'} ${amount/100} ${p.currency}；待确认，未计入保证金余额；${reason}`);

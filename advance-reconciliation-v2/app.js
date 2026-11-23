@@ -515,7 +515,8 @@
     const list=(state.paypalStatements||[]).filter(st=>{const c=R.customer(state,st.customer);return !q||[c.id,c.name,st.id,st.start,st.end].join(' ').toLowerCase().includes(q);});
     const rows=list.map(st=>{
       const c=R.customer(state,st.customer);
-      return `<tr><td class="mono">${esc(st.id)}</td><td>${esc(c.name)}</td><td>${esc(st.start)} ~ ${esc(st.end)}</td><td>${badge(st.status==='confirmed'?'已确认':'待确认')}</td><td>自动创建对账任务</td><td>${esc(String(st.createdAt||'').slice(0,16).replace('T',' '))}</td><td class="ops"><button class="mini-btn" data-paypal-view="${st.id}">查看对账单</button>${st.status==='confirmed'?'':`<button class="mini-btn" data-paypal-confirm="${st.id}">确认</button>`}<button class="mini-btn" data-paypal-rerun="${st.id}">重跑</button></td></tr>`;
+      const draft=st.status==='draft';
+      return `<tr><td class="mono">${esc(st.id)}</td><td>${esc(c.name)}</td><td>${esc(st.start)} ~ ${esc(st.end)}</td><td>${badge(st.status==='confirmed'?'已确认':'待确认')}</td><td>自动创建对账任务</td><td>${esc(String(st.createdAt||'').slice(0,16).replace('T',' '))}</td><td class="ops statement-ops"><button class="mini-btn" data-paypal-date="${st.id}">调整日期</button>${draft?'<button class="mini-btn" data-paypal-fee="'+st.id+'">🛠 编辑费用</button><button class="mini-btn confirm" data-paypal-confirm="'+st.id+'">✓ 确认</button>':''}<button class="mini-btn primary" data-paypal-export="${st.id}">⇩ 导出</button><button class="mini-btn" data-paypal-fee="${st.id}">费用明细</button><button class="mini-btn" data-paypal-rerun="${st.id}">⟳ 重跑</button>${draft?'<button class="mini-btn danger" data-paypal-delete="'+st.id+'">删除</button>':''}<button class="mini-btn icon-btn" data-paypal-refresh="${st.id}" aria-label="刷新对账单">↻</button></td></tr>`;
     }).join('')||'<tr><td colspan="7" class="empty">还没有 PayPal 对账单。到平台收款明细的 PayPal 标签，点 PayPal 对账。</td></tr>';
     const detail=(state.paypalStatements||[]).find(st=>st.id===view.paypalStatementId);
     document.getElementById('content').innerHTML=`<div class="stmt-tabs" role="tablist"><button class="flow-tab" id="tab-multi">多平台对账</button><button class="flow-tab active" id="tab-single">单平台对账</button></div><div class="panel statement-filter legacy-panel"><div class="statement-filter-row"><div><input id="stmt-q" value="${esc(view.stmtQ||'')}" placeholder="输入名称/ID 筛选"></div><div class="legacy-actions"><button class="btn primary" id="stmt-search">查询</button><button class="btn" id="stmt-reset">重置</button></div><div class="statement-tools"><span class="sub">由平台收款明细 PayPal 标签的 PayPal 对账自动创建。这里不做周期设置。</span></div></div></div><div class="panel table-panel legacy-panel statement-list"><div class="table-wrap"><table><thead><tr><th>ID</th><th>客户</th><th>账期</th><th>状态</th><th>创建人</th><th>创建时间</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>${detail?syncResultHtml(detail)+mertSheetHtml(detail):''}`;
@@ -523,9 +524,13 @@
     document.getElementById('tab-single').onclick=()=>{view.stmtTab='single';render();};
     document.getElementById('stmt-search').onclick=()=>{view.stmtQ=document.getElementById('stmt-q').value.trim();render();};
     document.getElementById('stmt-reset').onclick=()=>{view.stmtQ='';render();};
-    document.querySelectorAll('[data-paypal-view]').forEach(b=>b.onclick=()=>{view.paypalStatementId=b.dataset.paypalView;render();});
+    document.querySelectorAll('[data-paypal-date]').forEach(b=>b.onclick=()=>toast('调整日期与多平台同一操作。单平台对账单的起止日期在生成时确定'));
+    document.querySelectorAll('[data-paypal-fee]').forEach(b=>b.onclick=()=>{view.paypalStatementId=b.dataset.paypalFee;render();});
     document.querySelectorAll('[data-paypal-confirm]').forEach(b=>b.onclick=()=>{const id=b.dataset.paypalConfirm;R.confirmPaypalStatement(state,id);view.paypalStatementId=id;toast('已确认。保证金和客户余额 USD 已写入余额表，并同步一笔垫资客户结算到 Fund');render();});
+    document.querySelectorAll('[data-paypal-export]').forEach(b=>b.onclick=()=>exportMert(b.dataset.paypalExport));
     document.querySelectorAll('[data-paypal-rerun]').forEach(b=>b.onclick=()=>{const st=(state.paypalStatements||[]).find(x=>x.id===b.dataset.paypalRerun);if(st)R.computeMert(st);toast('已按 PayPal 对账单公式重算。未确认的客户余额 USD 不写入余额表');render();});
+    document.querySelectorAll('[data-paypal-delete]').forEach(b=>b.onclick=()=>toast('演示原型不删除对账单，仅保留操作入口'));
+    document.querySelectorAll('[data-paypal-refresh]').forEach(b=>b.onclick=render);
   }
   function renderStatements(){
     const tab=view.stmtTab==='single'?'single':'multi';

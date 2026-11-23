@@ -516,7 +516,7 @@
     return st;
   }
   function seed() {
-    const s={schema:18,seq:100,customers:[
+    const s={schema:19,seq:100,customers:[
       {id:'DEMO-1001',name:'示例商户 A',currency:'EUR',days:7,service:640,reserve:1000,book:'weekly',reserveOpening:80000},
       {id:'DEMO-1002',name:'示例商户 B',currency:'USD',days:7,service:200,reserve:1000,book:'weekly',reserveOpening:30000},
       {id:'DEMO-1003',name:'示例商户 C',currency:'USD',days:7,service:100,reserve:0,book:'excel',reserveOpening:45000},
@@ -596,9 +596,9 @@
     mirror(s);s.lastSync={time:'2026-10-27T00:00:00Z',added:s.flows.length,duplicates:0,quarantined:0};s.lastUpload={added:8,failed:2};
     s.paypalRate={pair:'USD/EUR',rate:'0.9214',source:'PayPal 后台自动获取',fetchedAt:'2026-11-20T16:00:00.000Z'};
     s.paypalDaily=[
-      {customer:'DEMO-1003',account:'C-PP',date:'2026-11-18',currency:'USD',eod:250000,frozen:18000,withdraw:40000,available:268400,fetchedAt:'2026-11-18 23:59:12'},
-      {customer:'DEMO-1003',account:'C-PP',date:'2026-11-19',currency:'USD',eod:180000,frozen:15000,withdraw:12000,available:191500,fetchedAt:'2026-11-19 23:58:40'},
-      {customer:'DEMO-1003',account:'C-PP',date:'2026-11-20',currency:'USD',eod:210000,frozen:22000,withdraw:0,available:205000,fetchedAt:'2026-11-20 23:59:05'}
+      {customer:'DEMO-1003',account:'C-PP',date:'2026-11-18',currency:'USD',eod:250000,frozen:18000,withdraw:40000,margin:61200,totalWithdraw:248000,available:268400,fetchedAt:'2026-11-18 23:59:12'},
+      {customer:'DEMO-1003',account:'C-PP',date:'2026-11-19',currency:'USD',eod:180000,frozen:15000,withdraw:12000,margin:59800,totalWithdraw:231500,available:191500,fetchedAt:'2026-11-19 23:58:40'},
+      {customer:'DEMO-1003',account:'C-PP',date:'2026-11-20',currency:'USD',eod:210000,frozen:22000,withdraw:0,margin:64000,totalWithdraw:256000,available:205000,fetchedAt:'2026-11-20 23:59:05'}
     ];
     s.accounts.push({id:'C-FW',customer:'DEMO-1003',channel:'垫资钱包',currency:'USD',opening:0,openingAt:'2026-09-01',channelBalance:0,frozen:0,channelAt:'2026-11-20 23:59:00'});
     s.accounts.push({id:'D-PP',customer:'DEMO-1004',channel:'PayPal',currency:'USD',opening:0,openingAt:'2026-09-01',channelBalance:0,frozen:0,channelAt:'2026-11-20 08:00:00'});

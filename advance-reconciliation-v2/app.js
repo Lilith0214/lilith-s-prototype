@@ -4,7 +4,7 @@
   const storageKey='advance-reconciliation-v2-demo';
   let state;
   try { state=JSON.parse(localStorage.getItem(storageKey)||'null'); } catch(_) {}
-  if(!state||state.schema!==18) state=R.seed();
+  if(!state||state.schema!==19) state=R.seed();
   if(!state.lastUpload) state.lastUpload={added:8,failed:2};
   let view = {page:'balances', customer:'DEMO-1001', currency:'EUR', status:'', from:'2026-10-01', to:'2026-10-31', q:'', period:'', flow:'', detail:'', account:'', syncFail:false, channel:'', balanceTab:'periods', balanceBook:'weekly', stmtTab:'multi', flowCustomer:'', flowPeriod:'', flowPlatform:'', flowMatched:'', flowBill:'', flowTimezone:'UTC+8 北京/上海'};
   let modal = null;
@@ -399,8 +399,9 @@
     if(c.book!=='excel'){view.balanceView='periods';render();return;}
     const rows=(state.paypalDaily||[]).filter(r=>r.customer===c.id).slice().sort((a,b)=>a.date<b.date?1:-1);
     const margin=R.marginBalance(state,c.id);
-    const body=rows.map(r=>{const cur=r.currency||c.currency;const move=accountDayMove(r.account,r.date);return `<tr><td>${esc(r.date)}</td><td class="mono">${esc(r.account||'')}</td><td>${esc(cur)}</td><td class="money">${money(r.eod,cur)}</td><td class="money">${money(r.frozen||0,cur)}</td><td class="money">${money(r.withdraw,cur)}</td><td class="money"><b>${R.excelBalance(r)==null?'待公式':money(r.available,cur)}</b></td><td class="tone-pair">${fundMoveCell(move,cur)}</td><td>${esc(r.fetchedAt||'')}</td></tr>`;}).join('')||'<tr><td colspan="9" class="empty">没有日终余额</td></tr>';
-    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>${esc(c.name)}</h1><p>商户ID ${esc(fundMerchantId(c.id))} · 无手续费。没有按周期对账，每天一条日终余额。客户可用余额是示例数。Fund资金变动是当天该账户已执行的调拨和手工调额，会计入余额表。发起调拨和手工调额只在 Fund。</p></div></div><section class="balance-merchant"><header><div><b>日终余额</b><span>保证金 ${margin==null?'待设置期初':money(margin,c.currency)}。对账单里的准备金记在保证金。未执行的 Fund 申请不计入。</span></div></header><div class="table-wrap"><table class="balance-sheet"><thead><tr><th>日期</th><th>账户号</th><th>币种</th><th>日终余额-接口</th><th>冻结余额-接口</th><th>当日提现金额</th><th>客户可用余额</th><th class="tone-pair">Fund资金变动</th><th>接口获取时间</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
+    const sampleMoney=(v,cur)=>Number.isSafeInteger(v)?money(v,cur):'—';
+    const body=rows.map(r=>{const cur=r.currency||c.currency;const move=accountDayMove(r.account,r.date);return `<tr><td>${esc(r.date)}</td><td class="mono">${esc(r.account||'')}</td><td>${esc(cur)}</td><td class="money">${money(r.eod,cur)}</td><td class="money">${money(r.frozen||0,cur)}</td><td class="money">${money(r.withdraw,cur)}</td><td class="money">${sampleMoney(r.margin,cur)}</td><td class="money">${sampleMoney(r.totalWithdraw,cur)}</td><td class="money"><b>${R.excelBalance(r)==null?'待公式':money(r.available,cur)}</b></td><td class="tone-pair">${fundMoveCell(move,cur)}</td><td>${esc(r.fetchedAt||'')}</td></tr>`;}).join('')||'<tr><td colspan="11" class="empty">没有日终余额</td></tr>';
+    document.getElementById('content').innerHTML=`<div class="page-head"><div><h1>${esc(c.name)}</h1><p>商户ID ${esc(fundMerchantId(c.id))} · 无手续费。没有按周期对账，每天一条日终余额。客户可用余额、保证金、总提现金额是示例数。Fund资金变动是当天该账户已执行的调拨和手工调额，会计入余额表。发起调拨和手工调额只在 Fund。</p></div></div><section class="balance-merchant"><header><div><b>日终余额</b><span>保证金 ${margin==null?'待设置期初':money(margin,c.currency)}。对账单里的准备金记在保证金。未执行的 Fund 申请不计入。</span></div></header><div class="table-wrap"><table class="balance-sheet"><thead><tr><th>日期</th><th>账户号</th><th>币种</th><th>日终余额-接口</th><th>冻结余额-接口</th><th>当日提现金额</th><th>保证金</th><th>总提现金额</th><th>客户可用余额</th><th class="tone-pair">Fund资金变动</th><th>接口获取时间</th></tr></thead><tbody>${body}</tbody></table></div></section>`;
   }
   function renderBalances(){if(view.balanceView==='daily'&&view.balanceCustomer) renderExcelDaily(); else if(view.balanceView==='periods'&&view.balanceCustomer) renderBalancePeriods(); else renderBalanceList();}
   function renderFlows(){

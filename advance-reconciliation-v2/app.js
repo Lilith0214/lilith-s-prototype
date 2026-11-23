@@ -310,7 +310,7 @@
         const base=latest?R.excelBalance(latest):null;
         const fund=executedFundDelta(c,asOf);
         const bal=base==null?null:base+fund;
-        return `<tr><td>${esc(asOf)}</td><td>${esc(c.name)}</td><td class="mono">${esc(fundId)}</td><td>${esc(c.currency)}</td><td>无手续费</td><td class="money"><b>${bal==null?'待公式':money(bal,c.currency)}</b><span class="sub">客户可用余额为示例数${fund?`，已含 Fund 调拨和调额 ${signedMoney(fund,c.currency)}`:''}</span></td>${marginCell}<td class="ops"><button class="link" data-balance-daily="${c.id}">日终余额</button></td></tr>`;
+        return `<tr><td>${esc(asOf)}</td><td>${esc(c.name)}</td><td class="mono">${esc(fundId)}</td><td>${esc(c.currency)}</td><td>无手续费</td><td class="money"><b>${bal==null?'待公式':money(bal,c.currency)}</b><span class="sub">客户可用余额为示例数${fund?`，已含 Fund 调拨和调额 ${signedMoney(fund,c.currency)}`:''}</span></td>${marginCell}<td class="ops"><button class="link" data-balance-daily="${c.id}">日终余额明细</button></td></tr>`;
       }
       if(c.book==='single'){
         const base=R.paypalCustomerBalance(state,c.id);

@@ -736,12 +736,10 @@ function totalInMain(c, rows, key) {
 function viewHome() {
   const avail = sumUsd(active(), "available");
   const real = sumUsd(active(), "real");
-  const pendingList = vouchers.filter(function (v) { return v.status === "待核销"; });
-  const pending = pendingList.reduce(function (s, v) { return s + usdOf(v.amount, v.ccy); }, 0);
   const creditRemainUsd = creditTotalUsd("limit") - creditTotalUsd("used");
   const creditBrief = Object.keys(credit).map(function (ccy) { return ccy + " 剩余 " + money(creditSum(ccy).remain, ccy); }).join(" · ");
   return '<div class="kpis">'
-    + kpi("折合可用", mainMoney(avail + creditRemainUsd), "含各币种剩余信用" + (pending ? " · 含待核销预充 " + mainMoney(pending) : ""), true)
+    + kpi("折合可用", mainMoney(avail + creditRemainUsd), "含各币种剩余信用", true)
     + kpi("折合真实金额", mainMoney(real), "不含尚未到账的预充")
     + kpi("信用剩余折合", mainMoney(creditRemainUsd), creditBrief || "还没有信用额度")
     + "</div>"
@@ -761,8 +759,6 @@ function viewHome() {
         + '<button class="link" data-jump="stores" data-mid="' + esc(m.id) + '">店铺</button></td></tr>';
     }).join("")
     + "</tbody></table></div></div>"
-    + '<div class="foldbar"><strong>预充</strong><span>' + (pendingList.length ? "待核销 " + pendingList.length + " 笔 · " + mainMoney(pending) : "没有待核销预充") + '</span><span class="spacer"></span><button class="btn" id="add-voucher">登记预充</button><button class="btn" data-fold="prepay">' + (state.fold === "prepay" ? "收起" : "查看凭证") + "</button></div>"
-    + (state.fold === "prepay" ? voucherTable() : "")
     + '<div class="foldbar"><strong>信用额度</strong><span>' + (creditBrief || "还没有信用额度") + '</span><span class="spacer"></span><button class="btn" id="apply-credit">申请额度</button><button class="btn" data-fold="credit">' + (state.fold === "credit" ? "收起" : "按币种和业务线查看") + "</button></div>"
     + (state.fold === "credit" ? '<div class="panel"><div class="tablewrap"><table><thead><tr><th>币种</th><th>业务线</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
       + Object.keys(credit).map(function (ccy) {

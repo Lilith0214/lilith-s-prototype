@@ -692,12 +692,13 @@ function viewList() {
       return '<option value="' + s + '"' + (state.listStatus === s ? " selected" : "") + ">" + s + "</option>";
     }).join("") + "</select></div>"
     + '<div class="actions"><button class="btn primary" id="search-list" type="button">查询</button><button class="btn" id="reset-list" type="button">重置</button></div></div>'
-    + '<div class="tablewrap"><table><thead><tr><th>客户</th><th>商户id</th><th>主币种</th><th>总可用余额（主币种）</th><th>可用余额（按币种）</th><th>信用额度（按币种）</th><th>已用额度（按币种）</th><th>剩余额度（按币种）</th><th>真实金额（换算主币种）</th><th>真实金额（按币种）</th><th>当前金额（换算主币种）</th><th>当前金额（按币种）</th><th>冻结金额（按币种）</th><th>待核销预充</th><th>状态</th><th>客户信息</th><th>操作</th></tr></thead><tbody>'
+    + '<div class="tablewrap"><table><thead><tr><th>客户</th><th>商户id</th><th>主币种</th><th>非主币种</th><th>总可用余额（主币种）</th><th>可用余额（按币种）</th><th>信用额度（按币种）</th><th>已用额度（按币种）</th><th>剩余额度（按币种）</th><th>真实金额（换算主币种）</th><th>真实金额（按币种）</th><th>当前金额（换算主币种）</th><th>当前金额（按币种）</th><th>冻结金额（按币种）</th><th>待核销预充</th><th>状态</th><th>客户信息</th><th>操作</th></tr></thead><tbody>'
     + (rows.length ? rows.map(function (c) {
       const pending = pendingUsd(c);
       const ccys = customerCurrencyRows(c);
-      return "<tr><td>" + esc(c.name) + "<div class=\"mini\">" + esc(c.id) + "</div></td><td>" + merchantIdCell(c) + "</td><td>" + ccyTag(c.main, true) + "</td><td>" + totalInMain(c, ccys, "usable") + "</td><td>" + stackMoney(ccys, "usable") + "</td><td>" + stackMoney(ccys, "limit") + "</td><td>" + stackMoney(ccys, "used") + "</td><td>" + stackMoney(ccys, "remain") + "</td><td>" + totalInMain(c, ccys, "real") + "</td><td>" + stackMoney(ccys, "real") + "</td><td>" + totalInMain(c, ccys, "current") + "</td><td>" + stackMoney(ccys, "current") + "</td><td>" + stackMoney(ccys, "frozen") + "</td><td>" + (pending ? money(pending / RATE[c.main], c.main) : "—") + "</td><td>" + statusTag(c.status) + '</td><td><button class="link" data-detail="' + c.id + '">客户详情</button></td><td><button class="link" data-open="' + c.id + '">进入钱包</button></td></tr>';
-    }).join("") : '<tr><td colspan="17">没有符合筛选条件的客户</td></tr>')
+      const others = ccys.map(function (r) { return r.ccy; }).filter(function (ccy) { return ccy !== c.main; });
+      return "<tr><td>" + esc(c.name) + "<div class=\"mini\">" + esc(c.id) + "</div></td><td>" + merchantIdCell(c) + "</td><td>" + esc(c.main) + "</td><td>" + (others.length ? esc(others.join("、")) : "—") + "</td><td>" + totalInMain(c, ccys, "usable") + "</td><td>" + stackMoney(ccys, "usable") + "</td><td>" + stackMoney(ccys, "limit") + "</td><td>" + stackMoney(ccys, "used") + "</td><td>" + stackMoney(ccys, "remain") + "</td><td>" + totalInMain(c, ccys, "real") + "</td><td>" + stackMoney(ccys, "real") + "</td><td>" + totalInMain(c, ccys, "current") + "</td><td>" + stackMoney(ccys, "current") + "</td><td>" + stackMoney(ccys, "frozen") + "</td><td>" + (pending ? money(pending / RATE[c.main], c.main) : "—") + "</td><td>" + statusTag(c.status) + '</td><td><button class="link" data-detail="' + c.id + '">客户详情</button></td><td><button class="link" data-open="' + c.id + '">进入钱包</button></td></tr>';
+    }).join("") : '<tr><td colspan="18">没有符合筛选条件的客户</td></tr>')
     + "</tbody></table></div></div>";
 }
 function matchCustomer(c) {

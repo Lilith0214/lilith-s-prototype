@@ -285,6 +285,7 @@ th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky;
 <script>
 const RATE = { USD: 1, EUR: 1.08, GBP: 1.27, CNY: 0.14 };
 const BIZ = ["代发", "广告", "拒付", "垫资"];
+const CREDIT_BIZ = ["代发", "广告"];
 const CHANNELS = ["银行", "PayPal", "Airwallex", "WorldFirst"];
 const CYCLES = ["一周", "两周", "三周", "一个月", "固定天数"];
 const CREDIT_GROUPS = ["履约一组", "广告一组", "资金组"];
@@ -367,10 +368,10 @@ const customers = [
       wallet({ id: "WA-2006", merchantId: "10087", merchantName: "示例客户A-商户02", uniq: "SL-EU-014", erp: "SL-EU", biz: "代发", ccy: "CNY", available: 6000, real: 6500, current: 7000, frozen: 500, created: "2026-06-09" })
     ],
     credit: creditBag({
-      USD: { 代发: { limit: 8000, used: 7000 }, 广告: { limit: 4000, used: 1000 }, 拒付: { limit: 1500, used: 0 }, 垫资: { limit: 2500, used: 500 } },
-      EUR: { 代发: { limit: 4000, used: 2500 }, 广告: { limit: 1200, used: 200 }, 拒付: { limit: 500, used: 0 }, 垫资: { limit: 800, used: 100 } },
-      GBP: { 代发: { limit: 2000, used: 600 }, 广告: { limit: 800, used: 0 }, 拒付: { limit: 0, used: 0 }, 垫资: { limit: 300, used: 0 } },
-      CNY: { 代发: { limit: 30000, used: 8000 }, 广告: { limit: 0, used: 0 }, 拒付: { limit: 0, used: 0 }, 垫资: { limit: 12000, used: 2000 } }
+      USD: { 代发: { limit: 8000, used: 7000 }, 广告: { limit: 4000, used: 1000 } },
+      EUR: { 代发: { limit: 4000, used: 2500 }, 广告: { limit: 1200, used: 200 } },
+      GBP: { 代发: { limit: 2000, used: 600 }, 广告: { limit: 800, used: 0 } },
+      CNY: { 代发: { limit: 30000, used: 8000 } }
     }),
     vouchers: [
       { id: "PZ-20261118", merchantId: "10086", biz: "代发", ccy: "USD", amount: 5000, status: "待核销", time: "2026-11-18 09:12", proof: "银行回单 HSBC-8831", flow: "" },
@@ -418,7 +419,7 @@ const customers = [
       wallet({ id: "WA-3003", merchantId: "20831", merchantName: "示例客户B-商户01", uniq: "HC-001", erp: "HC-MAIN", biz: "拒付", ccy: "USD", main: true, available: 300, real: 300, fee: "客户承担" }),
       wallet({ id: "WA-3004", merchantId: "20831", merchantName: "示例客户B-商户01", uniq: "HC-001", erp: "HC-MAIN", biz: "垫资", ccy: "USD", main: true, available: 1800, real: 1800 })
     ],
-    credit: creditBag({ USD: { 代发: { limit: 8000, used: 2000 }, 广告: { limit: 3000, used: 0 }, 拒付: { limit: 1000, used: 0 }, 垫资: { limit: 2000, used: 500 } } }),
+    credit: creditBag({ USD: { 代发: { limit: 8000, used: 2000 }, 广告: { limit: 3000, used: 0 } } }),
     vouchers: [
       { id: "PZ-20260918", merchantId: "20831", biz: "代发", ccy: "USD", amount: 3000, status: "已核销", time: "2026-09-18 10:00", proof: "银行回单 CMB-2201", flow: "RC-7712" }
     ],
@@ -441,10 +442,10 @@ const customers = [
       wallet({ id: "WA-4003", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "拒付", ccy: "EUR", main: true, available: 0, real: 80, status: "异常", fee: "客户承担" }),
       wallet({ id: "WA-4004", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "垫资", ccy: "EUR", main: true, available: 1500, real: 1600, current: 1700, frozen: 100 })
     ],
-    credit: creditBag({ EUR: { 代发: { limit: 5000, used: 1000 }, 广告: { limit: 2000, used: 0 }, 拒付: { limit: 500, used: 0 }, 垫资: { limit: 3000, used: 400 } } }),
+    credit: creditBag({ EUR: { 代发: { limit: 5000, used: 1000 }, 广告: { limit: 2000, used: 0 } } }),
     vouchers: [],
     ledger: [
-      { time: "2026-10-19 08:40", type: "认领", biz: "垫资", merchantId: "31502", ccy: "EUR", amount: 1600, store: "—", doc: "转账充值 RC-8440", bucket: "可用余额", channel: "Airwallex", note: "认领到垫资" }
+      { time: "2026-10-19 08:40", type: "认领", biz: "代发", merchantId: "31502", ccy: "EUR", amount: 1600, store: "—", doc: "转账充值 RC-8440", bucket: "可用余额", channel: "Airwallex", note: "认领到代发" }
     ]
   },
   {
@@ -461,7 +462,7 @@ const customers = [
       wallet({ id: "WA-5003", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "拒付", ccy: "USD", main: true, available: 0, real: 0, status: "已停用", fee: "客户承担" }),
       wallet({ id: "WA-5004", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "垫资", ccy: "USD", main: true, available: 500, real: 500 })
     ],
-    credit: creditBag({ USD: { 代发: { limit: 6000, used: 1000 }, 广告: { limit: 2000, used: 0 }, 拒付: { limit: 0, used: 0 }, 垫资: { limit: 1500, used: 0 } } }),
+    credit: creditBag({ USD: { 代发: { limit: 6000, used: 1000 }, 广告: { limit: 2000, used: 0 } } }),
     vouchers: [
       { id: "PZ-20261119", merchantId: "42618", biz: "代发", ccy: "USD", amount: 2500, status: "待核销", time: "2026-11-19 17:26", proof: "银行回单 ICBC-1902", flow: "" }
     ],
@@ -542,6 +543,7 @@ function sumUsd(list, key) {
 function bag(ccy, biz) {
   return (credit[ccy] && credit[ccy][biz]) || { limit: 0, used: 0 };
 }
+function hasCredit(biz) { return CREDIT_BIZ.indexOf(biz) >= 0; }
 function creditRemain(ccy, biz) {
   const item = bag(ccy, biz);
   return item.limit - item.used;
@@ -549,7 +551,7 @@ function creditRemain(ccy, biz) {
 function creditSum(ccy, bizs) {
   let limit = 0;
   let used = 0;
-  (bizs || BIZ).forEach(function (b) {
+  (bizs || CREDIT_BIZ).forEach(function (b) {
     const item = bag(ccy, b);
     limit += item.limit;
     used += item.used;
@@ -559,7 +561,7 @@ function creditSum(ccy, bizs) {
 function creditTotalUsd(key) {
   let sum = 0;
   Object.keys(credit).forEach(function (ccy) {
-    BIZ.forEach(function (b) { sum += usdOf(bag(ccy, b)[key] || 0, ccy); });
+    CREDIT_BIZ.forEach(function (b) { sum += usdOf(bag(ccy, b)[key] || 0, ccy); });
   });
   return sum;
 }
@@ -656,7 +658,7 @@ function plan() {
   });
   const creditSteps = [];
   if (left > 0.005) {
-    const creditOrder = state.creditShare ? [reason].concat(BIZ.filter(function (b) { return b !== reason; })) : [reason];
+    const creditOrder = (state.creditShare ? [reason].concat(CREDIT_BIZ.filter(function (b) { return b !== reason; })) : [reason]).filter(hasCredit);
     creditOrder.forEach(function (biz) {
       if (left <= 0.005) return;
       const room = usdOf(creditRemain(payCcy, biz), payCcy);
@@ -943,7 +945,7 @@ function creditApplyDialog() {
     + '<div class="apply-dim"><label class="req">申请维度</label><div class="segs">' + dimBtn("customer", "客户维度") + dimBtn("line", "按业务线+币种") + "</div></div>"
     + '<div class="apply-grid"><div class="apply-col">'
     + field("币种", '<select id="cr-ccy">' + Object.keys(RATE).map(function (ccy) { return '<option' + (ccy === m.ccy ? " selected" : "") + ">" + ccy + "</option>"; }).join("") + "</select>")
-    + (m.dim === "line" ? field("业务线", '<select id="cr-biz">' + BIZ.map(function (b) { return '<option' + (b === m.biz ? " selected" : "") + ">" + b + "</option>"; }).join("") + "</select>") : "")
+    + (m.dim === "line" ? field("业务线", '<select id="cr-biz">' + CREDIT_BIZ.map(function (b) { return '<option' + (b === m.biz ? " selected" : "") + ">" + b + "</option>"; }).join("") + "</select>") : "")
     + '<div class="box" id="cr-scope"><div class="name">额度范围</div>' + info + "</div>"
     + '<div class="box" id="cr-preview"><div class="name">信用配置预览</div>' + creditPreviewHtml(m) + "</div>"
     + field("运营部业务组", '<select id="cr-group"><option value="">请选择</option>' + CREDIT_GROUPS.map(function (g) { return '<option' + (g === m.group ? " selected" : "") + ">" + esc(g) + "</option>"; }).join("") + "</select>").replace("<label>", '<label class="req">')
@@ -1042,10 +1044,12 @@ function sumMain(list, key) {
   return list.reduce(function (s, l) { return s + usdOf(Number(l[key] || 0), l.ccy); }, 0);
 }
 function creditCells(biz, ccy) {
+  if (!hasCredit(biz)) return "<td>—</td><td>—</td><td>—</td>";
   const item = bag(ccy, biz);
   return "<td>" + money(item.limit, ccy) + "</td><td>" + money(item.used, ccy) + "</td><td>" + money(item.limit - item.used, ccy) + "</td>";
 }
 function creditStackCells(biz) {
+  if (!hasCredit(biz)) return "<td>—</td><td>—</td><td>—</td>";
   const ccys = Object.keys(credit).filter(function (ccy) { const item = bag(ccy, biz); return item.limit || item.used; });
   function col(field) {
     if (!ccys.length) return "—";
@@ -1129,7 +1133,7 @@ function viewLines() {
       const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
       const item = bag(l.ccy, l.biz);
       const pre = (m.precharge && m.precharge[l.ccy]) || null;
-      return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主币种" : "非主币种") + "</td><td>" + statusTag(l.status) + "</td><td>" + (pre ? money(pre.limit || 0, l.ccy) : "—") + "</td><td>" + (pre ? money(pre.used || 0, l.ccy) : "—") + "</td><td>" + esc(l.fee || "公司承担") + "</td><td>" + esc(l.fxTopup || "关闭") + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(l.available, l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + money(item.limit, l.ccy) + "</td><td>" + money(item.used, l.ccy) + "</td><td>" + money(item.limit - item.used, l.ccy) + "</td><td>" + quotaStatus(item.limit, item.limit - item.used) + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td></tr>";
+      return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主币种" : "非主币种") + "</td><td>" + statusTag(l.status) + "</td><td>" + (pre ? money(pre.limit || 0, l.ccy) : "—") + "</td><td>" + (pre ? money(pre.used || 0, l.ccy) : "—") + "</td><td>" + esc(l.fee || "公司承担") + "</td><td>" + esc(l.fxTopup || "关闭") + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(l.available, l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + (hasCredit(l.biz) ? money(item.limit, l.ccy) : "—") + "</td><td>" + (hasCredit(l.biz) ? money(item.used, l.ccy) : "—") + "</td><td>" + (hasCredit(l.biz) ? money(item.limit - item.used, l.ccy) : "—") + "</td><td>" + (hasCredit(l.biz) ? quotaStatus(item.limit, item.limit - item.used) : "—") + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td></tr>";
     }).join("")
     + "</tbody></table></div></div>";
 }
@@ -1141,8 +1145,11 @@ function exportAccountLines() {
     const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
     const item = bag(l.ccy, l.biz);
     const pre = (m.precharge && m.precharge[l.ccy]) || null;
-    const quota = !item.limit ? "—" : (item.limit - item.used <= 0 ? "已用尽" : "正常");
-    return [l.merchantId, l.biz, l.merchantName, m.email || "—", l.uniq || m.uniq || "—", l.erp || m.erp || "—", l.ccy, l.ccy === cur().main ? "主币种" : "非主币种", l.status, pre ? money(pre.limit || 0, l.ccy) : "—", pre ? money(pre.used || 0, l.ccy) : "—", l.fee || "公司承担", l.fxTopup || "关闭", money(l.current, l.ccy), money(l.available, l.ccy), money(l.real, l.ccy), money(l.frozen, l.ccy), money(item.limit, l.ccy), money(item.used, l.ccy), money(item.limit - item.used, l.ccy), quota, l.opening ? "已设置" : "未设置", l.opening ? l.openingAt : "—", l.id, l.created];
+    const quota = !hasCredit(l.biz) ? "—" : (!item.limit ? "—" : (item.limit - item.used <= 0 ? "已用尽" : "正常"));
+    const creditLimit = hasCredit(l.biz) ? money(item.limit, l.ccy) : "—";
+    const creditUsed = hasCredit(l.biz) ? money(item.used, l.ccy) : "—";
+    const creditRemainText = hasCredit(l.biz) ? money(item.limit - item.used, l.ccy) : "—";
+    return [l.merchantId, l.biz, l.merchantName, m.email || "—", l.uniq || m.uniq || "—", l.erp || m.erp || "—", l.ccy, l.ccy === cur().main ? "主币种" : "非主币种", l.status, pre ? money(pre.limit || 0, l.ccy) : "—", pre ? money(pre.used || 0, l.ccy) : "—", l.fee || "公司承担", l.fxTopup || "关闭", money(l.current, l.ccy), money(l.available, l.ccy), money(l.real, l.ccy), money(l.frozen, l.ccy), creditLimit, creditUsed, creditRemainText, quota, l.opening ? "已设置" : "未设置", l.opening ? l.openingAt : "—", l.id, l.created];
   });
   const csv = "\uFEFF" + [header].concat(body).map(function (row) {
     return row.map(function (cell) { return '"' + String(cell == null ? "" : cell).replace(/"/g, '""') + '"'; }).join(",");
@@ -1691,6 +1698,7 @@ document.body.addEventListener("click", function (e) {
     if (state.modal.type === "creditApply") {
       readCreditForm();
       const m = state.modal;
+      if (m.dim === "line" && !hasCredit(m.biz)) { m.error = "拒付和垫资没有信用额度。"; render(); return; }
       const amount = Number(m.amount) || 0;
       const days = Number(m.days);
       const grace = m.grace === "" ? "" : Number(m.grace);

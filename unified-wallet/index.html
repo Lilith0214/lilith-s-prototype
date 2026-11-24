@@ -145,6 +145,7 @@ button { cursor: pointer; }
   gap: 16px; align-items: end; margin-bottom: 16px;
 }
 .qform .actions { display: flex; gap: 8px; align-items: center; }
+.qform input::placeholder { color: #bfbfbf; }
 .qform select {
   appearance: none; -webkit-appearance: none; padding-right: 28px;
   background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2.2 4.3 6 8.1 9.8 4.3' fill='none' stroke='%238c8c8c' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 10px center;
@@ -666,7 +667,7 @@ function viewList() {
   return '<div class="panel"><div class="qform">'
     + '<div class="field"><label>客户名称</label><input data-query="name" placeholder="请输入" value="' + esc(state.filters.name) + '" /></div>'
     + '<div class="field"><label>商户id</label><input data-query="merchantId" placeholder="请输入" value="' + esc(state.filters.merchantId) + '" /></div>'
-    + '<div class="field"><label>客户信息</label><input data-query="info" placeholder="请输入" value="' + esc(state.filters.info) + '" /></div>'
+    + '<div class="field"><label>客户信息</label><input data-query="info" placeholder="模糊搜索" value="' + esc(state.filters.info) + '" /></div>'
     + '<div class="field"><label>状态</label><select data-query="status"><option value="全部"' + (state.listStatus === "全部" ? " selected" : "") + ">请选择</option>"
     + ["正常", "已停用"].map(function (s) {
       return '<option value="' + s + '"' + (state.listStatus === s ? " selected" : "") + ">" + s + "</option>";

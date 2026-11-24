@@ -185,7 +185,26 @@ th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky;
 .mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 20; }
 .mask[hidden] { display: none; }
 .dialog { width: 480px; background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
-.dialog.wide { width: 560px; }
+.dialog.apply { width: 960px; max-width: calc(100vw - 48px); }
+.dialog.apply .body { padding: 0; max-height: calc(100vh - 160px); overflow: auto; }
+.apply-dim { padding: 16px 24px 0; }
+.apply-dim > label { display: block; margin-bottom: 8px; }
+.apply-grid { display: grid; grid-template-columns: 1.15fr .85fr; }
+.apply-col { padding: 16px 24px 8px; min-width: 0; }
+.apply-col + .apply-col { border-left: 1px solid #f5f5f5; }
+.sec { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; font-weight: 600; }
+.sec::before { content: ""; width: 3px; height: 14px; background: var(--blue); border-radius: 1px; }
+.dialog .field { margin-bottom: 16px; }
+.box .name { margin-bottom: 8px; font-weight: 600; }
+.box p { margin: 4px 0; color: var(--sub); }
+.box b { color: var(--text); font-weight: 500; }
+.req::before { content: "*"; color: #ff4d4f; margin-right: 4px; font-family: SimSun, sans-serif; }
+.segs { display: flex; }
+.segs button { height: 32px; padding: 0 14px; border: 1px solid #d9d9d9; background: #fff; margin-left: -1px; }
+.segs button:first-child { margin-left: 0; border-radius: 6px 0 0 6px; }
+.segs button:last-child { border-radius: 0 6px 6px 0; }
+.segs button.on { color: var(--blue); border-color: var(--blue); position: relative; z-index: 1; }
+.cycle-note { min-height: 76px; border: 1px dashed #d9d9d9; border-radius: 8px; background: #fafafa; color: var(--muted); padding: 12px; line-height: 22px; }
 .dialog header, .dialog footer { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
 .dialog header { border-bottom: 1px solid var(--line); }
 .dialog header h2 { margin: 0; font-size: 16px; }
@@ -246,6 +265,8 @@ th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky;
 const RATE = { USD: 1, EUR: 1.08, GBP: 1.27, CNY: 0.14 };
 const BIZ = ["代发", "广告", "拒付", "垫资"];
 const CHANNELS = ["银行", "PayPal", "Airwallex", "WorldFirst"];
+const CYCLES = ["一周", "两周", "三周", "一个月", "固定天数"];
+const CREDIT_GROUPS = ["履约一组", "广告一组", "资金组"];
 const PAGES = { list: "客户列表", home: "客户总览", lines: "业务线账户", stores: "店铺对账", ledger: "资金流水", pay: "付款试算" };
 
 const state = {
@@ -759,17 +780,89 @@ function viewHome() {
         + '<button class="link" data-jump="stores" data-mid="' + esc(m.id) + '">店铺</button></td></tr>';
     }).join("")
     + "</tbody></table></div></div>"
-    + '<div class="foldbar"><strong>信用额度</strong><span>' + (creditBrief || "还没有信用额度") + '</span><span class="spacer"></span><button class="btn" id="apply-credit">申请额度</button><button class="btn" data-fold="credit">' + (state.fold === "credit" ? "收起" : "按币种和业务线查看") + "</button></div>"
-    + (state.fold === "credit" ? '<div class="panel"><div class="tablewrap"><table><thead><tr><th>币种</th><th>业务线</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
-      + Object.keys(credit).map(function (ccy) {
-        return BIZ.filter(function (b) { const item = bag(ccy, b); return item.limit || item.used; }).map(function (b) {
-          const item = bag(ccy, b);
-          return "<tr><td>" + ccyTag(ccy, ccy === cur().main) + "</td><td class=\"biz " + b + "\">" + b + "</td><td>" + money(item.limit, ccy) + "</td><td>" + money(item.used, ccy) + "</td><td>" + money(item.limit - item.used, ccy) + "</td></tr>";
-        }).join("");
-      }).join("")
-      + "</tbody></table></div></div>" : "");
+    + '<div class="foldbar"><strong>信用额度</strong><span>' + ([creditBrief, customerCreditBrief()].filter(Boolean).join(" · ") || "还没有信用额度") + '</span><span class="spacer"></span><button class="btn" id="apply-credit">申请信用额度</button><button class="btn" data-fold="credit">' + (state.fold === "credit" ? "收起" : "查看额度") + "</button></div>"
+    + (state.fold === "credit" ? creditFoldTable() : "");
 }
 
+function customerCreditBrief() {
+  const bag = cur().customerCredit || {};
+  return Object.keys(bag).filter(function (ccy) { return bag[ccy].limit || bag[ccy].used; }).map(function (ccy) {
+    return "客户 " + ccy + " 剩余 " + money(bag[ccy].limit - bag[ccy].used, ccy);
+  }).join(" · ");
+}
+function creditFoldTable() {
+  const customerRows = Object.keys(cur().customerCredit || {}).filter(function (ccy) {
+    const item = cur().customerCredit[ccy];
+    return item.limit || item.used;
+  }).map(function (ccy) {
+    const item = cur().customerCredit[ccy];
+    return "<tr><td>" + ccyTag(ccy, ccy === cur().main) + "</td><td>客户</td><td>" + money(item.limit, ccy) + "</td><td>" + money(item.used, ccy) + "</td><td>" + money(item.limit - item.used, ccy) + "</td></tr>";
+  }).join("");
+  const lineRows = Object.keys(credit).map(function (ccy) {
+    return BIZ.filter(function (b) { const item = bag(ccy, b); return item.limit || item.used; }).map(function (b) {
+      const item = bag(ccy, b);
+      return "<tr><td>" + ccyTag(ccy, ccy === cur().main) + "</td><td class=\"biz " + b + "\">" + b + "</td><td>" + money(item.limit, ccy) + "</td><td>" + money(item.used, ccy) + "</td><td>" + money(item.limit - item.used, ccy) + "</td></tr>";
+    }).join("");
+  }).join("");
+  const body = customerRows + lineRows;
+  return '<div class="panel"><div class="tablewrap"><table><thead><tr><th>币种</th><th>维度</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
+    + (body || '<tr><td colspan="5">还没有信用额度</td></tr>')
+    + "</tbody></table></div></div>";
+}
+function cycleNote(m) {
+  if (!m.days) return "选择周期类型并填写账期后，这里会展示账期预览。";
+  return m.cycle + "结算，账期 " + m.days + " 天" + (m.grace ? "，宽限 " + m.grace + " 天" : "") + "。";
+}
+function creditPreviewHtml(m) {
+  if (m.dim === "line") {
+    const item = bag(m.ccy, m.biz);
+    if (!item.limit && !item.used) return "<p>这条业务线和币种还没有已生效的信用额度。</p>";
+    return "<p>信用额度 <b>" + money(item.limit, m.ccy) + "</b></p><p>已用额度 <b>" + money(item.used, m.ccy) + "</b></p><p>剩余额度 <b>" + money(item.limit - item.used, m.ccy) + "</b></p>";
+  }
+  const item = (cur().customerCredit && cur().customerCredit[m.ccy]) || { limit: 0, used: 0 };
+  if (!item.limit && !item.used) return "<p>当前客户这个币种还没有已生效的客户维度额度。</p>";
+  return "<p>信用额度 <b>" + money(item.limit, m.ccy) + "</b></p><p>已用额度 <b>" + money(item.used, m.ccy) + "</b></p><p>剩余额度 <b>" + money(item.limit - item.used, m.ccy) + "</b></p>";
+}
+function readCreditForm() {
+  if (!state.modal || state.modal.type !== "creditApply") return;
+  function val(id) { const el = document.getElementById(id); return el ? el.value : ""; }
+  if (document.getElementById("cr-ccy")) state.modal.ccy = val("cr-ccy");
+  if (document.getElementById("cr-biz")) state.modal.biz = val("cr-biz");
+  if (document.getElementById("cr-amt")) state.modal.amount = val("cr-amt");
+  if (document.getElementById("cr-group")) state.modal.group = val("cr-group");
+  if (document.getElementById("cr-days")) state.modal.days = val("cr-days");
+  if (document.getElementById("cr-grace")) state.modal.grace = val("cr-grace");
+}
+function creditApplyDialog() {
+  const m = state.modal;
+  const c = cur();
+  const dimBtn = function (key, label) {
+    return '<button type="button" class="' + (m.dim === key ? "on" : "") + '" data-credit-dim="' + key + '">' + label + "</button>";
+  };
+  const cycleBtn = function (label) {
+    return '<button type="button" class="' + (m.cycle === label ? "on" : "") + '" data-credit-cycle="' + label + '">' + label + "</button>";
+  };
+  const info = m.dim === "line"
+    ? "<p>客户 <b>" + esc(c.name) + "</b></p><p>业务线 <b>" + esc(m.biz) + "</b></p><p>币种 <b>" + esc(m.ccy) + "</b></p>"
+    : "<p>客户 <b>" + esc(c.name) + "</b></p><p>客户编号 <b>" + esc(c.id) + "</b></p><p>币种 <b>" + esc(m.ccy) + "</b></p>";
+  return '<div class="dialog apply"><header><h2>发起信用额度调整申请</h2><button class="x" id="close">×</button></header><div class="body">'
+    + '<div class="apply-dim"><label class="req">申请维度</label><div class="segs">' + dimBtn("customer", "客户维度") + dimBtn("line", "按业务线+币种") + "</div></div>"
+    + '<div class="apply-grid"><div class="apply-col">'
+    + field("币种", '<select id="cr-ccy">' + Object.keys(RATE).map(function (ccy) { return '<option' + (ccy === m.ccy ? " selected" : "") + ">" + ccy + "</option>"; }).join("") + "</select>")
+    + (m.dim === "line" ? field("业务线", '<select id="cr-biz">' + BIZ.map(function (b) { return '<option' + (b === m.biz ? " selected" : "") + ">" + b + "</option>"; }).join("") + "</select>") : "")
+    + '<div class="box" id="cr-scope"><div class="name">额度范围</div>' + info + "</div>"
+    + '<div class="box" id="cr-preview"><div class="name">信用配置预览</div>' + creditPreviewHtml(m) + "</div>"
+    + field("运营部业务组", '<select id="cr-group"><option value="">请选择</option>' + CREDIT_GROUPS.map(function (g) { return '<option' + (g === m.group ? " selected" : "") + ">" + esc(g) + "</option>"; }).join("") + "</select>").replace("<label>", '<label class="req">')
+    + '<div class="sec">信用额度</div>'
+    + field("设置信用额度", '<input id="cr-amt" placeholder="请输入信用额度" value="' + esc(m.amount) + '" />').replace("<label>", '<label class="req">')
+    + (m.error ? '<div class="err">' + esc(m.error) + "</div>" : "")
+    + '</div><div class="apply-col"><div class="sec">周期与日期设置</div>'
+    + '<div class="field"><label class="req">结算周期类型</label><div class="segs">' + CYCLES.map(cycleBtn).join("") + "</div></div>"
+    + field("账期（天）", '<input id="cr-days" placeholder="请输入账期（1-365）" value="' + esc(m.days) + '" />').replace("<label>", '<label class="req">')
+    + field("宽限期（天）", '<input id="cr-grace" placeholder="请输入宽限期（1-365）" value="' + esc(m.grace) + '" />')
+    + '<div class="sec">周期说明</div><div class="cycle-note" id="cr-cycle-note">' + esc(cycleNote(m)) + "</div>"
+    + "</div></div></div><footer><button class=\"btn\" id=\"close2\">取消</button><button class=\"btn primary\" id=\"save\">确认</button></footer></div>";
+}
 function kpi(k, v, s, lead) {
   return '<div class="kpi' + (lead ? " lead" : "") + '"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div><div class="s">' + esc(s) + '</div></div>';
 }
@@ -1027,6 +1120,11 @@ function field(label, control) {
 function renderModal() {
   const mask = document.getElementById("mask");
   if (!state.modal) { mask.hidden = true; mask.innerHTML = ""; return; }
+  if (state.modal.type === "creditApply") {
+    mask.hidden = false;
+    mask.innerHTML = creditApplyDialog();
+    return;
+  }
   if (state.modal.type === "customer") {
     const c = customers.find(function (x) { return x.id === state.modal.id; });
     const p = c.profile || {};
@@ -1200,21 +1298,57 @@ document.body.addEventListener("click", function (e) {
   if (e.target.id === "dismiss") { state.banner = ""; render(); return; }
   if (e.target.id === "transfer") { state.modal = { type: "transfer" }; render(); return; }
   if (e.target.id === "add-voucher") { state.modal = { type: "precharge" }; render(); return; }
-  if (e.target.id === "apply-credit") { state.modal = { type: "creditApply" }; render(); return; }
+  const creditDim = e.target.closest("[data-credit-dim]");
+  if (creditDim && state.modal && state.modal.type === "creditApply") {
+    readCreditForm();
+    state.modal.dim = creditDim.dataset.creditDim;
+    state.modal.error = "";
+    render();
+    return;
+  }
+  const creditCycle = e.target.closest("[data-credit-cycle]");
+  if (creditCycle && state.modal && state.modal.type === "creditApply") {
+    readCreditForm();
+    state.modal.cycle = creditCycle.dataset.creditCycle;
+    render();
+    return;
+  }
+  if (e.target.id === "apply-credit") {
+    state.modal = { type: "creditApply", dim: "customer", ccy: cur().main, biz: "代发", amount: "", group: "", cycle: "一个月", days: "", grace: "", error: "" };
+    render();
+    return;
+  }
   if (e.target.id === "close" || e.target.id === "close2") { state.modal = null; render(); return; }
   if (e.target.id === "save" && state.modal) {
     if (state.modal.type === "creditApply") {
-      const ccy = document.getElementById("cr-ccy").value;
-      const biz = document.getElementById("cr-biz").value;
-      const amount = Number(document.getElementById("cr-amt").value) || 0;
-      state.modal = null;
-      if (amount <= 0) { render(); return; }
-      if (!credit[ccy]) {
-        credit[ccy] = {};
-        BIZ.forEach(function (b) { credit[ccy][b] = { limit: 0, used: 0 }; });
+      readCreditForm();
+      const m = state.modal;
+      const amount = Number(m.amount) || 0;
+      const days = Number(m.days);
+      const grace = m.grace === "" ? "" : Number(m.grace);
+      const badGrace = m.grace !== "" && (!grace || grace < 1 || grace > 365);
+      if (!m.group || amount <= 0 || !days || days < 1 || days > 365 || badGrace) {
+        m.error = "请选择业务组，并填写信用额度和 1-365 的账期。";
+        render();
+        return;
       }
-      credit[ccy][biz].limit += amount;
-      state.banner = "已申请 " + ccy + " " + biz + " 信用额度 " + money(amount, ccy) + "。额度记在这个币种上。";
+      const terms = { cycle: m.cycle, days: days, grace: grace, group: m.group };
+      if (m.dim === "line") {
+        if (!credit[m.ccy]) {
+          credit[m.ccy] = {};
+          BIZ.forEach(function (b) { credit[m.ccy][b] = { limit: 0, used: 0 }; });
+        }
+        credit[m.ccy][m.biz].limit += amount;
+        Object.assign(credit[m.ccy][m.biz], terms);
+        state.banner = "已申请 " + m.ccy + " " + m.biz + " 信用额度 " + money(amount, m.ccy) + "。";
+      } else {
+        if (!cur().customerCredit) cur().customerCredit = {};
+        if (!cur().customerCredit[m.ccy]) cur().customerCredit[m.ccy] = { limit: 0, used: 0 };
+        cur().customerCredit[m.ccy].limit += amount;
+        Object.assign(cur().customerCredit[m.ccy], terms);
+        state.banner = "已申请客户维度 " + m.ccy + " 信用额度 " + money(amount, m.ccy) + "。";
+      }
+      state.modal = null;
       state.fold = "credit";
       render();
       return;
@@ -1270,6 +1404,20 @@ document.body.addEventListener("click", function (e) {
 });
 
 document.body.addEventListener("change", function (e) {
+  if ((e.target.id === "cr-ccy" || e.target.id === "cr-biz") && state.modal && state.modal.type === "creditApply") {
+    readCreditForm();
+    const scope = document.getElementById("cr-scope");
+    const preview = document.getElementById("cr-preview");
+    const m = state.modal;
+    const c = cur();
+    if (scope) {
+      scope.innerHTML = '<div class="name">额度范围</div>' + (m.dim === "line"
+        ? "<p>客户 <b>" + esc(c.name) + "</b></p><p>业务线 <b>" + esc(m.biz) + "</b></p><p>币种 <b>" + esc(m.ccy) + "</b></p>"
+        : "<p>客户 <b>" + esc(c.name) + "</b></p><p>客户编号 <b>" + esc(c.id) + "</b></p><p>币种 <b>" + esc(m.ccy) + "</b></p>");
+    }
+    if (preview) preview.innerHTML = '<div class="name">信用配置预览</div>' + creditPreviewHtml(m);
+    return;
+  }
   const set = e.target.dataset.set;
   if (set) {
     state[set] = e.target.value;
@@ -1289,6 +1437,12 @@ document.body.addEventListener("change", function (e) {
 });
 
 document.body.addEventListener("input", function (e) {
+  if ((e.target.id === "cr-days" || e.target.id === "cr-grace") && state.modal && state.modal.type === "creditApply") {
+    readCreditForm();
+    const note = document.getElementById("cr-cycle-note");
+    if (note) note.textContent = cycleNote(state.modal);
+    return;
+  }
   if (e.target.dataset.num) state[e.target.dataset.num] = e.target.value;
   if (e.target.dataset.splitAmt != null) state.splits[Number(e.target.dataset.splitAmt)].amount = e.target.value;
   if (state.page === "pay" && (e.target.dataset.num || e.target.dataset.splitAmt != null)) {

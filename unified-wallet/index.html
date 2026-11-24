@@ -672,7 +672,7 @@ function viewList() {
       return '<option value="' + s + '"' + (state.listStatus === s ? " selected" : "") + ">" + s + "</option>";
     }).join("") + "</select></div>"
     + '<div class="actions"><button class="btn primary" id="search-list" type="button">查询</button><button class="btn" id="reset-list" type="button">重置</button></div></div>'
-    + '<div class="tablewrap"><table><thead><tr><th>客户</th><th>商户id</th><th>主币种</th><th>总可用余额（主币种）</th><th>可用余额（按币种）</th><th>信用额度（按币种）</th><th>已用额度（按币种）</th><th>剩余额度（按币种）</th><th>真实金额（换算主币种）</th><th>真实金额（按币种）</th><th>待核销预充</th><th>状态</th><th>客户详情</th><th>操作</th></tr></thead><tbody>'
+    + '<div class="tablewrap"><table><thead><tr><th>客户</th><th>商户id</th><th>主币种</th><th>总可用余额（主币种）</th><th>可用余额（按币种）</th><th>信用额度（按币种）</th><th>已用额度（按币种）</th><th>剩余额度（按币种）</th><th>真实金额（换算主币种）</th><th>真实金额（按币种）</th><th>待核销预充</th><th>状态</th><th>客户信息</th><th>操作</th></tr></thead><tbody>'
     + (rows.length ? rows.map(function (c) {
       const pending = pendingUsd(c);
       const ccys = customerCurrencyRows(c);

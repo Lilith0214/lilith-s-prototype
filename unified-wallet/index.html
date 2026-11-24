@@ -98,12 +98,21 @@ button { cursor: pointer; }
 .panel h3 { margin: 0 0 12px; font-size: 14px; font-weight: 650; }
 .row { display: flex; gap: 12px; align-items: stretch; }
 .row > * { flex: 1; min-width: 0; }
+.credit-board { display: grid; grid-template-columns: 280px 1fr; gap: 12px; }
+.credit-main, .credit-ccy { background: #fafafa; border-radius: 8px; padding: 14px 16px; }
+.credit-main .k, .credit-ccy .k { color: var(--sub); margin-bottom: 6px; }
+.credit-main .v { font-size: 28px; font-weight: 700; color: var(--blue); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.credit-main .s, .credit-ccy div { color: var(--sub); font-size: 13px; line-height: 1.7; }
+.credit-ccys { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.amt-pos { color: #389e0d; }
+.amt-neg { color: #cf1322; }
 .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
 .kpi { background: #fff; border-radius: 8px; padding: 16px 20px 18px; }
 .kpi .k { color: var(--sub); margin-bottom: 8px; font-size: 13px; }
 .kpi .v { font-size: 28px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.15; font-variant-numeric: tabular-nums; color: #1f1f1f; }
 .kpi.lead { box-shadow: inset 3px 0 0 var(--blue); }
 .kpi.lead .v { color: var(--blue); }
+.kpi.soft .v { color: #8b7cc4; }
 .kpi .s { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .switches { display: grid; grid-template-columns: 1.2fr 1.2fr .9fr; gap: 12px; }
 .sw {
@@ -295,9 +304,10 @@ const state = {
   group: "biz",
   storeMerchant: "全部",
   storeFocus: "全部",
-  fold: "",
+  fold: "credit",
   store: "全部",
   ledgerType: "全部",
+  ledgerFilters: { merchantId: "", biz: "全部", ccy: "全部", type: "全部", time: "", txnNo: "", transferNo: "" },
   payBiz: "代发",
   payMerchant: "10086",
   payCcy: "USD",
@@ -375,7 +385,8 @@ const customers = [
       ] }
     ],
     ledger: [
-      { time: "2026-11-18 16:40", type: "付款", biz: "广告", merchantId: "10086", ccy: "USD", amount: -400, store: "—", doc: "付款 PAY-220", bucket: "可用余额", channel: "PayPal", note: "缘由广告，只扣广告 USD" },
+      { time: "2026-11-18 16:40", type: "付款", biz: "广告", merchantId: "10086", ccy: "USD", amount: -400, store: "—", doc: "付款 PAY-220", payNo: "PAY-220", bucket: "可用余额", channel: "PayPal", note: "缘由广告，只扣广告 USD" },
+      { time: "2026-11-16 10:20", type: "调拨", biz: "代发", merchantId: "10086", ccy: "USD", amount: -1000, store: "—", doc: "调拨 TF-3102", transferNo: "TF-3102", bucket: "可用余额", channel: "—", note: "调出到广告 USD，审批已通过" },
       { time: "2026-11-18 09:12", type: "预充入账", biz: "代发", merchantId: "10086", ccy: "USD", amount: 5000, store: "—", doc: "凭证 PZ-20261118", bucket: "可用余额", channel: "—", note: "线下转账公司还没收到，凭银行回单先增加可用余额" },
       { time: "2026-11-15 11:20", type: "信用占用", biz: "代发", merchantId: "10086", ccy: "USD", amount: 4500, store: "—", doc: "备货 STK-077", bucket: "信用额度", channel: "—", note: "占用记在代发，待还款还到代发" },
       { time: "2026-11-08 14:02", type: "应收扣款", biz: "代发", merchantId: "10086", ccy: "USD", amount: -1000, store: "独立站-US", doc: "应收 AR-018 · 明细1", bucket: "可用余额", channel: "—", note: "同一张应收单，按明细拆到店铺" },
@@ -796,13 +807,13 @@ function totalInMain(c, rows, key) {
 
 function viewHome() {
   const avail = sumUsd(active(), "available");
-  const real = sumUsd(active(), "real");
+  const current = sumUsd(active(), "current");
   const creditRemainUsd = creditTotalUsd("limit") - creditTotalUsd("used");
   const creditBrief = Object.keys(credit).map(function (ccy) { return ccy + " 剩余 " + money(creditSum(ccy).remain, ccy); }).join(" · ");
   return '<div class="kpis">'
     + kpi("折合可用", mainMoney(avail + creditRemainUsd), "含各币种剩余信用", true)
-    + kpi("折合真实金额", mainMoney(real), "不含尚未到账的预充")
-    + kpi("信用剩余折合", mainMoney(creditRemainUsd), creditBrief || "还没有信用额度")
+    + kpi("折合当前金额", mainMoney(current), "各币种当前金额合计")
+    + kpi("信用剩余折合", mainMoney(creditRemainUsd), creditBrief || "还没有信用额度", false, true)
     + "</div>"
     + customerCcyTable(active(), cur().main)
     + '<div class="panel"><div class="rulebar">'
@@ -824,10 +835,43 @@ function viewHome() {
         + '<button class="link" data-jump="stores" data-mid="' + esc(m.id) + '">店铺</button></td></tr>';
     }).join("")
     + "</tbody></table></div></div>"
-    + '<div class="foldbar"><strong>信用额度</strong><span>' + ([creditBrief, customerCreditBrief()].filter(Boolean).join(" · ") || "还没有信用额度") + '</span><span class="spacer"></span><button class="btn" id="apply-credit">申请信用额度</button><button class="btn" data-fold="credit">' + (state.fold === "credit" ? "收起" : "查看额度") + "</button></div>"
+    + '<div class="panel" style="margin-bottom:12px"><h3>信用额度</h3>' + creditBoard() + '</div>'
+    + '<div class="foldbar"><strong>信用额度明细</strong><span>' + ([creditBrief, customerCreditBrief()].filter(Boolean).join(" · ") || "还没有信用额度") + '</span><span class="spacer"></span><button class="btn" id="apply-credit">申请信用额度</button><button class="btn" data-fold="credit">' + (state.fold === "credit" ? "收起" : "查看明细") + "</button></div>"
     + (state.fold === "credit" ? creditFoldTable() : "");
 }
 
+function creditBoard() {
+  const main = cur().main;
+  const ccys = [];
+  Object.keys(credit || {}).forEach(function (ccy) { if (ccys.indexOf(ccy) < 0) ccys.push(ccy); });
+  Object.keys(cur().customerCredit || {}).forEach(function (ccy) { if (ccys.indexOf(ccy) < 0) ccys.push(ccy); });
+  ccys.sort(function (a, b) {
+    if (a === main) return -1;
+    if (b === main) return 1;
+    return a < b ? -1 : 1;
+  });
+  function pack(ccy) {
+    const line = creditSum(ccy);
+    const extra = (cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
+    const limit = line.limit + (extra.limit || 0);
+    const used = line.used + (extra.used || 0);
+    return { limit: limit, used: used, remain: limit - used };
+  }
+  let limitUsd = 0;
+  let usedUsd = 0;
+  ccys.forEach(function (ccy) {
+    const item = pack(ccy);
+    limitUsd += usdOf(item.limit, ccy);
+    usedUsd += usdOf(item.used, ccy);
+  });
+  const limitMain = limitUsd / RATE[main];
+  const usedMain = usedUsd / RATE[main];
+  const cards = ccys.map(function (ccy) {
+    const item = pack(ccy);
+    return '<div class="credit-ccy"><div class="k">' + esc(ccy) + (ccy === main ? " · 主币种" : "") + '</div><div>额度 ' + money(item.limit, ccy) + "</div><div>已用 " + money(item.used, ccy) + "</div><div>剩余 " + money(item.remain, ccy) + "</div></div>";
+  }).join("");
+  return '<div class="credit-board"><div class="credit-main"><div class="k">信用额度（' + esc(main) + '）</div><div class="v">' + money(limitMain, main) + '</div><div class="s">已用 ' + money(usedMain, main) + " · 剩余 " + money(limitMain - usedMain, main) + "</div></div><div class=\"credit-ccys\">" + (cards || '<div class="credit-ccy">还没有信用额度</div>') + "</div></div>";
+}
 function customerCreditBrief() {
   const bag = cur().customerCredit || {};
   return Object.keys(bag).filter(function (ccy) { return bag[ccy].limit || bag[ccy].used; }).map(function (ccy) {
@@ -907,8 +951,8 @@ function creditApplyDialog() {
     + '<div class="sec">周期说明</div><div class="cycle-note" id="cr-cycle-note">' + esc(cycleNote(m)) + "</div>"
     + "</div></div></div><footer><button class=\"btn\" id=\"close2\">取消</button><button class=\"btn primary\" id=\"save\">确认</button></footer></div>";
 }
-function kpi(k, v, s, lead) {
-  return '<div class="kpi' + (lead ? " lead" : "") + '"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div><div class="s">' + esc(s) + '</div></div>';
+function kpi(k, v, s, lead, soft) {
+  return '<div class="kpi' + (lead ? " lead" : "") + (soft ? " soft" : "") + '"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div><div class="s">' + esc(s) + '</div></div>';
 }
 function switchBox(key, title, on, text) {
   return '<div class="sw"><div class="hd"><span>' + esc(title) + '</span><button class="toggle' + (on ? " on" : "") + '" data-toggle="' + key + '" aria-label="' + esc(title) + '"><i></i></button></div><p>' + esc(text) + '</p></div>';
@@ -1152,24 +1196,77 @@ function viewStoreDetail() {
   return html;
 }
 
-function viewLedger() {
-  const rows = ledger.filter(function (e) {
-    return (state.biz === "全部" || e.biz === state.biz)
-      && (state.ccy === "全部" || e.ccy === state.ccy)
-      && (state.store === "全部" || e.store === state.store)
-      && (state.ledgerType === "全部" || e.type === state.ledgerType);
+function ledgerNos(e) {
+  const doc = e.doc || "";
+  const pick = function (re, own) { return own || ((doc.match(re) || [])[0] || ""); };
+  return {
+    payNo: pick(/PAY-[\w-]+/, e.payNo),
+    fulfillNo: pick(/FF-[\w-]+/, e.fulfillNo),
+    transferNo: e.transferNo || pick(/TF-[\w-]+/, ""),
+    receiptNo: pick(/RC-[\w-]+/, e.receiptNo)
+  };
+}
+function balanceAfterOf(entries) {
+  const groups = {};
+  entries.forEach(function (e) {
+    const key = e.merchantId + "|" + e.biz + "|" + e.ccy;
+    (groups[key] = groups[key] || []).push(e);
   });
-  const stores = allStores();
-  return '<div class="panel"><div class="filters">'
-    + select("ledgerType", [["全部", "全部类型"], ["认领", "认领"], ["预充入账", "预充入账"], ["预充核销", "预充核销"], ["应收扣款", "应收扣款"], ["付款", "付款"], ["信用占用", "信用占用"], ["期初", "期初"]], state.ledgerType)
-    + select("biz", [["全部", "全部业务线"]].concat(BIZ.map(function (b) { return [b, b]; })), state.biz)
-    + select("ccy", [["全部", "全部币种"]].concat(Object.keys(RATE).map(function (c) { return [c, c]; })), state.ccy)
-    + select("store", [["全部", "全部店铺"]].concat(stores.map(function (s) { return [s, s]; })), state.store)
-    + "</div><div class=\"tablewrap\"><table><thead><tr><th>时间</th><th>类型</th><th>业务线</th><th>商户</th><th>店铺</th><th>金额</th><th>记在</th><th>单据</th><th>说明</th></tr></thead><tbody>"
-    + rows.map(function (e) {
-      const m = merchants.find(function (x) { return x.id === e.merchantId; });
-      return "<tr><td>" + esc(e.time) + "</td><td>" + esc(e.type) + "</td><td class=\"biz " + e.biz + "\">" + e.biz + "</td><td>" + esc(m.name) + "</td><td>" + esc(e.store) + "</td><td>" + money(e.amount, e.ccy) + "</td><td>" + esc(e.bucket) + "</td><td>" + esc(e.doc) + "</td><td>" + esc(e.note) + "</td></tr>";
-    }).join("")
+  const map = new Map();
+  Object.keys(groups).forEach(function (key) {
+    const parts = key.split("|");
+    const wallet = lines.find(function (l) { return l.merchantId === parts[0] && l.biz === parts[1] && l.ccy === parts[2]; });
+    let bal = wallet ? wallet.available : 0;
+    groups[key].slice().sort(function (a, b) { return a.time < b.time ? 1 : -1; }).forEach(function (e) {
+      map.set(e, bal);
+      bal -= Number(e.amount) || 0;
+    });
+  });
+  return map;
+}
+function viewLedger() {
+  const f = state.ledgerFilters;
+  const after = balanceAfterOf(ledger);
+  const types = [];
+  ledger.forEach(function (e) { if (types.indexOf(e.type) < 0) types.push(e.type); });
+  const rows = ledger.filter(function (e) {
+    const nos = ledgerNos(e);
+    const txn = (nos.payNo + " " + nos.fulfillNo + " " + nos.receiptNo + " " + (e.doc || "")).toLowerCase();
+    if (f.merchantId && String(e.merchantId).indexOf(f.merchantId.trim()) < 0) return false;
+    if (f.biz !== "全部" && e.biz !== f.biz) return false;
+    if (f.ccy !== "全部" && e.ccy !== f.ccy) return false;
+    if (f.type !== "全部" && e.type !== f.type) return false;
+    if (f.time && String(e.time).indexOf(f.time.trim()) < 0) return false;
+    if (f.txnNo && txn.indexOf(f.txnNo.trim().toLowerCase()) < 0) return false;
+    if (f.transferNo && String(nos.transferNo).toLowerCase().indexOf(f.transferNo.trim().toLowerCase()) < 0) return false;
+    return true;
+  });
+  function opt(list, value, all) {
+    return '<option value="' + esc(all[0]) + '"' + (value === all[0] ? " selected" : "") + ">" + esc(all[1]) + "</option>" + list.map(function (item) {
+      const v = item[0] || item;
+      const label = item[1] || item;
+      return '<option value="' + esc(v) + '"' + (value === v ? " selected" : "") + ">" + esc(label) + "</option>";
+    }).join("");
+  }
+  return '<div class="panel"><div class="qform">'
+    + '<div class="field"><label>商户id</label><input data-ledger="merchantId" placeholder="请输入" value="' + esc(f.merchantId) + '" /></div>'
+    + '<div class="field"><label>业务线</label><select data-ledger="biz">' + opt(BIZ.map(function (b) { return [b, b]; }), f.biz, ["全部", "全部"]) + "</select></div>"
+    + '<div class="field"><label>币种</label><select data-ledger="ccy">' + opt(Object.keys(RATE).map(function (c) { return [c, c]; }), f.ccy, ["全部", "全部"]) + "</select></div>"
+    + '<div class="field"><label>变动类型</label><select data-ledger="type">' + opt(types.map(function (t) { return [t, t]; }), f.type, ["全部", "全部"]) + "</select></div>"
+    + '<div class="field"><label>交易时间</label><input data-ledger="time" placeholder="如 2026-11-18" value="' + esc(f.time) + '" /></div>'
+    + '<div class="field"><label>交易单号</label><input data-ledger="txnNo" placeholder="付款/履约/收款单号" value="' + esc(f.txnNo) + '" /></div>'
+    + '<div class="field"><label>调拨单号</label><input data-ledger="transferNo" placeholder="请输入" value="' + esc(f.transferNo) + '" /></div>'
+    + '<div class="actions"><button class="btn primary" id="ledger-search" type="button">查询</button><button class="btn" id="ledger-reset" type="button">重置</button></div></div>'
+    + '<div class="tablewrap"><table><thead><tr><th>商户id</th><th>客户名称</th><th>交易时间</th><th>所属业务</th><th>变动类型</th><th>变动金额</th><th>变动后余额</th><th>币种</th><th>变动后信用额度</th><th>变动后已用额度</th><th>变动后信用剩余额度</th><th>汇率</th><th>付款单号</th><th>履约单号</th><th>调拨单号</th><th>收款单号</th><th>备注</th></tr></thead><tbody>'
+    + (rows.length ? rows.map(function (e) {
+      const nos = ledgerNos(e);
+      const creditItem = bag(e.ccy, e.biz);
+      const showCredit = e.type === "信用占用" || e.bucket === "信用额度";
+      const rate = e.ccy === cur().main ? "1.00" : (RATE[e.ccy] / RATE[cur().main]).toFixed(4);
+      const afterBal = after.get(e);
+      const amtCls = e.amount < 0 ? "amt-neg" : "amt-pos";
+      return "<tr><td>" + esc(e.merchantId) + "</td><td>" + esc(cur().name) + "</td><td>" + esc(e.time) + "</td><td>" + esc(e.biz) + "</td><td>" + esc(e.type) + "</td><td class=\"" + amtCls + "\">" + money(e.amount, e.ccy) + "</td><td>" + (afterBal == null ? "—" : money(afterBal, e.ccy)) + "</td><td>" + esc(e.ccy) + "</td><td>" + (showCredit ? money(creditItem.limit, e.ccy) : "—") + "</td><td>" + (showCredit ? money(creditItem.used, e.ccy) : "—") + "</td><td>" + (showCredit ? money(creditItem.limit - creditItem.used, e.ccy) : "—") + "</td><td>" + rate + "</td><td>" + esc(nos.payNo || "—") + "</td><td>" + esc(nos.fulfillNo || "—") + "</td><td>" + esc(nos.transferNo || "—") + "</td><td>" + esc(nos.receiptNo || "—") + "</td><td>" + esc(e.note || "") + "</td></tr>";
+    }).join("") : '<tr><td colspan="17">没有符合条件的流水</td></tr>')
     + "</tbody></table></div></div>";
 }
 
@@ -1421,7 +1518,9 @@ document.body.addEventListener("click", function (e) {
       patch.biz = "全部";
       patch.ccy = "全部";
       patch.lineId = "";
-    } else if (page === "home" || page === "list") {
+    } else if (page === "home" || page === "list" || page === "ledger") {
+      if (page === "ledger") state.ledgerFilters = { merchantId: "", biz: "全部", ccy: "全部", type: "全部", time: "", txnNo: "", transferNo: "" };
+      if (page === "home") state.fold = "credit";
       patch.merchant = "全部";
       patch.biz = "全部";
       patch.ccy = "全部";
@@ -1457,6 +1556,7 @@ document.body.addEventListener("click", function (e) {
   const open = e.target.closest("[data-open]");
   if (open) {
     bind(open.dataset.open);
+    state.fold = "credit";
     if (location.hash === "#home") { state.page = "home"; render(); }
     else location.hash = "home";
     return;
@@ -1464,6 +1564,19 @@ document.body.addEventListener("click", function (e) {
   const detail = e.target.closest("[data-detail]");
   if (detail) {
     state.modal = { type: "customer", id: detail.dataset.detail };
+    render();
+    return;
+  }
+  if (e.target.id === "ledger-search") {
+    ["merchantId", "biz", "ccy", "type", "time", "txnNo", "transferNo"].forEach(function (key) {
+      const el = document.querySelector('[data-ledger="' + key + '"]');
+      if (el) state.ledgerFilters[key] = el.value;
+    });
+    render();
+    return;
+  }
+  if (e.target.id === "ledger-reset") {
+    state.ledgerFilters = { merchantId: "", biz: "全部", ccy: "全部", type: "全部", time: "", txnNo: "", transferNo: "" };
     render();
     return;
   }

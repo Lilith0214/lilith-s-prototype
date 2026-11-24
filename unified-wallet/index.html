@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fund · 统一钱包</title>
+<style>
+:root {
+  --blue: #1677ff;
+  --bg: #f5f6f8;
+  --line: #f0f0f0;
+  --text: #1f1f1f;
+  --sub: #595959;
+  --muted: #8c8c8c;
+  --green: #389e0d;
+  --orange: #d46b08;
+  --red: #cf1322;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text); background: var(--bg); font-size: 13px;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.app { display: flex; height: 100%; min-width: 1180px; }
+.sider {
+  width: 252px; background: #fff; border-right: 1px solid var(--line);
+  flex: none; display: flex; flex-direction: column;
+}
+.legend {
+  padding: 10px 14px; color: var(--muted); font-size: 12px; line-height: 1.55;
+  border-bottom: 1px solid var(--line);
+}
+#sider-nav { flex: 1; overflow: auto; padding: 6px 0 16px; }
+.tree-customer { padding: 8px 16px 4px; font-weight: 650; }
+.tree-id { margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 400; }
+.brand {
+  height: 52px; display: flex; align-items: center; gap: 8px;
+  padding: 0 16px; font-weight: 650; font-size: 15px; border-bottom: 1px solid var(--line);
+}
+.brand i {
+  width: 22px; height: 22px; border-radius: 6px; background: var(--blue); color: #fff;
+  display: grid; place-items: center; font-style: normal; font-size: 12px;
+}
+.group { margin: 14px 16px 6px; color: var(--muted); font-size: 12px; }
+.navbtn {
+  margin: 1px 8px; border: 0; background: transparent; text-align: left;
+  height: 32px; border-radius: 6px; padding: 0 10px; color: var(--sub); width: calc(100% - 16px);
+  display: flex; align-items: center; gap: 6px;
+}
+.navbtn.l2 { padding-left: 18px; height: auto; min-height: 36px; align-items: flex-start; padding-top: 6px; padding-bottom: 6px; }
+.navbtn.l2 .tree-id { display: block; }
+.navbtn.l3 { padding-left: 36px; height: 28px; font-size: 12px; }
+.navbtn.dim { color: var(--muted); }
+.navbtn.on { background: #e6f4ff; color: var(--blue); font-weight: 600; }
+.navbtn.in { box-shadow: inset 2px 0 0 #91caff; }
+.seg { display: inline-flex; border: 1px solid #d9d9d9; border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; border-right: 1px solid #d9d9d9; background: #fff; height: 32px; padding: 0 14px; }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: #e6f4ff; color: var(--blue); font-weight: 600; }
+.mark { width: 18px; flex: none; font-size: 10px; font-weight: 700; color: var(--blue); }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #d9d9d9; flex: none; }
+.dot.代发 { background: #d46b08; }
+.dot.广告 { background: #c41d7f; }
+.dot.拒付 { background: #08979c; }
+.dot.垫资 { background: #237804; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.top {
+  height: 48px; background: #fff; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; padding: 0 16px; gap: 8px; flex: none;
+}
+.crumb { color: var(--muted); }
+.crumb b { color: var(--text); font-weight: 550; }
+.spacer { flex: 1; }
+.who { color: var(--sub); }
+.content { flex: 1; overflow: auto; padding: 12px 16px 24px; }
+.panel { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+.panel h3 { margin: 0 0 12px; font-size: 14px; font-weight: 650; }
+.row { display: flex; gap: 12px; align-items: stretch; }
+.row > * { flex: 1; min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+.kpi { background: #fff; border-radius: 8px; padding: 14px 16px; }
+.kpi .k { color: var(--muted); margin-bottom: 6px; }
+.kpi .v { font-size: 20px; font-weight: 650; letter-spacing: -0.3px; }
+.kpi .s { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.switches { display: grid; grid-template-columns: 1.2fr 1.2fr .9fr; gap: 12px; }
+.sw {
+  border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
+}
+.sw .hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 650; }
+.sw p { margin: 8px 0 0; color: var(--sub); line-height: 1.55; }
+.toggle { width: 40px; height: 22px; border-radius: 11px; border: 0; background: #d9d9d9; position: relative; flex: none; }
+.toggle.on { background: var(--blue); }
+.toggle i {
+  position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  transition: left .15s;
+}
+.toggle.on i { left: 20px; }
+.field label { display: block; margin-bottom: 6px; color: var(--sub); }
+.field select, .field input {
+  width: 100%; height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 10px; background: #fff; outline: none;
+}
+.field select:focus, .field input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(22,119,255,.12); }
+.foldbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px;
+}
+.foldbar strong { font-size: 14px; }
+.rulebar { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.rulebar .pair { display: flex; align-items: center; gap: 8px; }
+.rulebar select { width: 200px; height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 8px; background: #fff; }
+.mcard { border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+.mcard .name { font-weight: 650; font-size: 14px; }
+.mcard .meta { color: var(--muted); margin: 4px 0 10px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stats div { background: #fafafa; border-radius: 6px; padding: 8px; }
+.stats .k { color: var(--muted); font-size: 12px; }
+.stats .v { margin-top: 2px; font-weight: 600; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+.filters select, .filters input { height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 10px; background: #fff; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky; top: 0; }
+.tablewrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.tag { display: inline-block; padding: 0 8px; line-height: 20px; border-radius: 4px; font-size: 12px; border: 1px solid transparent; vertical-align: middle; }
+.tag.main { color: #0958d9; background: #e6f4ff; border-color: #91caff; font-weight: 650; }
+.tag.sub { color: #595959; background: #fafafa; border-color: #d9d9d9; }
+.tag.ok { color: var(--green); background: #f6ffed; border-color: #b7eb8f; }
+.tag.off { color: #8c8c8c; background: #fafafa; border-color: #d9d9d9; }
+.tag.warn { color: var(--orange); background: #fff7e6; border-color: #ffd591; }
+.biz { font-weight: 600; }
+.biz.代发 { color: #d46b08; }
+.biz.广告 { color: #c41d7f; }
+.biz.拒付 { color: #08979c; }
+.biz.垫资 { color: #237804; }
+.link { border: 0; background: none; color: var(--blue); padding: 0 8px 0 0; }
+.link:hover { text-decoration: underline; }
+.note {
+  background: #f6ffed; border: 1px solid #b7eb8f; color: #135200;
+  border-radius: 8px; padding: 10px 12px; line-height: 1.6; margin-bottom: 12px;
+}
+.note.blue { background: #e6f4ff; border-color: #91caff; color: #003a8c; }
+.grid2 { display: grid; grid-template-columns: 320px 1fr; gap: 12px; align-items: start; }
+.steps { display: flex; flex-direction: column; gap: 8px; }
+.step { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.step .t { font-weight: 650; margin-bottom: 4px; }
+.step .d { color: var(--sub); line-height: 1.55; }
+.step.short { border-color: #ffccc7; background: #fff2f0; }
+.step.ok { border-color: #b7eb8f; background: #f6ffed; }
+.step.fx { border-color: #ffe58f; background: #fffbe6; }
+.btn { height: 32px; padding: 0 14px; border-radius: 6px; border: 1px solid #d9d9d9; background: #fff; }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 20; }
+.mask[hidden] { display: none; }
+.dialog { width: 480px; background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.dialog header, .dialog footer { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+.dialog header { border-bottom: 1px solid var(--line); }
+.dialog header h2 { margin: 0; font-size: 16px; }
+.dialog footer { border-top: 1px solid var(--line); justify-content: flex-end; gap: 8px; }
+.dialog .body { padding: 16px; }
+.x { border: 0; background: transparent; font-size: 18px; color: var(--muted); width: 28px; height: 28px; border-radius: 4px; }
+.hint { color: var(--muted); line-height: 1.6; margin: 0 0 8px; }
+.split { display: grid; grid-template-columns: 1fr 120px 28px; gap: 8px; margin-bottom: 8px; }
+.err { color: var(--red); margin: 6px 0 0; }
+.mini { color: var(--muted); font-size: 12px; }
+.banner {
+  background: #fffbe6; border: 1px solid #ffe58f; border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 12px; display: flex; justify-content: space-between; gap: 12px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="brand"><i>F</i> Fund</div>
+    <div class="legend">商户 id 一般为 5 位数字，全局唯一。一个客户可以有多个商户 id。</div>
+    <div id="sider-nav"></div>
+  </aside>
+  <section class="main">
+    <div class="top">
+      <div class="crumb">资金中台 / 统一钱包 / <b id="crumb">客户总览</b></div>
+      <div class="spacer"></div>
+      <div class="who" id="who">全部客户</div>
+    </div>
+    <div class="content" id="view"></div>
+  </section>
+</div>
+<div class="mask" id="mask" hidden></div>
+<script>
+const RATE = { USD: 1, EUR: 1.08, GBP: 1.27, CNY: 0.14 };
+const BIZ = ["代发", "广告", "拒付", "垫资"];
+const CHANNELS = ["银行", "PayPal", "Airwallex", "WorldFirst"];
+const PAGES = { list: "客户列表", home: "客户总览", lines: "业务线账户", stores: "店铺对账", ledger: "资金流水", pay: "付款试算" };
+
+const state = {
+  page: "list",
+  customerId: "C20240018",
+  q: "",
+  balanceShare: true,
+  priority: "reason",
+  creditShare: false,
+  biz: "全部",
+  ccy: "全部",
+  merchant: "全部",
+  lineId: "",
+  group: "biz",
+  storeMerchant: "全部",
+  storeFocus: "全部",
+  fold: "",
+  store: "全部",
+  ledgerType: "全部",
+  payBiz: "代发",
+  payMerchant: "10086",
+  payCcy: "USD",
+  payAmount: 20000,
+  channel: "PayPal",
+  splits: [
+    { store: "独立站-US", amount: 12000 },
+    { store: "独立站-CA", amount: 8000 }
+  ],
+  modal: null,
+  banner: ""
+};
+
+function wallet(row) {
+  return Object.assign({ frozen: 0, opening: 0, openingAt: "—", fee: "公司承担", fxTopup: "关闭", created: "2026-01-09", main: false, status: "正常" }, row);
+}
+function creditBag(byCcy) {
+  const out = {};
+  Object.keys(byCcy || {}).forEach(function (ccy) {
+    out[ccy] = {};
+    BIZ.forEach(function (b) { out[ccy][b] = (byCcy[ccy] && byCcy[ccy][b]) || { limit: 0, used: 0 }; });
+  });
+  return out;
+}
+
+const customers = [
+  {
+    id: "C20240018", name: "示例客户A", main: "USD", status: "正常", demoPay: 20000, payCcy: "USD",
+    balanceShare: true, priority: "reason", creditShare: false,
+    merchants: [
+      { id: "10086", name: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", stores: ["独立站-US", "独立站-CA"] },
+      { id: "10087", name: "示例客户A-商户02", uniq: "SL-EU-014", erp: "SL-EU", stores: ["独立站-DE"] }
+    ],
+    lines: [
+      wallet({ id: "WA-1001", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "代发", ccy: "USD", main: true, available: 13200, real: 8800, frozen: 600, opening: 2000, openingAt: "2026-01-01 00:00", fxTopup: "开启", created: "2025-12-18" }),
+      wallet({ id: "WA-1002", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "代发", ccy: "EUR", available: 1800, real: 1800, created: "2026-02-03" }),
+      wallet({ id: "WA-1003", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "广告", ccy: "USD", main: true, available: 3600, real: 3600, opening: 500, openingAt: "2026-01-01 00:00", created: "2025-12-18" }),
+      wallet({ id: "WA-1004", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "拒付", ccy: "USD", main: true, available: 900, real: 900, fee: "客户承担", created: "2026-03-11" }),
+      wallet({ id: "WA-1005", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "垫资", ccy: "USD", main: true, available: 2200, real: 2200, created: "2026-03-20" }),
+      wallet({ id: "WA-1006", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "代发", ccy: "GBP", available: 960, real: 960, created: "2026-05-06" }),
+      wallet({ id: "WA-1007", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "垫资", ccy: "CNY", available: 18000, real: 18000, created: "2026-06-02" }),
+      wallet({ id: "WA-2001", merchantId: "10087", merchantName: "示例客户A-商户02", uniq: "SL-EU-014", erp: "SL-EU", biz: "代发", ccy: "EUR", available: 2400, real: 2500, frozen: 100, opening: 800, openingAt: "2026-01-01 00:00", fxTopup: "开启" }),
+      wallet({ id: "WA-2002", merchantId: "10087", merchantName: "示例客户A-商户02", uniq: "SL-EU-014", erp: "SL-EU", biz: "广告", ccy: "EUR", available: 600, real: 600 }),
+      wallet({ id: "WA-2003", merchantId: "10087", merchantName: "示例客户A-商户02", uniq: "SL-EU-014", erp: "SL-EU", biz: "拒付", ccy: "EUR", available: 200, real: 200, fee: "客户承担", created: "2026-04-02" }),
+      wallet({ id: "WA-2004", merchantId: "10087", merchantName: "示例客户A-商户02", uniq: "SL-EU-014", erp: "SL-EU", biz: "垫资", ccy: "EUR", available: 400, real: 400, created: "2026-04-02" }),
+      wallet({ id: "WA-2005", merchantId: "10087", merchantName: "示例客户A-商户02", uniq: "SL-EU-014", erp: "SL-EU", biz: "广告", ccy: "GBP", available: 240, real: 240, created: "2026-05-18" }),
+      wallet({ id: "WA-2006", merchantId: "10087", merchantName: "示例客户A-商户02", uniq: "SL-EU-014", erp: "SL-EU", biz: "代发", ccy: "CNY", available: 6000, real: 6500, frozen: 500, created: "2026-06-09" })
+    ],
+    credit: creditBag({
+      USD: { 代发: { limit: 8000, used: 7000 }, 广告: { limit: 4000, used: 1000 }, 拒付: { limit: 1500, used: 0 }, 垫资: { limit: 2500, used: 500 } },
+      EUR: { 代发: { limit: 4000, used: 2500 }, 广告: { limit: 1200, used: 200 }, 拒付: { limit: 500, used: 0 }, 垫资: { limit: 800, used: 100 } },
+      GBP: { 代发: { limit: 2000, used: 600 }, 广告: { limit: 800, used: 0 }, 拒付: { limit: 0, used: 0 }, 垫资: { limit: 300, used: 0 } },
+      CNY: { 代发: { limit: 30000, used: 8000 }, 广告: { limit: 0, used: 0 }, 拒付: { limit: 0, used: 0 }, 垫资: { limit: 12000, used: 2000 } }
+    }),
+    vouchers: [
+      { id: "PZ-20261118", merchantId: "10086", biz: "代发", ccy: "USD", amount: 5000, status: "待核销", time: "2026-11-18 09:12", proof: "银行回单 HSBC-8831", flow: "" },
+      { id: "PZ-20261002", merchantId: "10086", biz: "广告", ccy: "USD", amount: 2000, status: "已核销", time: "2026-10-02 11:40", proof: "银行回单 HSBC-8610", flow: "RC-8608" }
+    ],
+    receivables: [
+      { id: "AR-018", time: "2026-11-08 14:02", merchantId: "10086", ccy: "USD", lines: [
+        { no: 1, store: "独立站-US", amount: 1000, source: "履约单 FF-2201" },
+        { no: 2, store: "独立站-CA", amount: 800, source: "履约单 FF-2208" }
+      ] },
+      { id: "AR-021", time: "2026-11-12 09:30", merchantId: "10086", ccy: "USD", lines: [
+        { no: 1, store: "独立站-US", amount: 450, source: "履约单 FF-2310" },
+        { no: 2, store: "独立站-US", amount: 150, source: "履约单 FF-2311" }
+      ] },
+      { id: "AR-014", time: "2026-10-28 16:20", merchantId: "10087", ccy: "EUR", lines: [
+        { no: 1, store: "独立站-DE", amount: 320, source: "履约单 FF-1180" },
+        { no: 2, store: "独立站-DE", amount: 80, source: "履约单 FF-1182" }
+      ] }
+    ],
+    ledger: [
+      { time: "2026-11-18 16:40", type: "付款", biz: "广告", merchantId: "10086", ccy: "USD", amount: -400, store: "—", doc: "付款 PAY-220", bucket: "可用余额", channel: "PayPal", note: "缘由广告，只扣广告 USD" },
+      { time: "2026-11-18 09:12", type: "预充入账", biz: "代发", merchantId: "10086", ccy: "USD", amount: 5000, store: "—", doc: "凭证 PZ-20261118", bucket: "可用余额", channel: "—", note: "线下转账公司还没收到，凭银行回单先增加可用余额" },
+      { time: "2026-11-15 11:20", type: "信用占用", biz: "代发", merchantId: "10086", ccy: "USD", amount: 4500, store: "—", doc: "备货 STK-077", bucket: "信用额度", channel: "—", note: "占用记在代发，待还款还到代发" },
+      { time: "2026-11-08 14:02", type: "应收扣款", biz: "代发", merchantId: "10086", ccy: "USD", amount: -1000, store: "独立站-US", doc: "应收 AR-018 · 明细1", bucket: "可用余额", channel: "—", note: "同一张应收单，按明细拆到店铺" },
+      { time: "2026-11-08 14:02", type: "应收扣款", biz: "代发", merchantId: "10086", ccy: "USD", amount: -800, store: "独立站-CA", doc: "应收 AR-018 · 明细2", bucket: "可用余额", channel: "—", note: "客户可用余额按总额 1,800 扣一次" },
+      { time: "2026-11-03 09:18", type: "认领", biz: "广告", merchantId: "10086", ccy: "USD", amount: 3600, store: "—", doc: "转账充值 RC-8902", bucket: "可用余额", channel: "Airwallex", note: "认领到广告，来源客户" },
+      { time: "2026-11-01 10:21", type: "认领", biz: "代发", merchantId: "10086", ccy: "USD", amount: 5000, store: "独立站-US", doc: "转账充值 RC-8891", bucket: "可用余额", channel: "银行", note: "认领到代发，并归集到店铺" },
+      { time: "2026-10-22 15:06", type: "认领", biz: "代发", merchantId: "10087", ccy: "EUR", amount: 2400, store: "独立站-DE", doc: "转账充值 RC-8704", bucket: "可用余额", channel: "WorldFirst", note: "欧洲商户代发" },
+      { time: "2026-10-02 16:05", type: "预充核销", biz: "广告", merchantId: "10086", ccy: "USD", amount: 2000, store: "—", doc: "凭证 PZ-20261002 · 流水 RC-8608", bucket: "真实金额", channel: "银行", note: "到账后核销。可用余额在登记凭证时已经增加，核销不再加一次" },
+      { time: "2026-01-01 00:00", type: "期初", biz: "代发", merchantId: "10086", ccy: "USD", amount: 2000, store: "—", doc: "期初设置", bucket: "可用余额", channel: "—", note: "期初时点之后的收付款在期初上加减" }
+    ]
+  },
+  {
+    id: "C20240032", name: "示例客户B", main: "USD", status: "正常", demoPay: 8000, payCcy: "USD",
+    balanceShare: false, priority: "reason", creditShare: false,
+    merchants: [
+      { id: "20831", name: "示例客户B-商户01", uniq: "HC-001", erp: "HC-MAIN", stores: ["店铺01"] }
+    ],
+    lines: [
+      wallet({ id: "WA-3001", merchantId: "20831", merchantName: "示例客户B-商户01", uniq: "HC-001", erp: "HC-MAIN", biz: "代发", ccy: "USD", main: true, available: 6400, real: 6400, created: "2026-02-11" }),
+      wallet({ id: "WA-3002", merchantId: "20831", merchantName: "示例客户B-商户01", uniq: "HC-001", erp: "HC-MAIN", biz: "广告", ccy: "USD", main: true, available: 2100, real: 2100 }),
+      wallet({ id: "WA-3003", merchantId: "20831", merchantName: "示例客户B-商户01", uniq: "HC-001", erp: "HC-MAIN", biz: "拒付", ccy: "USD", main: true, available: 300, real: 300, fee: "客户承担" }),
+      wallet({ id: "WA-3004", merchantId: "20831", merchantName: "示例客户B-商户01", uniq: "HC-001", erp: "HC-MAIN", biz: "垫资", ccy: "USD", main: true, available: 1800, real: 1800 })
+    ],
+    credit: creditBag({ USD: { 代发: { limit: 8000, used: 2000 }, 广告: { limit: 3000, used: 0 }, 拒付: { limit: 1000, used: 0 }, 垫资: { limit: 2000, used: 500 } } }),
+    vouchers: [
+      { id: "PZ-20260918", merchantId: "20831", biz: "代发", ccy: "USD", amount: 3000, status: "已核销", time: "2026-09-18 10:00", proof: "银行回单 CMB-2201", flow: "RC-7712" }
+    ],
+    ledger: [
+      { time: "2026-11-02 13:10", type: "认领", biz: "代发", merchantId: "20831", ccy: "USD", amount: 6400, store: "店铺01", doc: "转账充值 RC-9011", bucket: "可用余额", channel: "银行", note: "认领到代发，归集到 Shopify 店铺" },
+      { time: "2026-09-20 15:22", type: "预充核销", biz: "代发", merchantId: "20831", ccy: "USD", amount: 3000, store: "—", doc: "凭证 PZ-20260918 · 流水 RC-7712", bucket: "真实金额", channel: "银行", note: "到账后核销，可用余额不再加一次" }
+    ]
+  },
+  {
+    id: "C20240041", name: "示例客户C", main: "EUR", status: "异常", demoPay: 2000, payCcy: "EUR",
+    balanceShare: true, priority: "reason", creditShare: false,
+    merchants: [
+      { id: "31502", name: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", stores: ["店铺01"] }
+    ],
+    lines: [
+      wallet({ id: "WA-4001", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "代发", ccy: "EUR", main: true, available: 900, real: 900 }),
+      wallet({ id: "WA-4002", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "广告", ccy: "EUR", main: true, available: 200, real: 200 }),
+      wallet({ id: "WA-4003", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "拒付", ccy: "EUR", main: true, available: 0, real: 80, status: "异常", fee: "客户承担" }),
+      wallet({ id: "WA-4004", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "垫资", ccy: "EUR", main: true, available: 1500, real: 1600, frozen: 100 })
+    ],
+    credit: creditBag({ EUR: { 代发: { limit: 5000, used: 1000 }, 广告: { limit: 2000, used: 0 }, 拒付: { limit: 500, used: 0 }, 垫资: { limit: 3000, used: 400 } } }),
+    vouchers: [],
+    ledger: [
+      { time: "2026-10-19 08:40", type: "认领", biz: "垫资", merchantId: "31502", ccy: "EUR", amount: 1600, store: "—", doc: "转账充值 RC-8440", bucket: "可用余额", channel: "Airwallex", note: "认领到垫资" }
+    ]
+  },
+  {
+    id: "C20240055", name: "示例客户D", main: "USD", status: "正常", demoPay: 5000, payCcy: "USD",
+    balanceShare: true, priority: "reason", creditShare: true,
+    merchants: [
+      { id: "42618", name: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", stores: ["店铺01"] }
+    ],
+    lines: [
+      wallet({ id: "WA-5001", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "代发", ccy: "USD", main: true, available: 4100, real: 1600 }),
+      wallet({ id: "WA-5002", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "广告", ccy: "USD", main: true, available: 800, real: 800 }),
+      wallet({ id: "WA-5003", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "拒付", ccy: "USD", main: true, available: 0, real: 0, status: "已停用", fee: "客户承担" }),
+      wallet({ id: "WA-5004", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "垫资", ccy: "USD", main: true, available: 500, real: 500 })
+    ],
+    credit: creditBag({ USD: { 代发: { limit: 6000, used: 1000 }, 广告: { limit: 2000, used: 0 }, 拒付: { limit: 0, used: 0 }, 垫资: { limit: 1500, used: 0 } } }),
+    vouchers: [
+      { id: "PZ-20261119", merchantId: "42618", biz: "代发", ccy: "USD", amount: 2500, status: "待核销", time: "2026-11-19 17:26", proof: "银行回单 ICBC-1902", flow: "" }
+    ],
+    ledger: [
+      { time: "2026-11-19 17:26", type: "预充入账", biz: "代发", merchantId: "42618", ccy: "USD", amount: 2500, store: "—", doc: "凭证 PZ-20261119", bucket: "可用余额", channel: "—", note: "凭转账凭证先增加可用余额，款项尚未到账" }
+    ]
+  },
+  {
+    id: "C20230102", name: "示例客户E", main: "USD", status: "已停用", demoPay: 1000, payCcy: "USD",
+    balanceShare: false, priority: "reason", creditShare: false,
+    merchants: [
+      { id: "11002", name: "示例客户E-商户01", uniq: "JG-001", erp: "JG-MAIN", stores: ["店铺01"] }
+    ],
+    lines: [
+      wallet({ id: "WA-0101", merchantId: "11002", merchantName: "示例客户E-商户01", uniq: "JG-001", erp: "JG-MAIN", biz: "代发", ccy: "USD", main: true, available: 0, real: 120, status: "已停用", created: "2023-06-01" }),
+      wallet({ id: "WA-0102", merchantId: "11002", merchantName: "示例客户E-商户01", uniq: "JG-001", erp: "JG-MAIN", biz: "广告", ccy: "USD", main: true, available: 0, real: 0, status: "已停用" }),
+      wallet({ id: "WA-0103", merchantId: "11002", merchantName: "示例客户E-商户01", uniq: "JG-001", erp: "JG-MAIN", biz: "拒付", ccy: "USD", main: true, available: 0, real: 0, status: "已停用", fee: "客户承担" }),
+      wallet({ id: "WA-0104", merchantId: "11002", merchantName: "示例客户E-商户01", uniq: "JG-001", erp: "JG-MAIN", biz: "垫资", ccy: "USD", main: true, available: 0, real: 0, status: "已停用" })
+    ],
+    credit: creditBag({}),
+    vouchers: [],
+    ledger: []
+  }
+];
+
+let lines, merchants, credit, ledger, vouchers, receivables;
+function cur() { return customers.find(function (c) { return c.id === state.customerId; }); }
+function bind(id) {
+  const c = customers.find(function (x) { return x.id === id; }) || customers[0];
+  state.customerId = c.id;
+  lines = c.lines;
+  merchants = c.merchants;
+  credit = c.credit;
+  ledger = c.ledger;
+  vouchers = c.vouchers;
+  receivables = c.receivables || [];
+  state.balanceShare = c.balanceShare;
+  state.priority = c.priority;
+  state.creditShare = c.creditShare;
+  state.payAmount = c.demoPay;
+  state.payCcy = c.payCcy;
+  state.payMerchant = c.merchants[0].id;
+  state.merchant = "全部";
+  state.biz = "全部";
+  state.ccy = "全部";
+  state.lineId = "";
+  state.storeMerchant = "全部";
+  state.storeFocus = "全部";
+  state.store = "全部";
+  const stores = c.merchants[0].stores;
+  if (stores.length > 1) {
+    const first = Math.round(c.demoPay * 0.6);
+    state.splits = [{ store: stores[0], amount: first }, { store: stores[1], amount: c.demoPay - first }];
+  } else {
+    state.splits = [{ store: stores[0], amount: c.demoPay }];
+  }
+}
+bind(state.customerId);
+
+function money(n, ccy) {
+  const v = Number(n).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return v + (ccy ? " " + ccy : "");
+}
+function usdOf(amount, ccy) { return amount * RATE[ccy]; }
+function inMain(usd) { return usd / RATE[cur().main]; }
+function mainMoney(usd) { return money(inMain(usd), cur().main); }
+function active() { return lines.filter(function (l) { return l.status === "正常"; }); }
+function activeOf(c) { return c.lines.filter(function (l) { return l.status === "正常"; }); }
+function sumUsd(list, key) {
+  return list.reduce(function (s, l) { return s + usdOf(l[key], l.ccy); }, 0);
+}
+function bag(ccy, biz) {
+  return (credit[ccy] && credit[ccy][biz]) || { limit: 0, used: 0 };
+}
+function creditRemain(ccy, biz) {
+  const item = bag(ccy, biz);
+  return item.limit - item.used;
+}
+function creditSum(ccy, bizs) {
+  let limit = 0;
+  let used = 0;
+  (bizs || BIZ).forEach(function (b) {
+    const item = bag(ccy, b);
+    limit += item.limit;
+    used += item.used;
+  });
+  return { limit: limit, used: used, remain: limit - used };
+}
+function creditTotalUsd(key) {
+  let sum = 0;
+  Object.keys(credit).forEach(function (ccy) {
+    BIZ.forEach(function (b) { sum += usdOf(bag(ccy, b)[key] || 0, ccy); });
+  });
+  return sum;
+}
+function remainMap(creditObj) {
+  const map = {};
+  Object.keys(creditObj || {}).forEach(function (ccy) {
+    let remain = 0;
+    BIZ.forEach(function (b) {
+      const item = (creditObj[ccy] && creditObj[ccy][b]) || { limit: 0, used: 0 };
+      remain += item.limit - item.used;
+    });
+    map[ccy] = remain;
+  });
+  return map;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; });
+}
+function storesOf(merchantId) {
+  const m = merchants.find(function (x) { return x.id === merchantId; });
+  return m ? m.stores : [];
+}
+function allStores() {
+  const list = [];
+  merchants.forEach(function (m) { m.stores.forEach(function (s) { if (list.indexOf(s) < 0) list.push(s); }); });
+  return list;
+}
+function pendingUsd(c, merchantId) {
+  return (c || cur()).vouchers.filter(function (v) {
+    return v.status === "待核销" && (!merchantId || v.merchantId === merchantId);
+  }).reduce(function (s, v) { return s + usdOf(v.amount, v.ccy); }, 0);
+}
+function customerUsd(c, key) {
+  return activeOf(c).reduce(function (s, l) { return s + usdOf(l[key], l.ccy); }, 0);
+}
+function customerCreditRemainUsd(c) {
+  let sum = 0;
+  Object.keys(c.credit || {}).forEach(function (ccy) {
+    BIZ.forEach(function (b) {
+      const item = (c.credit[ccy] && c.credit[ccy][b]) || { limit: 0, used: 0 };
+      sum += usdOf(item.limit - item.used, ccy);
+    });
+  });
+  return sum;
+}
+function statusTag(status) {
+  if (status === "正常" || status === "已核销") return tag("ok", status);
+  if (status === "异常" || status === "即将用尽" || status === "已用尽" || status === "待核销") return tag("warn", status);
+  return tag("off", status);
+}
+function prioritySelect() {
+  return '<option value="reason"' + (state.priority === "reason" ? " selected" : "") + ">先用付款缘由的业务线</option>"
+    + BIZ.map(function (b) {
+      return '<option value="' + b + '"' + (state.priority === b ? " selected" : "") + ">指定先用" + b + "</option>";
+    }).join("");
+}
+
+function plan() {
+  const amount = Number(state.payAmount) || 0;
+  const reason = state.payBiz;
+  const payCcy = state.payCcy;
+  const needUsd = usdOf(amount, payCcy);
+  const bizOrder = state.balanceShare
+    ? [state.priority === "reason" ? reason : state.priority].concat(BIZ.filter(function (b) { return b !== (state.priority === "reason" ? reason : state.priority); }))
+    : [reason];
+  const steps = [];
+  let left = needUsd;
+  bizOrder.forEach(function (biz) {
+    const wallets = active().filter(function (w) { return w.biz === biz; }).slice().sort(function (a, b) {
+      const am = a.merchantId === state.payMerchant ? 0 : 1;
+      const bm = b.merchantId === state.payMerchant ? 0 : 1;
+      if (am !== bm) return am - bm;
+      const ac = a.ccy === payCcy ? 0 : 1;
+      const bc = b.ccy === payCcy ? 0 : 1;
+      return ac - bc;
+    });
+    wallets.forEach(function (w) {
+      if (left <= 0.005) return;
+      const availUsd = usdOf(w.available, w.ccy);
+      const useUsd = Math.min(left, availUsd);
+      if (useUsd <= 0) return;
+      steps.push({
+        kind: "可用",
+        biz: biz,
+        merchant: w.merchantName,
+        ccy: w.ccy,
+        useCcy: useUsd / RATE[w.ccy],
+        usePay: useUsd / RATE[payCcy],
+        fx: w.ccy !== payCcy,
+        own: biz === reason
+      });
+      left -= useUsd;
+    });
+  });
+  const creditSteps = [];
+  if (left > 0.005) {
+    const creditOrder = state.creditShare ? [reason].concat(BIZ.filter(function (b) { return b !== reason; })) : [reason];
+    creditOrder.forEach(function (biz) {
+      if (left <= 0.005) return;
+      const room = usdOf(creditRemain(payCcy, biz), payCcy);
+      const use = Math.min(left, room);
+      if (use <= 0) return;
+      creditSteps.push({ biz: biz, ccy: payCcy, usePay: use / RATE[payCcy], own: biz === reason });
+      left -= use;
+    });
+  }
+  return { amount: amount, needUsd: needUsd, steps: steps, creditSteps: creditSteps, left: left, bizOrder: bizOrder };
+}
+
+function splitOk() {
+  if (state.payBiz !== "代发") return true;
+  const sum = state.splits.reduce(function (s, x) { return s + (Number(x.amount) || 0); }, 0);
+  return Math.abs(sum - Number(state.payAmount)) < 0.001;
+}
+
+function go(page, patch) {
+  if (patch) Object.keys(patch).forEach(function (k) { state[k] = patch[k]; });
+  if ((location.hash || "#list") === "#" + page) { state.page = page; render(); }
+  else location.hash = page;
+}
+function crumbText() {
+  const c = cur();
+  if (state.page === "list") return "客户列表";
+  if (state.page === "home") return c.name + " / 统一钱包";
+  if (state.page === "lines") {
+    const m = merchants.find(function (x) { return x.id === state.merchant; });
+    return c.name + " / " + (m ? "商户 " + m.name + " / " : "") + "业务线账户";
+  }
+  if (state.page === "stores") {
+    const m = merchants.find(function (x) { return x.id === state.storeMerchant; });
+    const shop = state.storeFocus && state.storeFocus !== "全部" ? "店铺 " + state.storeFocus : "店铺归集";
+    return c.name + " / " + (m ? "商户 " + m.name + " / " : "") + shop;
+  }
+  return c.name + " / " + PAGES[state.page];
+}
+function renderNav() {
+  const c = cur();
+  let html = '<button class="navbtn' + (state.page === "list" ? " on" : "") + '" data-nav="list">客户列表</button>';
+  html += '<div class="tree-customer">' + esc(c.name) + '<div class="tree-id">' + esc(c.id) + " · 当前客户</div></div>";
+  html += '<button class="navbtn l1' + (state.page === "home" ? " on" : "") + '" data-nav="home"><span class="mark">L1</span>统一钱包</button>';
+  c.merchants.forEach(function (m) {
+    const selfOn = state.page === "lines" && state.merchant === m.id;
+    html += '<button class="navbtn l2' + (selfOn ? " on" : "") + '" data-nav="lines" data-mid="' + m.id + '"><span class="mark">L2</span><span>商户 ' + esc(m.id) + '<span class="tree-id">' + esc(m.name) + "</span></span></button>";
+    const storeOn = state.page === "stores" && state.storeMerchant === m.id;
+    html += '<button class="navbtn l3 dim' + (storeOn ? " on" : "") + '" data-nav="stores" data-mid="' + m.id + '" data-stores="1">店铺归集</button>';
+  });
+  html += '<div class="group">资金使用</div>';
+  html += '<button class="navbtn' + (state.page === "ledger" ? " on" : "") + '" data-nav="ledger">资金流水</button>';
+  html += '<button class="navbtn' + (state.page === "pay" ? " on" : "") + '" data-nav="pay">付款试算</button>';
+  document.getElementById("sider-nav").innerHTML = html;
+}
+function render() {
+  renderNav();
+  document.getElementById("crumb").textContent = crumbText();
+  document.getElementById("who").textContent = state.page === "list" ? "全部客户" : cur().name + " · 客户 " + cur().id;
+  const view = document.getElementById("view");
+  const banner = state.banner ? '<div class="banner"><span>' + esc(state.banner) + '</span><button class="link" id="dismiss">知道了</button></div>' : "";
+  view.innerHTML = banner + ({ list: viewList, home: viewHome, lines: viewLines, stores: viewStores, ledger: viewLedger, pay: viewPay })[state.page]();
+  renderModal();
+}
+
+function viewList() {
+  const q = state.q.trim();
+  const rows = customers.filter(function (c) {
+    return !q || (c.name + c.id).indexOf(q) >= 0;
+  });
+  return '<div class="panel"><div class="filters"><input data-num="q" placeholder="搜索客户名称或客户 ID" value="' + esc(state.q) + '" /></div>'
+    + '<div class="tablewrap"><table><thead><tr><th>客户</th><th>主币种</th><th>总可用余额（主币种）</th><th>可用余额（按币种）</th><th>信用额度（按币种）</th><th>已用额度（按币种）</th><th>剩余额度（按币种）</th><th>真实金额（换算主币种）</th><th>真实金额（按币种）</th><th>待核销预充</th><th>商户</th><th>状态</th><th></th></tr></thead><tbody>'
+    + rows.map(function (c) {
+      const pending = pendingUsd(c);
+      const ccys = customerCurrencyRows(c);
+      return "<tr><td>" + esc(c.name) + "<div class=\"mini\">" + esc(c.id) + "</div></td><td>" + ccyTag(c.main, true) + "</td><td>" + totalInMain(c, ccys, "usable") + "</td><td>" + stackMoney(ccys, "usable") + "</td><td>" + stackMoney(ccys, "limit") + "</td><td>" + stackMoney(ccys, "used") + "</td><td>" + stackMoney(ccys, "remain") + "</td><td>" + totalInMain(c, ccys, "real") + "</td><td>" + stackMoney(ccys, "real") + "</td><td>" + (pending ? money(pending / RATE[c.main], c.main) : "—") + "</td><td>" + c.merchants.length + "<div class=\"mini\">" + esc(c.merchants.map(function (m) { return m.id; }).join("、")) + "</div></td><td>" + statusTag(c.status) + "</td><td><button class=\"link\" data-open=\"" + c.id + "\">进入钱包</button></td></tr>";
+    }).join("")
+    + "</tbody></table></div></div>";
+}
+function customerCurrencyRows(c) {
+  const mine = activeOf(c);
+  const ccys = [];
+  mine.forEach(function (l) { if (ccys.indexOf(l.ccy) < 0) ccys.push(l.ccy); });
+  Object.keys(c.credit || {}).forEach(function (ccy) { if (ccys.indexOf(ccy) < 0) ccys.push(ccy); });
+  ccys.sort(function (a, b) {
+    if (a === c.main) return -1;
+    if (b === c.main) return 1;
+    return a < b ? -1 : 1;
+  });
+  return ccys.map(function (ccy) {
+    const fund = mine.filter(function (l) { return l.ccy === ccy; }).reduce(function (s, l) { return s + l.available; }, 0);
+    let limit = 0;
+    let used = 0;
+    BIZ.forEach(function (b) {
+      const item = (c.credit[ccy] && c.credit[ccy][b]) || { limit: 0, used: 0 };
+      limit += item.limit;
+      used += item.used;
+    });
+    const real = mine.filter(function (l) { return l.ccy === ccy; }).reduce(function (s, l) { return s + l.real; }, 0);
+    const remain = limit - used;
+    return { ccy: ccy, fund: fund, real: real, limit: limit, used: used, remain: remain, usable: fund + remain };
+  });
+}
+function stackMoney(rows, key) {
+  if (!rows.length) return "—";
+  return rows.map(function (r) { return "<div>" + money(r[key], r.ccy) + "</div>"; }).join("");
+}
+function totalInMain(c, rows, key) {
+  const usd = rows.reduce(function (s, r) { return s + usdOf(Number(r[key] || 0), r.ccy); }, 0);
+  return money(usd / RATE[c.main], c.main);
+}
+
+function viewHome() {
+  const avail = sumUsd(active(), "available");
+  const real = sumUsd(active(), "real");
+  const pendingList = vouchers.filter(function (v) { return v.status === "待核销"; });
+  const pending = pendingList.reduce(function (s, v) { return s + usdOf(v.amount, v.ccy); }, 0);
+  const creditRemainUsd = creditTotalUsd("limit") - creditTotalUsd("used");
+  const creditBrief = Object.keys(credit).map(function (ccy) { return ccy + " 剩余 " + money(creditSum(ccy).remain, ccy); }).join(" · ");
+  return customerCcyTable(active(), cur().main)
+    + '<div class="kpis">'
+    + kpi("折合可用", mainMoney(avail + creditRemainUsd), "含各币种剩余信用" + (pending ? " · 含待核销预充 " + mainMoney(pending) : ""))
+    + kpi("折合真实金额", mainMoney(real), "不含尚未到账的预充")
+    + kpi("信用剩余折合", mainMoney(creditRemainUsd), creditBrief || "还没有信用额度")
+    + "</div>"
+    + '<div class="panel"><div class="rulebar">'
+    + '<span class="pair">可用余额跨业务线 <button class="toggle' + (state.balanceShare ? " on" : "") + '" data-toggle="balanceShare" aria-label="可用余额跨业务线"><i></i></button></span>'
+    + '<span class="pair">信用额度跨业务线 <button class="toggle' + (state.creditShare ? " on" : "") + '" data-toggle="creditShare" aria-label="信用额度跨业务线"><i></i></button></span>'
+    + '<span class="pair">优先扣 <select data-set="priority">' + prioritySelect() + "</select></span>"
+    + "</div></div>"
+    + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">商户</h3><span class="mini">' + merchants.length + " 个</span></div>"
+    + '<div class="tablewrap"><table><thead><tr><th>商户id</th><th>商户名称</th><th>店铺</th><th>可用余额</th><th>待核销预充</th><th></th></tr></thead><tbody>'
+    + merchants.map(function (m) {
+      const mine = active().filter(function (l) { return l.merchantId === m.id; });
+      const pend = pendingUsd(null, m.id);
+      return "<tr><td>" + esc(m.id) + "</td><td>" + esc(m.name) + "</td><td>" + m.stores.length + " 个</td><td>" + moneyBrief(mine, "available", cur().main) + "</td><td>" + (pend ? mainMoney(pend) : "—") + "</td><td>"
+        + '<button class="link" data-jump="lines" data-mid="' + esc(m.id) + '">账户</button>'
+        + '<button class="link" data-jump="stores" data-mid="' + esc(m.id) + '">店铺</button></td></tr>';
+    }).join("")
+    + "</tbody></table></div></div>"
+    + '<div class="foldbar"><strong>预充</strong><span>' + (pendingList.length ? "待核销 " + pendingList.length + " 笔 · " + mainMoney(pending) : "没有待核销预充") + '</span><span class="spacer"></span><button class="btn" id="add-voucher">登记预充</button><button class="btn" data-fold="prepay">' + (state.fold === "prepay" ? "收起" : "查看凭证") + "</button></div>"
+    + (state.fold === "prepay" ? voucherTable() : "")
+    + '<div class="foldbar"><strong>信用额度</strong><span>' + (creditBrief || "还没有信用额度") + '</span><span class="spacer"></span><button class="btn" id="apply-credit">申请额度</button><button class="btn" data-fold="credit">' + (state.fold === "credit" ? "收起" : "按币种和业务线查看") + "</button></div>"
+    + (state.fold === "credit" ? '<div class="panel"><div class="tablewrap"><table><thead><tr><th>币种</th><th>业务线</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
+      + Object.keys(credit).map(function (ccy) {
+        return BIZ.filter(function (b) { const item = bag(ccy, b); return item.limit || item.used; }).map(function (b) {
+          const item = bag(ccy, b);
+          return "<tr><td>" + ccyTag(ccy, ccy === cur().main) + "</td><td class=\"biz " + b + "\">" + b + "</td><td>" + money(item.limit, ccy) + "</td><td>" + money(item.used, ccy) + "</td><td>" + money(item.limit - item.used, ccy) + "</td></tr>";
+        }).join("");
+      }).join("")
+      + "</tbody></table></div></div>" : "");
+}
+
+function kpi(k, v, s) {
+  return '<div class="kpi"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div><div class="s">' + esc(s) + '</div></div>';
+}
+function switchBox(key, title, on, text) {
+  return '<div class="sw"><div class="hd"><span>' + esc(title) + '</span><button class="toggle' + (on ? " on" : "") + '" data-toggle="' + key + '" aria-label="' + esc(title) + '"><i></i></button></div><p>' + esc(text) + '</p></div>';
+}
+function moneyBrief(list, key, main) {
+  const ccys = ccyOrder(list, main);
+  if (!ccys.length) return "—";
+  const parts = ccys.slice(0, 2).map(function (ccy) { return money(sumCcy(list, ccy, key), ccy); });
+  if (ccys.length > 2) parts.push("等 " + ccys.length + " 个币种");
+  return parts.join(" · ");
+}
+function voucherTable() {
+  return '<div class="panel"><div class="filters" style="margin-bottom:8px"><button class="btn" id="add-voucher">登记预充</button><span class="mini">凭转账凭证先加可用余额，到账后再核销。真实金额先不动。</span></div>'
+    + (vouchers.length ? '<div class="tablewrap"><table><thead><tr><th>凭证</th><th>时间</th><th>商户id</th><th>业务线</th><th>金额</th><th>状态</th><th></th></tr></thead><tbody>'
+      + vouchers.map(function (v) {
+        return "<tr><td>" + esc(v.id) + "</td><td>" + esc(v.time) + "</td><td>" + esc(v.merchantId) + "</td><td class=\"biz " + v.biz + "\">" + v.biz + "</td><td>" + money(v.amount, v.ccy) + "</td><td>" + tag(v.status === "已核销" ? "ok" : "warn", v.status) + "</td><td>" + (v.status === "待核销" ? '<button class="link" data-writeoff="' + v.id + '">到账核销</button>' : esc(v.flow || "")) + "</td></tr>";
+      }).join("")
+      + "</tbody></table></div>" : '<p class="hint">这个客户还没有预充凭证。</p>')
+    + "</div>";
+}
+function stat(k, v) { return '<div><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div></div>'; }
+function tag(cls, text) { return '<span class="tag ' + cls + '">' + esc(text) + '</span>'; }
+function ccyTag(ccy, isMain) {
+  return esc(ccy) + " " + tag(isMain ? "main" : "sub", isMain ? "主币种" : "非主币种");
+}
+
+function scopedLines() {
+  return lines.filter(function (l) { return state.merchant === "全部" || l.merchantId === state.merchant; });
+}
+function uniqOf(list, key) {
+  const out = [];
+  list.forEach(function (l) { if (out.indexOf(l[key]) < 0) out.push(l[key]); });
+  return out;
+}
+function sumMain(list, key) {
+  return list.reduce(function (s, l) { return s + usdOf(Number(l[key] || 0), l.ccy); }, 0);
+}
+function creditCells(biz, ccy) {
+  const item = bag(ccy, biz);
+  return "<td>" + money(item.limit, ccy) + "</td><td>" + money(item.used, ccy) + "</td><td>" + money(item.limit - item.used, ccy) + "</td>";
+}
+function creditStackCells(biz) {
+  const ccys = Object.keys(credit).filter(function (ccy) { const item = bag(ccy, biz); return item.limit || item.used; });
+  function col(field) {
+    if (!ccys.length) return "—";
+    return ccys.map(function (ccy) {
+      const item = bag(ccy, biz);
+      const n = field === "remain" ? item.limit - item.used : item[field];
+      return "<div>" + money(n, ccy) + "</div>";
+    }).join("");
+  }
+  return "<td>" + col("limit") + "</td><td>" + col("used") + "</td><td>" + col("remain") + "</td>";
+}
+function ccyOrder(list, main) {
+  const ccys = [];
+  list.forEach(function (l) { if (ccys.indexOf(l.ccy) < 0) ccys.push(l.ccy); });
+  ccys.sort(function (a, b) {
+    if (a === main) return -1;
+    if (b === main) return 1;
+    return a < b ? -1 : 1;
+  });
+  return ccys;
+}
+function sumCcy(list, ccy, key) {
+  return list.filter(function (l) { return l.ccy === ccy; }).reduce(function (s, l) { return s + Number(l[key] || 0); }, 0);
+}
+function moneyStack(list, key, main, extraByCcy) {
+  extraByCcy = extraByCcy || {};
+  const ccys = ccyOrder(list, main);
+  Object.keys(extraByCcy).forEach(function (ccy) { if (ccys.indexOf(ccy) < 0 && extraByCcy[ccy]) ccys.push(ccy); });
+  if (!ccys.length) return "—";
+  let html = ccys.map(function (ccy) {
+    const extra = extraByCcy[ccy] || 0;
+    const n = sumCcy(list, ccy, key) + extra;
+    return "<div>" + money(n, ccy) + (extra ? '<div class="mini">含剩余信用 ' + money(extra, ccy) + "</div>" : "") + "</div>";
+  }).join("");
+  const extraUsd = Object.keys(extraByCcy).reduce(function (s, ccy) { return s + usdOf(extraByCcy[ccy] || 0, ccy); }, 0);
+  if (ccys.length > 1 || ccys[0] !== main || extraUsd) html += '<div class="mini">折合 ' + money((sumMain(list, key) + extraUsd) / RATE[main], main) + "</div>";
+  return html;
+}
+function customerCcyTable(list, main) {
+  const ccys = ccyOrder(list, main);
+  return '<div class="panel"><h3>多币种余额</h3>'
+    + '<div class="tablewrap"><table><thead><tr><th>币种</th><th>资金可用</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>折合可用余额</th></tr></thead><tbody>'
+    + ccys.map(function (ccy) {
+      const part = list.filter(function (l) { return l.ccy === ccy; });
+      const fund = sumCcy(list, ccy, "available");
+      const sum = creditSum(ccy);
+      const usable = fund + sum.remain;
+      const usableMain = sumMain(part, "available") / RATE[main] + usdOf(sum.remain, ccy) / RATE[main];
+      return "<tr><td>" + ccyTag(ccy, ccy === main) + "</td><td>" + money(fund, ccy) + "</td><td>" + money(sum.limit, ccy) + "</td><td>" + money(sum.used, ccy) + "</td><td>" + money(sum.remain, ccy) + "</td><td>" + money(usable, ccy) + "</td><td>" + money(sumCcy(list, ccy, "real"), ccy) + "</td><td>" + money(sumCcy(list, ccy, "frozen"), ccy) + "</td><td>" + money(usableMain, main) + "</td></tr>";
+    }).join("")
+    + "</tbody></table></div></div>";
+}
+function viewLines() {
+  const rows = scopedLines();
+  let summary = "";
+  if (state.group === "ccy") {
+    summary = '<div class="tablewrap"><table><thead><tr><th>币种</th><th>账户数</th><th>包含业务线</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
+      + uniqOf(rows, "ccy").map(function (ccy) {
+        const list = rows.filter(function (l) { return l.ccy === ccy; });
+        const fund = list.reduce(function (s, l) { return s + l.available; }, 0);
+        const sum = creditSum(ccy, uniqOf(list, "biz"));
+        return "<tr><td>" + ccyTag(ccy, ccy === cur().main) + "</td><td>" + list.length + "</td><td>" + esc(uniqOf(list, "biz").join("、")) + "</td><td>" + money(fund + sum.remain, ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.real; }, 0), ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.frozen; }, 0), ccy) + "</td><td>" + money(sum.limit, ccy) + "</td><td>" + money(sum.used, ccy) + "</td><td>" + money(sum.remain, ccy) + "</td></tr>";
+      }).join("")
+      + "</tbody></table></div>";
+  } else {
+    summary = '<div class="tablewrap"><table><thead><tr><th>业务线</th><th>账户数</th><th>包含币种</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
+      + BIZ.filter(function (b) { return rows.some(function (l) { return l.biz === b; }); }).map(function (b) {
+        const list = rows.filter(function (l) { return l.biz === b; });
+        return "<tr><td class=\"biz " + b + "\">" + b + "</td><td>" + list.length + "</td><td>" + esc(uniqOf(list, "ccy").join("、")) + "</td><td>" + moneyStack(list, "available", cur().main) + "</td><td>" + moneyStack(list, "real", cur().main) + "</td><td>" + moneyStack(list, "frozen", cur().main) + "</td>" + creditStackCells(b) + "</tr>";
+      }).join("")
+      + "</tbody></table></div>";
+  }
+  return '<div class="panel"><div class="filters">'
+    + '<div class="seg"><button type="button" class="' + (state.group === "biz" ? "on" : "") + '" data-group="biz">按业务线统计</button><button type="button" class="' + (state.group === "ccy" ? "on" : "") + '" data-group="ccy">按币种统计</button></div>'
+    + select("merchant", [["全部", "全部商户"]].concat(merchants.map(function (m) { return [m.id, m.id + " " + m.name]; })), state.merchant)
+    + '<button class="btn" id="transfer">发起调拨</button></div>'
+    + summary + "</div>"
+    + '<div class="panel"><h3>账户明细</h3><div class="tablewrap"><table><thead><tr><th>资金账户</th><th>商户id</th><th>商户名称</th><th>业务线</th><th>币种</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>手续费承担</th><th>汇损补足</th><th>期初</th><th>账户状态</th><th>操作</th></tr></thead><tbody>'
+    + rows.map(function (l) {
+      return "<tr><td>" + esc(l.id) + "</td><td>" + esc(l.merchantId) + "</td><td>" + esc(l.merchantName) + "<div class=\"mini\">" + esc(l.erp) + "</div></td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + ccyTag(l.ccy, l.ccy === cur().main) + "</td><td>" + money(l.available, l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td>" + creditCells(l.biz, l.ccy) + "<td>" + esc(l.fee) + "</td><td>" + esc(l.fxTopup) + "</td><td>" + (l.opening ? money(l.opening, l.ccy) : "—") + "<div class=\"mini\">" + esc(l.openingAt) + "</div></td><td>" + statusTag(l.status) + "</td><td>"
+        + '<button class="link" data-act="adjust" data-id="' + l.id + '">调整金额</button>'
+        + '<button class="link" data-act="opening" data-id="' + l.id + '">期初设置</button>'
+        + '<button class="link" data-act="log" data-id="' + l.id + '">日志</button>'
+        + '<button class="link" data-act="toggle" data-id="' + l.id + '">' + (l.status === "正常" ? "禁用" : "启用") + "</button></td></tr>";
+    }).join("")
+    + "</tbody></table></div></div>";
+}
+
+function select(key, options, value) {
+  return '<select data-set="' + key + '">' + options.map(function (o) {
+    return '<option value="' + esc(o[0]) + '"' + (o[0] === value ? " selected" : "") + ">" + esc(o[1]) + "</option>";
+  }).join("") + "</select>";
+}
+
+function viewStores() {
+  if (state.storeFocus && state.storeFocus !== "全部") return viewStoreDetail();
+  const rows = [];
+  merchants.forEach(function (m) {
+    if (state.storeMerchant !== "全部" && m.id !== state.storeMerchant) return;
+    m.stores.forEach(function (s) {
+      const flows = ledger.filter(function (e) { return e.store === s && e.merchantId === m.id; });
+      const ccy = flows.length ? flows[0].ccy : cur().main;
+      const ars = receivables.filter(function (ar) { return ar.merchantId === m.id && ar.lines.some(function (l) { return l.store === s; }); });
+      rows.push({ store: s, merchant: m, ccy: ccy, amount: flows.reduce(function (n, e) { return n + e.amount; }, 0), ars: ars.length });
+    });
+  });
+  const who = state.storeMerchant === "全部" ? "这个客户" : "商户 " + (merchants.find(function (m) { return m.id === state.storeMerchant; }) || {}).name;
+  return '<div class="panel"><h3>' + esc(who) + ' 的店铺</h3><div class="tablewrap"><table><thead><tr><th>店铺</th><th>商户id</th><th>商户名称</th><th>币种</th><th>归集净额</th><th>应收单</th><th></th></tr></thead><tbody>'
+    + (rows.length ? rows.map(function (r) {
+      return "<tr><td>" + esc(r.store) + " · Shopify</td><td>" + esc(r.merchant.id) + "</td><td>" + esc(r.merchant.name) + "</td><td>" + r.ccy + "</td><td>" + money(r.amount, r.ccy) + "</td><td>" + r.ars + "</td><td><button class=\"link\" data-open-store=\"" + esc(r.store) + "\" data-mid=\"" + esc(r.merchant.id) + "\">查看应收</button></td></tr>";
+    }).join("") : "<tr><td colspan=\"7\">这个商户还没有店铺</td></tr>")
+    + "</tbody></table></div></div>";
+}
+function viewStoreDetail() {
+  const m = merchants.find(function (x) { return x.id === state.storeMerchant; });
+  const store = state.storeFocus;
+  const ars = receivables.filter(function (ar) {
+    return ar.lines.some(function (l) { return l.store === store; }) && (!m || ar.merchantId === m.id);
+  });
+  let html = '<div class="filters" style="margin-bottom:12px"><button class="btn" data-store-back>返回店铺列表</button><span class="mini">店铺 ' + esc(store) + " · 商户 " + esc(m ? m.id : "") + "</span></div>";
+  if (!ars.length) return html + '<div class="panel"><p class="hint">这个店铺还没有应收单。</p></div>';
+  ars.forEach(function (ar) {
+    const total = ar.lines.reduce(function (n, l) { return n + l.amount; }, 0);
+    const mine = ar.lines.filter(function (l) { return l.store === store; }).reduce(function (n, l) { return n + l.amount; }, 0);
+    html += '<div class="panel"><h3>应收 ' + esc(ar.id) + '</h3><p class="hint">' + esc(ar.time) + " · 商户 " + esc(ar.merchantId) + " · 单据总额 " + money(total, ar.ccy) + " · 本店 " + money(mine, ar.ccy) + "</p>"
+      + '<div class="tablewrap"><table><thead><tr><th>明细</th><th>店铺</th><th>归属</th><th>金额</th><th>来源</th></tr></thead><tbody>'
+      + ar.lines.map(function (l) {
+        const here = l.store === store;
+        return "<tr><td>明细 " + l.no + "</td><td>" + esc(l.store) + "</td><td>" + (here ? tag("ok", "本店") : tag("warn", "其他店铺")) + "</td><td>" + money(l.amount, ar.ccy) + "</td><td>" + esc(l.source) + "</td></tr>";
+      }).join("")
+      + "</tbody></table></div></div>";
+  });
+  return html;
+}
+
+function viewLedger() {
+  const rows = ledger.filter(function (e) {
+    return (state.biz === "全部" || e.biz === state.biz)
+      && (state.ccy === "全部" || e.ccy === state.ccy)
+      && (state.store === "全部" || e.store === state.store)
+      && (state.ledgerType === "全部" || e.type === state.ledgerType);
+  });
+  const stores = allStores();
+  return '<div class="panel"><div class="filters">'
+    + select("ledgerType", [["全部", "全部类型"], ["认领", "认领"], ["预充入账", "预充入账"], ["预充核销", "预充核销"], ["应收扣款", "应收扣款"], ["付款", "付款"], ["信用占用", "信用占用"], ["期初", "期初"]], state.ledgerType)
+    + select("biz", [["全部", "全部业务线"]].concat(BIZ.map(function (b) { return [b, b]; })), state.biz)
+    + select("ccy", [["全部", "全部币种"]].concat(Object.keys(RATE).map(function (c) { return [c, c]; })), state.ccy)
+    + select("store", [["全部", "全部店铺"]].concat(stores.map(function (s) { return [s, s]; })), state.store)
+    + "</div><div class=\"tablewrap\"><table><thead><tr><th>时间</th><th>类型</th><th>业务线</th><th>商户</th><th>店铺</th><th>金额</th><th>记在</th><th>单据</th><th>说明</th></tr></thead><tbody>"
+    + rows.map(function (e) {
+      const m = merchants.find(function (x) { return x.id === e.merchantId; });
+      return "<tr><td>" + esc(e.time) + "</td><td>" + esc(e.type) + "</td><td class=\"biz " + e.biz + "\">" + e.biz + "</td><td>" + esc(m.name) + "</td><td>" + esc(e.store) + "</td><td>" + money(e.amount, e.ccy) + "</td><td>" + esc(e.bucket) + "</td><td>" + esc(e.doc) + "</td><td>" + esc(e.note) + "</td></tr>";
+    }).join("")
+    + "</tbody></table></div></div>";
+}
+
+function viewPay() {
+  const p = plan();
+  const showSplit = state.payBiz === "代发";
+  const ok = splitOk();
+  let body = "";
+  if (!ok) {
+    body = '<div class="step short"><div class="t">店铺明细金额还没对齐</div><div class="d">各店铺金额相加要等于付款金额。可用余额按总额扣一次，店铺只承接拆开后的明细。</div></div>';
+  } else {
+    body = p.steps.map(function (s) {
+      const fx = s.fx ? "换汇后扣 " + money(s.usePay, state.payCcy) + "，原币 " + money(s.useCcy, s.ccy) + "，差额记汇兑损益。" : "同币种直接扣。";
+      const label = s.own ? "缘由业务线" : (state.balanceShare && state.priority !== "reason" && s.biz === state.priority ? "指定优先" : "其他业务线");
+      return '<div class="step' + (s.fx ? " fx" : "") + '"><div class="t">' + label + " · " + esc(s.biz) + " · " + esc(s.merchant) + " · " + s.ccy + "</div><div class=\"d\">扣可用余额 " + money(s.useCcy, s.ccy) + "。" + fx + "</div></div>";
+    }).join("");
+    body += p.creditSteps.map(function (s) {
+      return '<div class="step"><div class="t">信用额度 · ' + esc(s.ccy) + " · " + esc(s.biz) + (s.own ? "（缘由业务线）" : "（同币种跨线）") + '</div><div class="d">占用 ' + money(s.usePay, s.ccy) + "。只占用付款币种的信用。</div></div>";
+    }).join("");
+    if (showSplit && p.left <= 0.005) {
+      body += '<div class="step ok"><div class="t">归集到店铺</div><div class="d">' + state.splits.map(function (x) { return esc(x.store) + " " + money(Number(x.amount) || 0, state.payCcy); }).join("，") + "。客户可用余额按总额扣一次。</div></div>";
+    }
+    if (p.left > 0.005) {
+      body += '<div class="step short"><div class="t">仍差 ' + money(p.left / RATE[state.payCcy], state.payCcy) + '，这笔付不出去</div><div class="d">' + (state.balanceShare ? "其他业务线的可用余额已经用完。" : "可用余额隔离开着，不能占用其他业务线。") + (state.creditShare ? " 信用跨线打开后，其他业务线的剩余信用也不够。" : " 信用跨线关着，不能占用其他业务线的信用。") + " 渠道账户还不会付出。</div></div>";
+    } else {
+      body += '<div class="step"><div class="t">公司渠道账户付出</div><div class="d">从付款申请选择的 ' + esc(state.channel) + " 付出。渠道账户是公司的，不按客户或店铺拆开。</div></div>";
+      body += '<div class="step ok"><div class="t">这笔付款可以付清</div><div class="d">先扣可用余额，不够再按信用开关占用。两个开关互不影响。</div></div>';
+    }
+  }
+  return '<div class="panel"><h3>这笔付款用哪套规则</h3><div class="switches">'
+    + switchBox("balanceShare", "可用余额允许跨业务线", state.balanceShare, "打开：本线不够再用其他业务线。关掉：只扣缘由业务线自己的可用余额。")
+    + switchBox("creditShare", "信用额度允许跨业务线", state.creditShare, "和左边分开。打开后，本币种本线信用不够，可以占用同一币种其他业务线的剩余信用。不能占用其他币种的信用。")
+    + '<div class="sw"><div class="hd">扣款优先级</div><div class="field" style="margin-top:10px"><select data-set="priority">'
+    + prioritySelect()
+    + '</select></div><p>只在可用余额允许跨业务线时生效。</p></div></div></div>'
+    + '<div class="grid2"><div class="panel"><h3>付款申请</h3>'
+    + field("业务线", select("payBiz", BIZ.map(function (b) { return [b, b]; }), state.payBiz))
+    + field("商户", select("payMerchant", merchants.map(function (m) { return [m.id, m.name]; }), state.payMerchant))
+    + field("付款币种", select("payCcy", Object.keys(RATE).map(function (c) { return [c, c]; }), state.payCcy))
+    + field("金额", '<input data-num="payAmount" value="' + esc(state.payAmount) + '" />')
+    + field("付出渠道", select("channel", CHANNELS.map(function (c) { return [c, c]; }), state.channel))
+    + (showSplit ? '<div class="field"><label>按应收明细拆到 Shopify 店铺</label>' + state.splits.map(function (x, i) {
+      return '<div class="split"><select data-split-store="' + i + '">' + storesOf(state.payMerchant).map(function (s) {
+        return '<option' + (s === x.store ? " selected" : "") + ">" + esc(s) + "</option>";
+      }).join("") + '</select><input data-split-amt="' + i + '" value="' + esc(x.amount) + '" />' + (state.splits.length > 1 ? '<button class="btn" data-split-del="' + i + '">×</button>' : "<span></span>") + "</div>";
+    }).join("") + '<button class="btn" id="add-split">加一条明细</button>' + (ok ? "" : '<div class="err">明细合计要等于付款金额</div>') + "</div>" : '<p class="hint">只有代发按店铺拆。店铺都是 Shopify 独立站。</p>')
+    + '</div><div class="panel"><h3>扣款结果</h3><div class="steps">' + body + "</div></div></div>";
+}
+
+function field(label, control) {
+  return '<div class="field"><label>' + esc(label) + "</label>" + control + "</div>";
+}
+
+function renderModal() {
+  const mask = document.getElementById("mask");
+  if (!state.modal) { mask.hidden = true; mask.innerHTML = ""; return; }
+  const line = lines.find(function (l) { return l.id === state.modal.id; });
+  mask.hidden = false;
+  let title = "";
+  let body = "";
+  if (state.modal.type === "transfer") {
+    title = "发起调拨";
+    body = "<p class=\"hint\">调拨会把余额从一条业务线挪到另一条，短期内提交审批，不会直接改余额。付款时跨线扣款只是占用另一条线的可用余额，余额归属不动。</p>"
+      + field("从", select("x", BIZ.map(function (b) { return [b, b]; }), "代发").replace("data-set=\"x\"", "id=\"tf-from\""))
+      + field("到", select("x", BIZ.map(function (b) { return [b, b]; }), "广告").replace("data-set=\"x\"", "id=\"tf-to\""))
+      + field("金额 " + cur().main, '<input id="tf-amt" value="1000" />');
+  } else if (state.modal.type === "creditApply") {
+    title = "申请信用额度";
+    body = "<p class=\"hint\">申请时要选择币种。额度记在所选币种上，付款时只能使用同一币种的剩余额度。</p>"
+      + field("币种", select("x", Object.keys(RATE).map(function (c) { return [c, c]; }), cur().main).replace("data-set=\"x\"", "id=\"cr-ccy\""))
+      + field("业务线", select("x", BIZ.map(function (b) { return [b, b]; }), "代发").replace("data-set=\"x\"", "id=\"cr-biz\""))
+      + field("申请金额", '<input id="cr-amt" value="1000" />');
+  } else if (state.modal.type === "precharge") {
+    title = "登记预充";
+    body = "<p class=\"hint\">客户有一笔线下转账，公司还没收到。凭客户提供的转账凭证，先增加对应业务线的可用余额。真实金额等流水到账核销时再增加。</p>"
+      + field("商户", select("x", merchants.map(function (m) { return [m.id, m.name]; }), merchants[0].id).replace("data-set=\"x\"", "id=\"pc-merchant\""))
+      + field("业务线", select("x", BIZ.map(function (b) { return [b, b]; }), "代发").replace("data-set=\"x\"", "id=\"pc-biz\""))
+      + field("币种", select("x", Object.keys(RATE).map(function (c) { return [c, c]; }), cur().main).replace("data-set=\"x\"", "id=\"pc-ccy\""))
+      + field("凭证金额", '<input id="pc-amt" value="1000" />')
+      + field("转账凭证", '<input id="pc-proof" value="银行回单" />');
+  } else if (state.modal.type === "adjust") {
+    title = "调整金额";
+    body = "<p class=\"hint\">" + esc(line.merchantName) + " · " + line.biz + " · " + line.ccy + "</p>" + field("可用余额", '<input id="adj" value="' + line.available + '" />') + '<p class="hint">真实金额单独维护，不跟着可用余额自动改。</p>';
+  } else if (state.modal.type === "opening") {
+    title = "期初设置";
+    body = "<p class=\"hint\">期初是某个时点的余额。这个时点之后的收付款，在期初上做加减。</p>" + field("期初金额", '<input id="op-amt" value="' + (line.opening || 0) + '" />') + field("期初时点", '<input id="op-at" value="2026-01-01 00:00" />');
+  } else {
+    title = "账户操作日志";
+    body = "<div class=\"tablewrap\"><table><thead><tr><th>时间</th><th>动作</th></tr></thead><tbody><tr><td>" + esc(line.created) + "</td><td>创建资金账户 " + esc(line.id) + "</td></tr><tr><td>" + esc(line.openingAt) + "</td><td>" + (line.opening ? "设置期初 " + money(line.opening, line.ccy) : "未设期初") + "</td></tr></tbody></table></div>";
+  }
+  mask.innerHTML = '<div class="dialog"><header><h2>' + title + '</h2><button class="x" id="close">×</button></header><div class="body">' + body + '</div><footer><button class="btn" id="close2">关闭</button>' + (state.modal.type === "log" ? "" : '<button class="btn primary" id="save">保存</button>') + "</footer></div>";
+}
+
+document.body.addEventListener("click", function (e) {
+  const openStore = e.target.closest("[data-open-store]");
+  if (openStore) {
+    go("stores", { storeMerchant: openStore.dataset.mid, storeFocus: openStore.dataset.openStore });
+    return;
+  }
+  if (e.target.closest("[data-store-back]")) {
+    state.storeFocus = "全部";
+    render();
+    return;
+  }
+  const jump = e.target.closest("[data-jump]");
+  if (jump) {
+    if (jump.dataset.jump === "lines") go("lines", { merchant: jump.dataset.mid, biz: "全部", ccy: "全部", lineId: "" });
+    else go("stores", { storeMerchant: jump.dataset.mid, storeFocus: "全部" });
+    return;
+  }
+  const fold = e.target.closest("[data-fold]");
+  if (fold) { state.fold = state.fold === fold.dataset.fold ? "" : fold.dataset.fold; render(); return; }
+  const nav = e.target.closest("[data-nav]");
+  if (nav) {
+    const page = nav.dataset.nav;
+    const patch = {};
+    if (nav.dataset.stores) {
+      patch.storeMerchant = nav.dataset.mid;
+      patch.storeFocus = "全部";
+      patch.lineId = "";
+    } else if (nav.dataset.mid) {
+      patch.merchant = nav.dataset.mid;
+      patch.biz = "全部";
+      patch.ccy = "全部";
+      patch.lineId = "";
+    } else if (page === "home" || page === "list") {
+      patch.merchant = "全部";
+      patch.biz = "全部";
+      patch.ccy = "全部";
+      patch.lineId = "";
+      patch.storeMerchant = "全部";
+      patch.storeFocus = "全部";
+    }
+    go(page, patch);
+    return;
+  }
+  const grp = e.target.closest("[data-group]");
+  if (grp) { state.group = grp.dataset.group; render(); return; }
+  const open = e.target.closest("[data-open]");
+  if (open) {
+    bind(open.dataset.open);
+    if (location.hash === "#home") { state.page = "home"; render(); }
+    else location.hash = "home";
+    return;
+  }
+  const wo = e.target.closest("[data-writeoff]");
+  if (wo) {
+    const v = vouchers.find(function (x) { return x.id === wo.dataset.writeoff; });
+    const line = lines.find(function (l) { return l.merchantId === v.merchantId && l.biz === v.biz && l.ccy === v.ccy; });
+    v.status = "已核销";
+    v.flow = "RC-到账";
+    if (line) line.real += Number(v.amount);
+    ledger.unshift({ time: "2026-11-20 18:10", type: "预充核销", biz: v.biz, merchantId: v.merchantId, ccy: v.ccy, amount: v.amount, store: "—", doc: "凭证 " + v.id + " · 流水 RC-到账", bucket: "真实金额", channel: "银行", note: "到账流水核销凭证。可用余额登记时已增加，核销不再加一次" });
+    state.banner = "已核销 " + v.id + "。可用余额不变，真实金额增加 " + money(v.amount, v.ccy) + "。";
+    render();
+    return;
+  }
+  const tgl = e.target.closest("[data-toggle]");
+  if (tgl) {
+    state[tgl.dataset.toggle] = !state[tgl.dataset.toggle];
+    cur()[tgl.dataset.toggle] = state[tgl.dataset.toggle];
+    render();
+    return;
+  }
+  const act = e.target.closest("[data-act]");
+  if (act) {
+    if (act.dataset.act === "toggle") {
+      const line = lines.find(function (l) { return l.id === act.dataset.id; });
+      line.status = line.status === "正常" ? "已停用" : "正常";
+      render();
+      return;
+    }
+    state.modal = { type: act.dataset.act, id: act.dataset.id };
+    render();
+    return;
+  }
+  if (e.target.id === "dismiss") { state.banner = ""; render(); return; }
+  if (e.target.id === "transfer") { state.modal = { type: "transfer" }; render(); return; }
+  if (e.target.id === "add-voucher") { state.modal = { type: "precharge" }; render(); return; }
+  if (e.target.id === "apply-credit") { state.modal = { type: "creditApply" }; render(); return; }
+  if (e.target.id === "close" || e.target.id === "close2") { state.modal = null; render(); return; }
+  if (e.target.id === "save" && state.modal) {
+    if (state.modal.type === "creditApply") {
+      const ccy = document.getElementById("cr-ccy").value;
+      const biz = document.getElementById("cr-biz").value;
+      const amount = Number(document.getElementById("cr-amt").value) || 0;
+      state.modal = null;
+      if (amount <= 0) { render(); return; }
+      if (!credit[ccy]) {
+        credit[ccy] = {};
+        BIZ.forEach(function (b) { credit[ccy][b] = { limit: 0, used: 0 }; });
+      }
+      credit[ccy][biz].limit += amount;
+      state.banner = "已申请 " + ccy + " " + biz + " 信用额度 " + money(amount, ccy) + "。额度记在这个币种上。";
+      state.fold = "credit";
+      render();
+      return;
+    }
+    if (state.modal.type === "precharge") {
+      const merchantId = document.getElementById("pc-merchant").value;
+      const biz = document.getElementById("pc-biz").value;
+      const ccy = document.getElementById("pc-ccy").value;
+      const amount = Number(document.getElementById("pc-amt").value) || 0;
+      const proof = document.getElementById("pc-proof").value || "转账凭证";
+      const line = lines.find(function (l) { return l.merchantId === merchantId && l.biz === biz && l.ccy === ccy; });
+      state.modal = null;
+      if (!line || amount <= 0) {
+        state.banner = "没有对应的业务线币种账户，预充没有入账。";
+        render();
+        return;
+      }
+      line.available += amount;
+      const id = "PZ-" + String(Date.now()).slice(-8);
+      vouchers.unshift({ id: id, merchantId: merchantId, biz: biz, ccy: ccy, amount: amount, status: "待核销", time: "2026-11-20 18:00", proof: proof, flow: "" });
+      ledger.unshift({ time: "2026-11-20 18:00", type: "预充入账", biz: biz, merchantId: merchantId, ccy: ccy, amount: amount, store: "—", doc: "凭证 " + id, bucket: "可用余额", channel: "—", note: "凭转账凭证先增加可用余额，款项尚未到账" });
+      state.banner = "已按凭证增加可用余额 " + money(amount, ccy) + "。真实金额未变，等流水到账后再核销。";
+      render();
+      return;
+    }
+    if (state.modal.type === "transfer") {
+      const from = document.getElementById("tf-from").value;
+      const to = document.getElementById("tf-to").value;
+      const amt = document.getElementById("tf-amt").value;
+      state.banner = "已提交调拨审批：" + from + " → " + to + " " + money(Number(amt) || 0, "USD") + "。余额还没有划走。";
+      state.modal = null;
+      render();
+      return;
+    }
+    const line = lines.find(function (l) { return l.id === state.modal.id; });
+    if (state.modal.type === "adjust") line.available = Number(document.getElementById("adj").value) || 0;
+    if (state.modal.type === "opening") {
+      line.opening = Number(document.getElementById("op-amt").value) || 0;
+      line.openingAt = document.getElementById("op-at").value || line.openingAt;
+    }
+    state.modal = null;
+    render();
+    return;
+  }
+  if (e.target.id === "add-split") {
+    const options = storesOf(state.payMerchant);
+    state.splits.push({ store: options[0], amount: 0 });
+    render();
+    return;
+  }
+  const del = e.target.closest("[data-split-del]");
+  if (del) { state.splits.splice(Number(del.dataset.splitDel), 1); render(); }
+});
+
+document.body.addEventListener("change", function (e) {
+  const set = e.target.dataset.set;
+  if (set) {
+    state[set] = e.target.value;
+    if (set === "priority") cur().priority = state.priority;
+    if (set === "merchant" || set === "biz" || set === "ccy") state.lineId = "";
+    if (set === "payMerchant" && state.payBiz === "代发") {
+      const options = storesOf(state.payMerchant);
+      state.splits = [{ store: options[0], amount: state.payAmount }];
+    }
+    render();
+    return;
+  }
+  if (e.target.dataset.splitStore != null) {
+    state.splits[Number(e.target.dataset.splitStore)].store = e.target.value;
+    render();
+  }
+});
+
+document.body.addEventListener("input", function (e) {
+  if (e.target.dataset.num === "q") {
+    state.q = e.target.value;
+    const start = e.target.selectionStart;
+    render();
+    const again = document.querySelector('[data-num="q"]');
+    if (again) { again.focus(); again.setSelectionRange(start, start); }
+    return;
+  }
+  if (e.target.dataset.num) state[e.target.dataset.num] = e.target.value;
+  if (e.target.dataset.splitAmt != null) state.splits[Number(e.target.dataset.splitAmt)].amount = e.target.value;
+  if (state.page === "pay" && (e.target.dataset.num || e.target.dataset.splitAmt != null)) {
+    const panel = document.querySelector(".grid2 .panel:last-child");
+    if (panel) {
+      const keep = document.activeElement;
+      const next = viewPay();
+      document.getElementById("view").innerHTML = next;
+      if (keep && keep.dataset) {
+        const again = keep.dataset.num
+          ? document.querySelector('[data-num="' + keep.dataset.num + '"]')
+          : document.querySelector('[data-split-amt="' + keep.dataset.splitAmt + '"]');
+        if (again) { again.focus(); const n = again.value.length; again.setSelectionRange(n, n); }
+      }
+    }
+  }
+});
+
+window.addEventListener("hashchange", function () {
+  const page = location.hash.slice(1);
+  if (PAGES[page]) { state.page = page; render(); }
+});
+if (PAGES[location.hash.slice(1)]) state.page = location.hash.slice(1);
+render();
+</script>
+</body>
+</html>

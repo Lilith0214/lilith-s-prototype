@@ -140,10 +140,17 @@ button { cursor: pointer; }
 .stats .v { margin-top: 2px; font-weight: 600; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 12px; align-items: center; }
 .filters select, .filters input { height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 10px; background: #fff; }
-.flt { display: flex; align-items: center; gap: 6px; color: var(--sub); }
-.flt input { width: 168px; }
-.flt select { width: 120px; }
-.mids { display: flex; flex-direction: column; gap: 6px; }
+.qform {
+  display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)) auto;
+  gap: 16px; align-items: end; margin-bottom: 16px;
+}
+.qform .actions { display: flex; gap: 8px; align-items: center; }
+.qform select {
+  appearance: none; -webkit-appearance: none; padding-right: 28px;
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2.2 4.3 6 8.1 9.8 4.3' fill='none' stroke='%238c8c8c' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 10px center;
+}
+.mids { display: flex; flex-direction: column; gap: 4px; }
+.mids .link { padding: 0; }
 .info { display: grid; grid-template-columns: 108px 1fr; gap: 10px 16px; line-height: 1.5; }
 .info .k { color: var(--muted); }
 table { width: 100%; border-collapse: collapse; }
@@ -371,7 +378,7 @@ const customers = [
     ]
   },
   {
-    id: "C20240041", name: "示例客户C", main: "EUR", status: "异常", demoPay: 2000, payCcy: "EUR",
+    id: "C20240041", name: "示例客户C", main: "EUR", status: "正常", demoPay: 2000, payCcy: "EUR",
     profile: { region: "德国", email: "anna.keller@example.com", contact: "Anna Keller", phone: "+49 30 5550 3150", company: "示例客户C" },
     balanceShare: true, priority: "reason", creditShare: false,
     merchants: [
@@ -656,15 +663,15 @@ function render() {
 
 function viewList() {
   const rows = customers.filter(matchCustomer);
-  return '<div class="panel"><div class="filters">'
-    + '<label class="flt">客户名称 <input data-filter="name" placeholder="客户名称" value="' + esc(state.filters.name) + '" /></label>'
-    + '<label class="flt">商户id <input data-filter="merchantId" placeholder="商户id" value="' + esc(state.filters.merchantId) + '" /></label>'
-    + '<label class="flt">客户信息 <input data-filter="info" placeholder="编号、邮箱、联系人、地区" value="' + esc(state.filters.info) + '" /></label>'
-    + '<label class="flt">状态 <select data-set="listStatus">' + ["全部", "正常", "异常", "已停用"].map(function (s) {
-      return '<option' + (state.listStatus === s ? " selected" : "") + ">" + s + "</option>";
-    }).join("") + "</select></label>"
-    + '<button class="btn" id="reset-list" type="button">重置</button>'
-    + '<span class="mini">共 ' + rows.length + " 个客户</span></div>"
+  return '<div class="panel"><div class="qform">'
+    + '<div class="field"><label>客户名称</label><input data-query="name" placeholder="请输入" value="' + esc(state.filters.name) + '" /></div>'
+    + '<div class="field"><label>商户id</label><input data-query="merchantId" placeholder="请输入" value="' + esc(state.filters.merchantId) + '" /></div>'
+    + '<div class="field"><label>客户信息</label><input data-query="info" placeholder="请输入" value="' + esc(state.filters.info) + '" /></div>'
+    + '<div class="field"><label>状态</label><select data-query="status"><option value="全部"' + (state.listStatus === "全部" ? " selected" : "") + ">请选择</option>"
+    + ["正常", "已停用"].map(function (s) {
+      return '<option value="' + s + '"' + (state.listStatus === s ? " selected" : "") + ">" + s + "</option>";
+    }).join("") + "</select></div>"
+    + '<div class="actions"><button class="btn primary" id="search-list" type="button">查询</button><button class="btn" id="reset-list" type="button">重置</button></div></div>'
     + '<div class="tablewrap"><table><thead><tr><th>客户</th><th>商户id</th><th>主币种</th><th>总可用余额（主币种）</th><th>可用余额（按币种）</th><th>信用额度（按币种）</th><th>已用额度（按币种）</th><th>剩余额度（按币种）</th><th>真实金额（换算主币种）</th><th>真实金额（按币种）</th><th>待核销预充</th><th>状态</th><th>客户详情</th><th>操作</th></tr></thead><tbody>'
     + (rows.length ? rows.map(function (c) {
       const pending = pendingUsd(c);
@@ -689,7 +696,7 @@ function matchCustomer(c) {
 }
 function merchantIdCell(c) {
   return '<div class="mids">' + c.merchants.map(function (m) {
-    return "<div>" + esc(m.id) + '<div class="mini">' + esc(m.name) + "</div></div>";
+    return '<div><button type="button" class="link" data-mid-open="' + esc(m.id) + '" data-cid="' + esc(c.id) + '">' + esc(m.id) + "</button></div>";
   }).join("") + "</div>";
 }
 function customerCurrencyRows(c) {
@@ -1088,6 +1095,12 @@ document.body.addEventListener("click", function (e) {
     render();
     return;
   }
+  const midOpen = e.target.closest("[data-mid-open]");
+  if (midOpen) {
+    bind(midOpen.dataset.cid);
+    go("lines", { merchant: midOpen.dataset.midOpen, biz: "全部", ccy: "全部", lineId: "" });
+    return;
+  }
   const jump = e.target.closest("[data-jump]");
   if (jump) {
     if (jump.dataset.jump === "lines") go("lines", { merchant: jump.dataset.mid, biz: "全部", ccy: "全部", lineId: "" });
@@ -1138,6 +1151,16 @@ document.body.addEventListener("click", function (e) {
   const detail = e.target.closest("[data-detail]");
   if (detail) {
     state.modal = { type: "customer", id: detail.dataset.detail };
+    render();
+    return;
+  }
+  if (e.target.id === "search-list") {
+    ["name", "merchantId", "info"].forEach(function (key) {
+      const input = document.querySelector('[data-query="' + key + '"]');
+      state.filters[key] = input ? input.value : "";
+    });
+    const status = document.querySelector('[data-query="status"]');
+    state.listStatus = status ? status.value : "全部";
     render();
     return;
   }
@@ -1270,15 +1293,6 @@ document.body.addEventListener("change", function (e) {
 });
 
 document.body.addEventListener("input", function (e) {
-  if (e.target.dataset.filter) {
-    const key = e.target.dataset.filter;
-    state.filters[key] = e.target.value;
-    const start = e.target.selectionStart;
-    render();
-    const again = document.querySelector('[data-filter="' + key + '"]');
-    if (again) { again.focus(); again.setSelectionRange(start, start); }
-    return;
-  }
   if (e.target.dataset.num) state[e.target.dataset.num] = e.target.value;
   if (e.target.dataset.splitAmt != null) state.splits[Number(e.target.dataset.splitAmt)].amount = e.target.value;
   if (state.page === "pay" && (e.target.dataset.num || e.target.dataset.splitAmt != null)) {

@@ -282,6 +282,8 @@ const state = {
   biz: "全部",
   ccy: "全部",
   merchant: "全部",
+  detailBiz: "全部",
+  detailCcy: "全部",
   lineId: "",
   group: "biz",
   storeMerchant: "全部",
@@ -483,6 +485,8 @@ function bind(id) {
   state.payCcy = c.payCcy;
   state.payMerchant = c.merchants[0].id;
   state.merchant = "全部";
+  state.detailBiz = "全部";
+  state.detailCcy = "全部";
   state.biz = "全部";
   state.ccy = "全部";
   state.lineId = "";
@@ -964,6 +968,14 @@ function ccyTag(ccy, isMain) {
 function scopedLines() {
   return lines.filter(function (l) { return state.merchant === "全部" || l.merchantId === state.merchant; });
 }
+function detailLines() {
+  return scopedLines().filter(function (l) {
+    return (state.detailBiz === "全部" || l.biz === state.detailBiz) && (state.detailCcy === "全部" || l.ccy === state.detailCcy);
+  });
+}
+function countLink(kind, value, n) {
+  return '<button type="button" class="link" data-count="' + kind + '" data-value="' + esc(value) + '">' + n + "</button>";
+}
 function uniqOf(list, key) {
   const out = [];
   list.forEach(function (l) { if (out.indexOf(l[key]) < 0) out.push(l[key]); });
@@ -1028,31 +1040,34 @@ function customerCcyTable(list, main) {
     + "</tbody></table></div></div>";
 }
 function viewLines() {
-  const rows = scopedLines();
+  const scoped = scopedLines();
   let summary = "";
   if (state.group === "ccy") {
     summary = '<div class="tablewrap"><table><thead><tr><th>币种</th><th>账户数</th><th>包含业务线</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
-      + uniqOf(rows, "ccy").map(function (ccy) {
-        const list = rows.filter(function (l) { return l.ccy === ccy; });
+      + uniqOf(scoped, "ccy").map(function (ccy) {
+        const list = scoped.filter(function (l) { return l.ccy === ccy; });
         const fund = list.reduce(function (s, l) { return s + l.available; }, 0);
         const sum = creditSum(ccy, uniqOf(list, "biz"));
-        return "<tr><td>" + ccyTag(ccy, ccy === cur().main) + "</td><td>" + list.length + "</td><td>" + esc(uniqOf(list, "biz").join("、")) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.current; }, 0), ccy) + "</td><td>" + money(fund + sum.remain, ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.real; }, 0), ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.frozen; }, 0), ccy) + "</td><td>" + money(sum.limit, ccy) + "</td><td>" + money(sum.used, ccy) + "</td><td>" + money(sum.remain, ccy) + "</td></tr>";
+        return "<tr><td>" + ccyTag(ccy, ccy === cur().main) + "</td><td>" + countLink("ccy", ccy, list.length) + "</td><td>" + esc(uniqOf(list, "biz").join("、")) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.current; }, 0), ccy) + "</td><td>" + money(fund + sum.remain, ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.real; }, 0), ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.frozen; }, 0), ccy) + "</td><td>" + money(sum.limit, ccy) + "</td><td>" + money(sum.used, ccy) + "</td><td>" + money(sum.remain, ccy) + "</td></tr>";
       }).join("")
       + "</tbody></table></div>";
   } else {
     summary = '<div class="tablewrap"><table><thead><tr><th>业务线</th><th>账户数</th><th>包含币种</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
-      + BIZ.filter(function (b) { return rows.some(function (l) { return l.biz === b; }); }).map(function (b) {
-        const list = rows.filter(function (l) { return l.biz === b; });
-        return "<tr><td class=\"biz " + b + "\">" + b + "</td><td>" + list.length + "</td><td>" + esc(uniqOf(list, "ccy").join("、")) + "</td><td>" + moneyStack(list, "current", cur().main) + "</td><td>" + moneyStack(list, "available", cur().main) + "</td><td>" + moneyStack(list, "real", cur().main) + "</td><td>" + moneyStack(list, "frozen", cur().main) + "</td>" + creditStackCells(b) + "</tr>";
+      + BIZ.filter(function (b) { return scoped.some(function (l) { return l.biz === b; }); }).map(function (b) {
+        const list = scoped.filter(function (l) { return l.biz === b; });
+        return "<tr><td class=\"biz " + b + "\">" + b + "</td><td>" + countLink("biz", b, list.length) + "</td><td>" + esc(uniqOf(list, "ccy").join("、")) + "</td><td>" + moneyStack(list, "current", cur().main) + "</td><td>" + moneyStack(list, "available", cur().main) + "</td><td>" + moneyStack(list, "real", cur().main) + "</td><td>" + moneyStack(list, "frozen", cur().main) + "</td>" + creditStackCells(b) + "</tr>";
       }).join("")
       + "</tbody></table></div>";
   }
+  const rows = detailLines();
+  const detailName = state.detailBiz !== "全部" ? "账户明细 · " + state.detailBiz : (state.detailCcy !== "全部" ? "账户明细 · " + state.detailCcy : "账户明细");
+  const clearDetail = state.detailBiz !== "全部" || state.detailCcy !== "全部" ? '<button class="link" id="clear-detail" type="button">查看全部</button>' : "";
   return '<div class="panel"><div class="filters">'
     + '<div class="seg"><button type="button" class="' + (state.group === "biz" ? "on" : "") + '" data-group="biz">按业务线统计</button><button type="button" class="' + (state.group === "ccy" ? "on" : "") + '" data-group="ccy">按币种统计</button></div>'
     + select("merchant", [["全部", "全部商户"]].concat(merchants.map(function (m) { return [m.id, m.id + " " + m.name]; })), state.merchant)
     + '<button class="btn" id="transfer">发起调拨</button></div>'
     + summary + "</div>"
-    + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">账户明细</h3><span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
+    + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">' + esc(detailName) + "</h3>" + clearDetail + '<span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
     + rows.map(function (l) {
       const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
       const item = bag(l.ccy, l.biz);
@@ -1063,7 +1078,7 @@ function viewLines() {
 }
 
 function exportAccountLines() {
-  const rows = scopedLines();
+  const rows = detailLines();
   const header = ["商户ID", "业务线", "商户名称", "商户邮箱", "商户唯一标识", "ERP代码", "币种", "币种属性", "账户状态", "预充总额限制", "预充已用额度", "手续费承担方式", "是否开启汇损补足", "当前金额", "可用余额", "真实金额", "冻结金额", "信用额度", "已用额度", "剩余额度", "额度状态", "期初设置", "期初时点", "资金账户ID", "创建时间"];
   const body = rows.map(function (l) {
     const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
@@ -1337,6 +1352,26 @@ document.body.addEventListener("click", function (e) {
   }
   const grp = e.target.closest("[data-group]");
   if (grp) { state.group = grp.dataset.group; render(); return; }
+  const count = e.target.closest("[data-count]");
+  if (count) {
+    if (count.dataset.count === "biz") {
+      state.detailBiz = count.dataset.value;
+      state.detailCcy = "全部";
+    } else {
+      state.detailCcy = count.dataset.value;
+      state.detailBiz = "全部";
+    }
+    render();
+    const panel = document.getElementById("account-lines");
+    if (panel) panel.scrollIntoView({ block: "start" });
+    return;
+  }
+  if (e.target.id === "clear-detail") {
+    state.detailBiz = "全部";
+    state.detailCcy = "全部";
+    render();
+    return;
+  }
   const open = e.target.closest("[data-open]");
   if (open) {
     bind(open.dataset.open);

@@ -1052,19 +1052,37 @@ function viewLines() {
     + select("merchant", [["全部", "全部商户"]].concat(merchants.map(function (m) { return [m.id, m.id + " " + m.name]; })), state.merchant)
     + '<button class="btn" id="transfer">发起调拨</button></div>'
     + summary + "</div>"
-    + '<div class="panel"><h3>账户明细</h3><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th><th>操作</th></tr></thead><tbody>'
+    + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">账户明细</h3><span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
     + rows.map(function (l) {
       const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
       const item = bag(l.ccy, l.biz);
-      return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主币种" : "非主币种") + "</td><td>" + statusTag(l.status) + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(l.available, l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + money(item.limit, l.ccy) + "</td><td>" + money(item.used, l.ccy) + "</td><td>" + money(item.limit - item.used, l.ccy) + "</td><td>" + quotaStatus(item.limit, item.limit - item.used) + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td><td>"
-        + '<button class="link" data-act="adjust" data-id="' + l.id + '">调整金额</button>'
-        + '<button class="link" data-act="opening" data-id="' + l.id + '">期初设置</button>'
-        + '<button class="link" data-act="log" data-id="' + l.id + '">日志</button>'
-        + '<button class="link" data-act="toggle" data-id="' + l.id + '">' + (l.status === "正常" ? "禁用" : "启用") + "</button></td></tr>";
+      const pre = (m.precharge && m.precharge[l.ccy]) || null;
+      return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主币种" : "非主币种") + "</td><td>" + statusTag(l.status) + "</td><td>" + (pre ? money(pre.limit || 0, l.ccy) + ' <button class="link" data-precharge="merchant" data-pid="' + esc(m.id) + '" data-ccy="' + esc(l.ccy) + '">设置</button>' : '<button class="link" data-precharge="merchant" data-pid="' + esc(m.id || "") + '" data-ccy="' + esc(l.ccy) + '">设置</button>') + "</td><td>" + (pre ? money(pre.used || 0, l.ccy) : "—") + "</td><td>" + esc(l.fee || "公司承担") + "</td><td>" + esc(l.fxTopup || "关闭") + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(l.available, l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + money(item.limit, l.ccy) + "</td><td>" + money(item.used, l.ccy) + "</td><td>" + money(item.limit - item.used, l.ccy) + "</td><td>" + quotaStatus(item.limit, item.limit - item.used) + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td></tr>";
     }).join("")
     + "</tbody></table></div></div>";
 }
 
+function exportAccountLines() {
+  const rows = scopedLines();
+  const header = ["商户ID", "业务线", "商户名称", "商户邮箱", "商户唯一标识", "ERP代码", "币种", "币种属性", "账户状态", "预充总额限制", "预充已用额度", "手续费承担方式", "是否开启汇损补足", "当前金额", "可用余额", "真实金额", "冻结金额", "信用额度", "已用额度", "剩余额度", "额度状态", "期初设置", "期初时点", "资金账户ID", "创建时间"];
+  const body = rows.map(function (l) {
+    const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
+    const item = bag(l.ccy, l.biz);
+    const pre = (m.precharge && m.precharge[l.ccy]) || null;
+    const quota = !item.limit ? "—" : (item.limit - item.used <= 0 ? "已用尽" : "正常");
+    return [l.merchantId, l.biz, l.merchantName, m.email || "—", l.uniq || m.uniq || "—", l.erp || m.erp || "—", l.ccy, l.ccy === cur().main ? "主币种" : "非主币种", l.status, pre ? money(pre.limit || 0, l.ccy) : "—", pre ? money(pre.used || 0, l.ccy) : "—", l.fee || "公司承担", l.fxTopup || "关闭", money(l.current, l.ccy), money(l.available, l.ccy), money(l.real, l.ccy), money(l.frozen, l.ccy), money(item.limit, l.ccy), money(item.used, l.ccy), money(item.limit - item.used, l.ccy), quota, l.opening ? "已设置" : "未设置", l.opening ? l.openingAt : "—", l.id, l.created];
+  });
+  const csv = "\uFEFF" + [header].concat(body).map(function (row) {
+    return row.map(function (cell) { return '"' + String(cell == null ? "" : cell).replace(/"/g, '""') + '"'; }).join(",");
+  }).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "账户明细.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 function select(key, options, value) {
   return '<select data-set="' + key + '">' + options.map(function (o) {
     return '<option value="' + esc(o[0]) + '"' + (o[0] === value ? " selected" : "") + ">" + esc(o[1]) + "</option>";
@@ -1380,6 +1398,7 @@ document.body.addEventListener("click", function (e) {
     return;
   }
   if (e.target.id === "dismiss") { state.banner = ""; render(); return; }
+  if (e.target.id === "export-lines") { exportAccountLines(); return; }
   if (e.target.id === "transfer") { state.modal = { type: "transfer" }; render(); return; }
   if (e.target.id === "add-voucher") { state.modal = { type: "precharge" }; render(); return; }
   const creditDim = e.target.closest("[data-credit-dim]");

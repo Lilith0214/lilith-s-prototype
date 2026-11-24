@@ -204,7 +204,13 @@ th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky;
 .segs button:first-child { margin-left: 0; border-radius: 6px 0 0 6px; }
 .segs button:last-child { border-radius: 0 6px 6px 0; }
 .segs button.on { color: var(--blue); border-color: var(--blue); position: relative; z-index: 1; }
-.cycle-note { min-height: 76px; border: 1px dashed #d9d9d9; border-radius: 8px; background: #fafafa; color: var(--muted); padding: 12px; line-height: 22px; }
+.tf-top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 24px 0; }
+.tf-box { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px 16px 4px; }
+.tf-hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.tf-amt { display: grid; grid-template-columns: 1fr 1fr 160px; gap: 12px; padding: 0 24px; }
+.tf-note { padding: 0 24px 8px; }
+.dialog textarea { width: 100%; min-height: 72px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 6px 10px; resize: vertical; }
+.dialog input:disabled { background: #f5f5f5; color: var(--muted); }
 .dialog header, .dialog footer { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
 .dialog header { border-bottom: 1px solid var(--line); }
 .dialog header h2 { margin: 0; font-size: 16px; }
@@ -267,6 +273,7 @@ const BIZ = ["代发", "广告", "拒付", "垫资"];
 const CHANNELS = ["银行", "PayPal", "Airwallex", "WorldFirst"];
 const CYCLES = ["一周", "两周", "三周", "一个月", "固定天数"];
 const CREDIT_GROUPS = ["履约一组", "广告一组", "资金组"];
+const CONTACTS = ["陈可", "林夏", "周宁", "王敏"];
 const PAGES = { list: "客户列表", home: "客户总览", lines: "业务线账户", stores: "店铺对账", ledger: "资金流水", pay: "付款试算" };
 
 const state = {
@@ -1223,9 +1230,84 @@ function field(label, control) {
   return '<div class="field"><label>' + esc(label) + "</label>" + control + "</div>";
 }
 
+function accountOption(l) {
+  return l.id + " · " + l.merchantId + " · " + l.biz + " · " + l.ccy;
+}
+function transferRate(fromId, toId) {
+  const from = lines.find(function (l) { return l.id === fromId; });
+  const to = lines.find(function (l) { return l.id === toId; });
+  if (!from || !to || from.ccy === to.ccy) return "1.00";
+  return (RATE[from.ccy] / RATE[to.ccy]).toFixed(4);
+}
+function transferInAmount(amount, rate) {
+  const n = Number(amount) * Number(rate);
+  if (!amount || !rate || isNaN(n)) return "";
+  return n.toFixed(2);
+}
+function readTransferForm() {
+  if (!state.modal || state.modal.type !== "transfer") return;
+  function val(id) { const el = document.getElementById(id); return el ? el.value : ""; }
+  state.modal.fromId = val("tf-from");
+  state.modal.toId = val("tf-to");
+  state.modal.fromGroup = val("tf-from-group");
+  state.modal.toGroup = val("tf-to-group");
+  state.modal.fromOwner = val("tf-from-owner");
+  state.modal.toOwner = val("tf-to-owner");
+  state.modal.amount = val("tf-amt");
+  state.modal.rate = val("tf-rate");
+  state.modal.reason = val("tf-reason");
+}
+function transferDialog() {
+  const m = state.modal;
+  const options = '<option value="">请选择调出资金账户</option>' + lines.map(function (l) {
+    return '<option value="' + esc(l.id) + '"' + (l.id === m.fromId ? " selected" : "") + ">" + esc(accountOption(l)) + "</option>";
+  }).join("");
+  const toSelect = '<option value="">请选择调入资金账户</option>' + lines.map(function (l) {
+    return '<option value="' + esc(l.id) + '"' + (l.id === m.toId ? " selected" : "") + ">" + esc(accountOption(l)) + "</option>";
+  }).join("");
+  function groupSelect(id, value) {
+    return '<select id="' + id + '"><option value="">请选择</option>' + CREDIT_GROUPS.map(function (g) {
+      return "<option" + (g === value ? " selected" : "") + ">" + esc(g) + "</option>";
+    }).join("") + "</select>";
+  }
+  function ownerSelect(id, value) {
+    return '<select id="' + id + '"><option value="">请选择</option>' + CONTACTS.map(function (g) {
+      return "<option" + (g === value ? " selected" : "") + ">" + esc(g) + "</option>";
+    }).join("") + "</select>";
+  }
+  const to = lines.find(function (l) { return l.id === m.toId; });
+  const inbound = transferInAmount(m.amount, m.rate);
+  return '<div class="dialog apply"><header><h2>新建资金调拨</h2><button class="x" id="close">×</button></header><div class="body">'
+    + '<div class="tf-top"><div class="tf-box"><div class="tf-hd"><div class="sec" style="margin:0">调出信息</div><span class="pair">调出后禁用账户 <button type="button" class="toggle' + (m.disableAfter ? " on" : "") + '" id="tf-disable" aria-label="调出后禁用账户"><i></i></button></span></div>'
+    + field("调出资金账户", '<select id="tf-from">' + options + "</select>").replace("<label>", '<label class="req">')
+    + '<div class="tf-amt" style="padding:0;grid-template-columns:1fr 1fr">'
+    + field("调出业务组", groupSelect("tf-from-group", m.fromGroup)).replace("<label>", '<label class="req">')
+    + field("调出客户对接人", ownerSelect("tf-from-owner", m.fromOwner)).replace("<label>", '<label class="req">')
+    + "</div></div>"
+    + '<div class="tf-box"><div class="tf-hd"><div class="sec" style="margin:0">调入信息</div></div>'
+    + field("调入资金账户", '<select id="tf-to">' + toSelect + "</select>").replace("<label>", '<label class="req">')
+    + '<div class="tf-amt" style="padding:0;grid-template-columns:1fr 1fr">'
+    + field("调入业务组", groupSelect("tf-to-group", m.toGroup)).replace("<label>", '<label class="req">')
+    + field("调入客户对接人", ownerSelect("tf-to-owner", m.toOwner)).replace("<label>", '<label class="req">')
+    + "</div></div></div>"
+    + '<div class="sec" style="margin:16px 24px 8px">金额与汇率</div><div class="tf-amt">'
+    + field("调出金额", '<input id="tf-amt" placeholder="请输入调出金额" value="' + esc(m.amount) + '" />').replace("<label>", '<label class="req">')
+    + field("调入金额", '<input id="tf-in" disabled placeholder="根据汇率自动计算" value="' + esc(inbound ? inbound + (to ? " " + to.ccy : "") : "") + '" />')
+    + field("汇率", '<input id="tf-rate" value="' + esc(m.rate || "1.00") + '" />')
+    + "</div>"
+    + '<div class="sec" style="margin:4px 24px 8px">调拨说明</div><div class="tf-note">'
+    + field("调拨原因", '<textarea id="tf-reason" placeholder="请输入调拨原因">' + esc(m.reason) + "</textarea>").replace("<label>", '<label class="req">')
+    + (m.error ? '<div class="err">' + esc(m.error) + "</div>" : "")
+    + "</div></div><footer><button class=\"btn\" id=\"close2\">取消</button><button class=\"btn primary\" id=\"save\">提交调拨</button></footer></div>";
+}
 function renderModal() {
   const mask = document.getElementById("mask");
   if (!state.modal) { mask.hidden = true; mask.innerHTML = ""; return; }
+  if (state.modal.type === "transfer") {
+    mask.hidden = false;
+    mask.innerHTML = transferDialog();
+    return;
+  }
   if (state.modal.type === "creditApply") {
     mask.hidden = false;
     mask.innerHTML = creditApplyDialog();
@@ -1434,7 +1516,18 @@ document.body.addEventListener("click", function (e) {
   }
   if (e.target.id === "dismiss") { state.banner = ""; render(); return; }
   if (e.target.id === "export-lines") { exportAccountLines(); return; }
-  if (e.target.id === "transfer") { state.modal = { type: "transfer" }; render(); return; }
+  const disableBtn = e.target.closest("#tf-disable");
+  if (disableBtn && state.modal && state.modal.type === "transfer") {
+    readTransferForm();
+    state.modal.disableAfter = !state.modal.disableAfter;
+    render();
+    return;
+  }
+  if (e.target.id === "transfer") {
+    state.modal = { type: "transfer", fromId: "", toId: "", fromGroup: "", toGroup: "", fromOwner: "", toOwner: "", amount: "", rate: "1.00", reason: "", disableAfter: false, error: "" };
+    render();
+    return;
+  }
   if (e.target.id === "add-voucher") { state.modal = { type: "precharge" }; render(); return; }
   const creditDim = e.target.closest("[data-credit-dim]");
   if (creditDim && state.modal && state.modal.type === "creditApply") {
@@ -1531,10 +1624,18 @@ document.body.addEventListener("click", function (e) {
       return;
     }
     if (state.modal.type === "transfer") {
-      const from = document.getElementById("tf-from").value;
-      const to = document.getElementById("tf-to").value;
-      const amt = document.getElementById("tf-amt").value;
-      state.banner = "已提交调拨审批：" + from + " → " + to + " " + money(Number(amt) || 0, "USD") + "。余额还没有划走。";
+      readTransferForm();
+      const m = state.modal;
+      const amount = Number(m.amount);
+      if (!m.fromId || !m.toId || m.fromId === m.toId || !m.fromGroup || !m.toGroup || !m.fromOwner || !m.toOwner || !(amount > 0) || !m.reason.trim()) {
+        m.error = "请选择调出和调入账户、业务组、对接人，并填写调出金额和调拨原因。";
+        render();
+        return;
+      }
+      const from = lines.find(function (l) { return l.id === m.fromId; });
+      const to = lines.find(function (l) { return l.id === m.toId; });
+      const inbound = transferInAmount(m.amount, m.rate);
+      state.banner = "已提交调拨审批：" + accountOption(from) + " → " + accountOption(to) + "，调出 " + money(amount, from.ccy) + "，调入 " + money(Number(inbound), to.ccy) + "。余额还没有划走。" + (m.disableAfter ? "审批通过后禁用调出账户。" : "");
       state.modal = null;
       render();
       return;
@@ -1559,7 +1660,25 @@ document.body.addEventListener("click", function (e) {
   if (del) { state.splits.splice(Number(del.dataset.splitDel), 1); render(); }
 });
 
+function refreshTransferAmount() {
+  const from = document.getElementById("tf-from");
+  const to = document.getElementById("tf-to");
+  const amt = document.getElementById("tf-amt");
+  const rate = document.getElementById("tf-rate");
+  const inbound = document.getElementById("tf-in");
+  if (!from || !to || !amt || !rate || !inbound) return;
+  const target = lines.find(function (l) { return l.id === to.value; });
+  const value = transferInAmount(amt.value, rate.value);
+  inbound.value = value ? value + (target ? " " + target.ccy : "") : "";
+}
 document.body.addEventListener("change", function (e) {
+  if ((e.target.id === "tf-from" || e.target.id === "tf-to") && state.modal && state.modal.type === "transfer") {
+    const from = document.getElementById("tf-from").value;
+    const to = document.getElementById("tf-to").value;
+    document.getElementById("tf-rate").value = transferRate(from, to);
+    refreshTransferAmount();
+    return;
+  }
   if ((e.target.id === "cr-ccy" || e.target.id === "cr-biz") && state.modal && state.modal.type === "creditApply") {
     readCreditForm();
     const scope = document.getElementById("cr-scope");
@@ -1593,6 +1712,10 @@ document.body.addEventListener("change", function (e) {
 });
 
 document.body.addEventListener("input", function (e) {
+  if ((e.target.id === "tf-amt" || e.target.id === "tf-rate") && state.modal && state.modal.type === "transfer") {
+    refreshTransferAmount();
+    return;
+  }
   if ((e.target.id === "cr-days" || e.target.id === "cr-grace") && state.modal && state.modal.type === "creditApply") {
     readCreditForm();
     const note = document.getElementById("cr-cycle-note");

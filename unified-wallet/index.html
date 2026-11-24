@@ -98,12 +98,18 @@ button { cursor: pointer; }
 .panel h3 { margin: 0 0 12px; font-size: 14px; font-weight: 650; }
 .row { display: flex; gap: 12px; align-items: stretch; }
 .row > * { flex: 1; min-width: 0; }
-.credit-board { display: grid; grid-template-columns: 280px 1fr; gap: 12px; }
-.credit-main, .credit-ccy { background: #fafafa; border-radius: 8px; padding: 14px 16px; }
-.credit-main .k, .credit-ccy .k { color: var(--sub); margin-bottom: 6px; }
-.credit-main .v { font-size: 28px; font-weight: 700; color: var(--blue); font-variant-numeric: tabular-nums; line-height: 1.15; }
-.credit-main .s, .credit-ccy div { color: var(--sub); font-size: 13px; line-height: 1.7; }
-.credit-ccys { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.credit-board { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: stretch; }
+.credit-main { background: #f7f6fb; border-radius: 10px; padding: 20px 22px; display: flex; flex-direction: column; justify-content: center; }
+.credit-main .k { color: var(--sub); font-size: 13px; }
+.credit-main .v { margin: 10px 0 16px; font-size: 30px; font-weight: 700; color: #8b7cc4; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.credit-split { display: flex; gap: 28px; }
+.credit-split span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+.credit-split b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.credit-ccys { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.credit-ccy { background: #fafafa; border-radius: 10px; padding: 16px 16px 14px; }
+.credit-ccy .k { color: #1f1f1f; font-weight: 600; margin-bottom: 12px; }
+.credit-ccy .row { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.credit-ccy .row span { color: var(--muted); }
 .amt-pos { color: #389e0d; }
 .amt-neg { color: #cf1322; }
 .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
@@ -868,9 +874,9 @@ function creditBoard() {
   const usedMain = usedUsd / RATE[main];
   const cards = ccys.map(function (ccy) {
     const item = pack(ccy);
-    return '<div class="credit-ccy"><div class="k">' + esc(ccy) + (ccy === main ? " · 主币种" : "") + '</div><div>额度 ' + money(item.limit, ccy) + "</div><div>已用 " + money(item.used, ccy) + "</div><div>剩余 " + money(item.remain, ccy) + "</div></div>";
+    return '<div class="credit-ccy"><div class="k">' + esc(ccy) + (ccy === main ? " · 主币种" : "") + '</div><div class="row"><span>额度</span><b>' + money(item.limit, ccy) + '</b></div><div class="row"><span>已用</span><b>' + money(item.used, ccy) + '</b></div><div class="row"><span>剩余</span><b>' + money(item.remain, ccy) + "</b></div></div>";
   }).join("");
-  return '<div class="credit-board"><div class="credit-main"><div class="k">信用额度（' + esc(main) + '）</div><div class="v">' + money(limitMain, main) + '</div><div class="s">已用 ' + money(usedMain, main) + " · 剩余 " + money(limitMain - usedMain, main) + "</div></div><div class=\"credit-ccys\">" + (cards || '<div class="credit-ccy">还没有信用额度</div>') + "</div></div>";
+  return '<div class="credit-board"><div class="credit-main"><div class="k">信用额度 · ' + esc(main) + '</div><div class="v">' + money(limitMain, main) + '</div><div class="credit-split"><div><span>已用</span><b>' + money(usedMain, main) + '</b></div><div><span>剩余</span><b>' + money(limitMain - usedMain, main) + "</b></div></div></div><div class=\"credit-ccys\">" + (cards || '<div class="credit-ccy">还没有信用额度</div>') + "</div></div>";
 }
 function customerCreditBrief() {
   const bag = cur().customerCredit || {};

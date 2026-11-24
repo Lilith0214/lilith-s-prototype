@@ -1035,11 +1035,9 @@ function renderModal() {
     mask.hidden = false;
     mask.innerHTML = '<div class="dialog wide"><header><h2>客户详情</h2><button class="x" id="close">×</button></header><div class="body"><div class="info">'
       + infoRow("客户名称", esc(c.name))
-      + infoRow("客户编号", esc(c.id))
       + infoRow("地区/国家", esc(p.region || "—"))
       + infoRow("联系人名称", esc(p.contact || "—"))
       + infoRow("联系方式（邮箱）", esc(p.email || "—"))
-      + infoRow("联系电话", esc(p.phone || "—"))
       + infoRow("客户主体", esc(p.company || c.name))
       + infoRow("主币种", ccyTag(c.main, true))
       + infoRow("状态", statusTag(c.status))

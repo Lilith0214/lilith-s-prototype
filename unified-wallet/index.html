@@ -771,11 +771,12 @@ function viewHome() {
     + '<span class="pair">优先扣 <select data-set="priority">' + prioritySelect() + "</select></span>"
     + "</div></div>"
     + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">商户</h3><span class="mini">' + merchants.length + ' 个</span><span class="spacer"></span><button class="link" data-nav="ledger">资金流水</button><button class="link" data-nav="pay">付款试算</button></div>'
-    + '<div class="tablewrap"><table><thead><tr><th>商户id</th><th>商户名称</th><th>商户邮箱</th><th>唯一标识</th><th>ERP代码</th><th>店铺</th><th>可用余额</th><th>待核销预充</th><th></th></tr></thead><tbody>'
+    + '<div class="tablewrap"><table><thead><tr><th>商户id</th><th>商户名称</th><th>商户邮箱</th><th>唯一标识</th><th>ERP代码</th><th>店铺</th><th>可用余额</th><th>主币种</th><th>非主币种</th><th>待核销预充</th><th></th></tr></thead><tbody>'
     + merchants.map(function (m) {
       const mine = active().filter(function (l) { return l.merchantId === m.id; });
       const pend = pendingUsd(null, m.id);
-      return "<tr><td>" + esc(m.id) + "</td><td>" + esc(m.name) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(m.uniq || "—") + "</td><td>" + esc(m.erp || "—") + "</td><td>" + m.stores.length + " 个</td><td>" + moneyBrief(mine, "available", cur().main) + "</td><td>" + (pend ? mainMoney(pend) : "—") + "</td><td>"
+      const avail = merchantAvail(mine, cur().main);
+      return "<tr><td>" + esc(m.id) + "</td><td>" + esc(m.name) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(m.uniq || "—") + "</td><td>" + esc(m.erp || "—") + "</td><td>" + m.stores.length + " 个</td><td>" + avail.total + "</td><td>" + avail.main + "</td><td>" + avail.other + "</td><td>" + (pend ? mainMoney(pend) : "—") + "</td><td>"
         + '<button class="link" data-jump="lines" data-mid="' + esc(m.id) + '">账户</button>'
         + '<button class="link" data-jump="stores" data-mid="' + esc(m.id) + '">店铺</button></td></tr>';
     }).join("")
@@ -869,12 +870,14 @@ function kpi(k, v, s, lead) {
 function switchBox(key, title, on, text) {
   return '<div class="sw"><div class="hd"><span>' + esc(title) + '</span><button class="toggle' + (on ? " on" : "") + '" data-toggle="' + key + '" aria-label="' + esc(title) + '"><i></i></button></div><p>' + esc(text) + '</p></div>';
 }
-function moneyBrief(list, key, main) {
-  const ccys = ccyOrder(list, main);
-  if (!ccys.length) return "—";
-  const parts = ccys.slice(0, 2).map(function (ccy) { return money(sumCcy(list, ccy, key), ccy); });
-  if (ccys.length > 2) parts.push("等 " + ccys.length + " 个币种");
-  return parts.join(" · ");
+function merchantAvail(list, main) {
+  const others = ccyOrder(list, main).filter(function (ccy) { return ccy !== main; });
+  const hasMain = list.some(function (l) { return l.ccy === main; });
+  return {
+    total: list.length ? money(sumMain(list, "available") / RATE[main], main) : "—",
+    main: hasMain ? money(sumCcy(list, main, "available"), main) : "—",
+    other: others.length ? others.map(function (ccy) { return "<div>" + money(sumCcy(list, ccy, "available"), ccy) + "</div>"; }).join("") : "—"
+  };
 }
 function voucherTable() {
   return '<div class="panel"><div class="filters" style="margin-bottom:8px"><button class="btn" id="add-voucher">登记预充</button><span class="mini">凭转账凭证先加可用余额，到账后再核销。真实金额先不动。</span></div>'
@@ -948,14 +951,14 @@ function moneyStack(list, key, main, extraByCcy) {
 function customerCcyTable(list, main) {
   const ccys = ccyOrder(list, main);
   return '<div class="panel"><h3>多币种余额</h3>'
-    + '<div class="tablewrap"><table><thead><tr><th>币种</th><th>资金可用</th><th>当前金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>折合可用余额</th></tr></thead><tbody>'
+    + '<div class="tablewrap"><table><thead><tr><th>币种</th><th>折合可用余额</th><th>资金可用</th><th>当前金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th></tr></thead><tbody>'
     + ccys.map(function (ccy) {
       const part = list.filter(function (l) { return l.ccy === ccy; });
       const fund = sumCcy(list, ccy, "available");
       const sum = creditSum(ccy);
       const usable = fund + sum.remain;
       const usableMain = sumMain(part, "available") / RATE[main] + usdOf(sum.remain, ccy) / RATE[main];
-      return "<tr><td>" + ccyTag(ccy, ccy === main) + "</td><td>" + money(fund, ccy) + "</td><td>" + money(sumCcy(list, ccy, "current"), ccy) + "</td><td>" + money(sum.limit, ccy) + "</td><td>" + money(sum.used, ccy) + "</td><td>" + money(sum.remain, ccy) + "</td><td>" + money(usable, ccy) + "</td><td>" + money(sumCcy(list, ccy, "real"), ccy) + "</td><td>" + money(sumCcy(list, ccy, "frozen"), ccy) + "</td><td>" + money(usableMain, main) + "</td></tr>";
+      return "<tr><td>" + ccyTag(ccy, ccy === main) + "</td><td>" + money(usableMain, main) + "</td><td>" + money(fund, ccy) + "</td><td>" + money(sumCcy(list, ccy, "current"), ccy) + "</td><td>" + money(sum.limit, ccy) + "</td><td>" + money(sum.used, ccy) + "</td><td>" + money(sum.remain, ccy) + "</td><td>" + money(usable, ccy) + "</td><td>" + money(sumCcy(list, ccy, "real"), ccy) + "</td><td>" + money(sumCcy(list, ccy, "frozen"), ccy) + "</td></tr>";
     }).join("")
     + "</tbody></table></div></div>";
 }

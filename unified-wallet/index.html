@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Fund · 统一钱包</title>
+<title>Fund · 客户统一账户</title>
 <style>
 :root {
   --blue: #1677ff;
@@ -24,26 +24,36 @@ body {
 }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
-.app { display: flex; height: 100%; min-width: 1180px; }
+.app { display: flex; height: 100%; min-width: 1180px; background: #f5f6f8; }
+.rail {
+  width: 64px; background: #fff; border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center; padding: 10px 0; flex: none; gap: 6px;
+}
+.rail .logo {
+  width: 28px; height: 28px; border-radius: 8px; background: #5b5bd6; color: #fff;
+  display: grid; place-items: center; font-weight: 700; font-size: 14px; margin-bottom: 8px;
+}
+.rail .mod {
+  width: 48px; border: 0; background: transparent; color: #8c8c8c; border-radius: 8px; padding: 6px 0;
+}
+.rail .mod b { display: block; font-size: 12px; font-weight: 600; }
+.rail .mod.on { background: var(--blue); color: #fff; }
 .sider {
-  width: 252px; background: #fff; border-right: 1px solid var(--line);
-  flex: none; display: flex; flex-direction: column;
+  width: 188px; background: #fff; border-right: 1px solid var(--line);
+  flex: none; overflow: auto; padding: 8px 0 16px;
 }
-.legend {
-  padding: 10px 14px; color: var(--muted); font-size: 12px; line-height: 1.55;
-  border-bottom: 1px solid var(--line);
+.menu-group { margin: 4px 8px 0; }
+.menu-title {
+  height: 36px; display: flex; align-items: center; gap: 6px; padding: 0 8px;
+  color: #1f1f1f; font-weight: 600;
 }
-#sider-nav { flex: 1; overflow: auto; padding: 6px 0 16px; }
-.tree-customer { padding: 8px 16px 4px; font-weight: 650; }
-.tree-id { margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 400; }
-.brand {
-  height: 52px; display: flex; align-items: center; gap: 8px;
-  padding: 0 16px; font-weight: 650; font-size: 15px; border-bottom: 1px solid var(--line);
+.menu-title span { flex: 1; }
+.menu-sub {
+  display: block; width: calc(100% - 8px); margin: 1px 4px 1px 18px; border: 0; background: transparent;
+  text-align: left; height: 32px; border-radius: 6px; padding: 0 10px; color: #434343;
 }
-.brand i {
-  width: 22px; height: 22px; border-radius: 6px; background: var(--blue); color: #fff;
-  display: grid; place-items: center; font-style: normal; font-size: 12px;
-}
+.menu-sub.on { background: #e6f4ff; color: var(--blue); }
+.menu-sub:disabled { color: #bfbfbf; cursor: default; }
 .group { margin: 14px 16px 6px; color: var(--muted); font-size: 12px; }
 .navbtn {
   margin: 1px 8px; border: 0; background: transparent; text-align: left;
@@ -68,9 +78,17 @@ button { cursor: pointer; }
 .dot.垫资 { background: #237804; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .top {
-  height: 48px; background: #fff; border-bottom: 1px solid var(--line);
-  display: flex; align-items: center; padding: 0 16px; gap: 8px; flex: none;
+  height: 40px; background: #fff; border-bottom: 1px solid var(--line);
+  display: flex; align-items: flex-end; padding: 0 12px; gap: 8px; flex: none;
 }
+.pagetab {
+  height: 32px; display: inline-flex; align-items: center; gap: 8px;
+  padding: 0 12px; background: #f5f6f8; border: 1px solid var(--line); border-bottom: 0; border-radius: 6px 6px 0 0;
+  color: var(--text);
+}
+.path { height: 36px; display: flex; align-items: center; gap: 6px; padding: 0 16px; color: var(--muted); background: transparent; }
+.path b { color: var(--text); font-weight: 550; }
+.path .sep { color: #d9d9d9; }
 .crumb { color: var(--muted); }
 .crumb b { color: var(--text); font-weight: 550; }
 .spacer { flex: 1; }
@@ -81,10 +99,12 @@ button { cursor: pointer; }
 .row { display: flex; gap: 12px; align-items: stretch; }
 .row > * { flex: 1; min-width: 0; }
 .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
-.kpi { background: #fff; border-radius: 8px; padding: 14px 16px; }
-.kpi .k { color: var(--muted); margin-bottom: 6px; }
-.kpi .v { font-size: 20px; font-weight: 650; letter-spacing: -0.3px; }
-.kpi .s { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.kpi { background: #fff; border-radius: 8px; padding: 16px 20px 18px; }
+.kpi .k { color: var(--sub); margin-bottom: 8px; font-size: 13px; }
+.kpi .v { font-size: 28px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.15; font-variant-numeric: tabular-nums; color: #1f1f1f; }
+.kpi.lead { box-shadow: inset 3px 0 0 var(--blue); }
+.kpi.lead .v { color: var(--blue); }
+.kpi .s { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .switches { display: grid; grid-template-columns: 1.2fr 1.2fr .9fr; gap: 12px; }
 .sw {
   border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
@@ -118,8 +138,14 @@ button { cursor: pointer; }
 .stats div { background: #fafafa; border-radius: 6px; padding: 8px; }
 .stats .k { color: var(--muted); font-size: 12px; }
 .stats .v { margin-top: 2px; font-weight: 600; }
-.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 12px; align-items: center; }
 .filters select, .filters input { height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 10px; background: #fff; }
+.flt { display: flex; align-items: center; gap: 6px; color: var(--sub); }
+.flt input { width: 168px; }
+.flt select { width: 120px; }
+.mids { display: flex; flex-direction: column; gap: 6px; }
+.info { display: grid; grid-template-columns: 108px 1fr; gap: 10px 16px; line-height: 1.5; }
+.info .k { color: var(--muted); }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
 th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky; top: 0; }
@@ -155,6 +181,7 @@ th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky;
 .mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 20; }
 .mask[hidden] { display: none; }
 .dialog { width: 480px; background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.dialog.wide { width: 560px; }
 .dialog header, .dialog footer { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
 .dialog header { border-bottom: 1px solid var(--line); }
 .dialog header h2 { margin: 0; font-size: 16px; }
@@ -173,17 +200,40 @@ th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky;
 </head>
 <body>
 <div class="app">
+  <aside class="rail">
+    <div class="logo">b</div>
+    <button class="mod" type="button">设置</button>
+    <button class="mod" type="button">工作台</button>
+    <button class="mod on" type="button"><b>Fund</b></button>
+  </aside>
   <aside class="sider">
-    <div class="brand"><i>F</i> Fund</div>
-    <div class="legend">商户 id 一般为 5 位数字，全局唯一。一个客户可以有多个商户 id。</div>
-    <div id="sider-nav"></div>
+    <div class="menu-group">
+      <div class="menu-title"><span>商户管理</span></div>
+      <button class="menu-sub" type="button" disabled>商户管理</button>
+      <button class="menu-sub on" type="button" data-nav="list">客户统一账户</button>
+      <button class="menu-sub" type="button" disabled>期初余额记录</button>
+      <button class="menu-sub" type="button" disabled>账户调拨列表</button>
+    </div>
+    <div class="menu-group">
+      <div class="menu-title"><span>交易管理</span></div>
+      <button class="menu-sub" type="button" disabled>交易详情</button>
+      <button class="menu-sub" type="button" disabled>业务入账</button>
+      <button class="menu-sub" type="button" disabled>在线充值</button>
+      <button class="menu-sub" type="button" disabled>转账审核</button>
+      <button class="menu-sub" type="button" disabled>预充追踪</button>
+      <button class="menu-sub" type="button" disabled>预充管理</button>
+      <button class="menu-sub" type="button" disabled>Paypal账单管理</button>
+      <button class="menu-sub" type="button" disabled>收款明细</button>
+    </div>
+    <div class="menu-group">
+      <div class="menu-title"><span>额度管理</span></div>
+      <button class="menu-sub" type="button" disabled>额度账单</button>
+      <button class="menu-sub" type="button" disabled>信用额度</button>
+    </div>
   </aside>
   <section class="main">
-    <div class="top">
-      <div class="crumb">资金中台 / 统一钱包 / <b id="crumb">客户总览</b></div>
-      <div class="spacer"></div>
-      <div class="who" id="who">全部客户</div>
-    </div>
+    <div class="top"><span class="pagetab">客户统一账户</span></div>
+    <div class="path" id="path"></div>
     <div class="content" id="view"></div>
   </section>
 </div>
@@ -197,7 +247,8 @@ const PAGES = { list: "客户列表", home: "客户总览", lines: "业务线账
 const state = {
   page: "list",
   customerId: "C20240018",
-  q: "",
+  filters: { name: "", merchantId: "", info: "" },
+  listStatus: "全部",
   balanceShare: true,
   priority: "reason",
   creditShare: false,
@@ -239,6 +290,7 @@ function creditBag(byCcy) {
 const customers = [
   {
     id: "C20240018", name: "示例客户A", main: "USD", status: "正常", demoPay: 20000, payCcy: "USD",
+    profile: { region: "美国", email: "ke.chen@example.com", contact: "陈可", phone: "+1 628 555 0142", company: "示例客户A" },
     balanceShare: true, priority: "reason", creditShare: false,
     merchants: [
       { id: "10086", name: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", stores: ["独立站-US", "独立站-CA"] },
@@ -298,6 +350,7 @@ const customers = [
   },
   {
     id: "C20240032", name: "示例客户B", main: "USD", status: "正常", demoPay: 8000, payCcy: "USD",
+    profile: { region: "中国 / 广东", email: "lin.xia@example.com", contact: "林夏", phone: "+86 138 0000 2081", company: "示例客户B" },
     balanceShare: false, priority: "reason", creditShare: false,
     merchants: [
       { id: "20831", name: "示例客户B-商户01", uniq: "HC-001", erp: "HC-MAIN", stores: ["店铺01"] }
@@ -319,6 +372,7 @@ const customers = [
   },
   {
     id: "C20240041", name: "示例客户C", main: "EUR", status: "异常", demoPay: 2000, payCcy: "EUR",
+    profile: { region: "德国", email: "anna.keller@example.com", contact: "Anna Keller", phone: "+49 30 5550 3150", company: "示例客户C" },
     balanceShare: true, priority: "reason", creditShare: false,
     merchants: [
       { id: "31502", name: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", stores: ["店铺01"] }
@@ -337,6 +391,7 @@ const customers = [
   },
   {
     id: "C20240055", name: "示例客户D", main: "USD", status: "正常", demoPay: 5000, payCcy: "USD",
+    profile: { region: "英国", email: "james.holt@example.com", contact: "James Holt", phone: "+44 20 7946 4261", company: "示例客户D" },
     balanceShare: true, priority: "reason", creditShare: true,
     merchants: [
       { id: "42618", name: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", stores: ["店铺01"] }
@@ -357,6 +412,7 @@ const customers = [
   },
   {
     id: "C20230102", name: "示例客户E", main: "USD", status: "已停用", demoPay: 1000, payCcy: "USD",
+    profile: { region: "中国 / 上海", email: "zhou.ning@example.com", contact: "周宁", phone: "+86 139 0000 1102", company: "示例客户E" },
     balanceShare: false, priority: "reason", creditShare: false,
     merchants: [
       { id: "11002", name: "示例客户E-商户01", uniq: "JG-001", erp: "JG-MAIN", stores: ["店铺01"] }
@@ -560,41 +616,38 @@ function go(page, patch) {
   if ((location.hash || "#list") === "#" + page) { state.page = page; render(); }
   else location.hash = page;
 }
-function crumbText() {
+function pathItems() {
   const c = cur();
-  if (state.page === "list") return "客户列表";
-  if (state.page === "home") return c.name + " / 统一钱包";
+  const reset = { merchant: "全部", biz: "全部", ccy: "全部", lineId: "", storeMerchant: "全部", storeFocus: "全部" };
+  const items = [{ label: "客户统一账户", page: "list", patch: reset }];
+  if (state.page === "list") return items;
+  items.push({ label: c.name, page: "home", patch: reset });
+  if (state.page === "home") return items;
   if (state.page === "lines") {
     const m = merchants.find(function (x) { return x.id === state.merchant; });
-    return c.name + " / " + (m ? "商户 " + m.name + " / " : "") + "业务线账户";
+    items.push({ label: m ? m.name : "业务线账户", page: "lines", patch: {} });
+    return items;
   }
   if (state.page === "stores") {
     const m = merchants.find(function (x) { return x.id === state.storeMerchant; });
-    const shop = state.storeFocus && state.storeFocus !== "全部" ? "店铺 " + state.storeFocus : "店铺归集";
-    return c.name + " / " + (m ? "商户 " + m.name + " / " : "") + shop;
+    if (m) items.push({ label: m.name, page: "lines", patch: { merchant: m.id, biz: "全部", ccy: "全部", lineId: "" } });
+    items.push({ label: "店铺", page: "stores", patch: { storeFocus: "全部", storeMerchant: state.storeMerchant } });
+    if (state.storeFocus && state.storeFocus !== "全部") items.push({ label: state.storeFocus, page: "stores", patch: {} });
+    return items;
   }
-  return c.name + " / " + PAGES[state.page];
+  items.push({ label: PAGES[state.page] || state.page, page: state.page, patch: {} });
+  return items;
 }
-function renderNav() {
-  const c = cur();
-  let html = '<button class="navbtn' + (state.page === "list" ? " on" : "") + '" data-nav="list">客户列表</button>';
-  html += '<div class="tree-customer">' + esc(c.name) + '<div class="tree-id">' + esc(c.id) + " · 当前客户</div></div>";
-  html += '<button class="navbtn l1' + (state.page === "home" ? " on" : "") + '" data-nav="home"><span class="mark">L1</span>统一钱包</button>';
-  c.merchants.forEach(function (m) {
-    const selfOn = state.page === "lines" && state.merchant === m.id;
-    html += '<button class="navbtn l2' + (selfOn ? " on" : "") + '" data-nav="lines" data-mid="' + m.id + '"><span class="mark">L2</span><span>商户 ' + esc(m.id) + '<span class="tree-id">' + esc(m.name) + "</span></span></button>";
-    const storeOn = state.page === "stores" && state.storeMerchant === m.id;
-    html += '<button class="navbtn l3 dim' + (storeOn ? " on" : "") + '" data-nav="stores" data-mid="' + m.id + '" data-stores="1">店铺归集</button>';
-  });
-  html += '<div class="group">资金使用</div>';
-  html += '<button class="navbtn' + (state.page === "ledger" ? " on" : "") + '" data-nav="ledger">资金流水</button>';
-  html += '<button class="navbtn' + (state.page === "pay" ? " on" : "") + '" data-nav="pay">付款试算</button>';
-  document.getElementById("sider-nav").innerHTML = html;
+function renderPath() {
+  const items = pathItems();
+  state.pathItems = items;
+  document.getElementById("path").innerHTML = items.map(function (item, i) {
+    const last = i === items.length - 1;
+    return (i ? '<span class="sep">/</span>' : "") + (last ? "<b>" + esc(item.label) + "</b>" : '<button type="button" class="link" data-path="' + i + '">' + esc(item.label) + "</button>");
+  }).join("");
 }
 function render() {
-  renderNav();
-  document.getElementById("crumb").textContent = crumbText();
-  document.getElementById("who").textContent = state.page === "list" ? "全部客户" : cur().name + " · 客户 " + cur().id;
+  renderPath();
   const view = document.getElementById("view");
   const banner = state.banner ? '<div class="banner"><span>' + esc(state.banner) + '</span><button class="link" id="dismiss">知道了</button></div>' : "";
   view.innerHTML = banner + ({ list: viewList, home: viewHome, lines: viewLines, stores: viewStores, ledger: viewLedger, pay: viewPay })[state.page]();
@@ -602,18 +655,42 @@ function render() {
 }
 
 function viewList() {
-  const q = state.q.trim();
-  const rows = customers.filter(function (c) {
-    return !q || (c.name + c.id).indexOf(q) >= 0;
-  });
-  return '<div class="panel"><div class="filters"><input data-num="q" placeholder="搜索客户名称或客户 ID" value="' + esc(state.q) + '" /></div>'
-    + '<div class="tablewrap"><table><thead><tr><th>客户</th><th>主币种</th><th>总可用余额（主币种）</th><th>可用余额（按币种）</th><th>信用额度（按币种）</th><th>已用额度（按币种）</th><th>剩余额度（按币种）</th><th>真实金额（换算主币种）</th><th>真实金额（按币种）</th><th>待核销预充</th><th>商户</th><th>状态</th><th></th></tr></thead><tbody>'
-    + rows.map(function (c) {
+  const rows = customers.filter(matchCustomer);
+  return '<div class="panel"><div class="filters">'
+    + '<label class="flt">客户名称 <input data-filter="name" placeholder="客户名称" value="' + esc(state.filters.name) + '" /></label>'
+    + '<label class="flt">商户id <input data-filter="merchantId" placeholder="商户id" value="' + esc(state.filters.merchantId) + '" /></label>'
+    + '<label class="flt">客户信息 <input data-filter="info" placeholder="编号、邮箱、联系人、地区" value="' + esc(state.filters.info) + '" /></label>'
+    + '<label class="flt">状态 <select data-set="listStatus">' + ["全部", "正常", "异常", "已停用"].map(function (s) {
+      return '<option' + (state.listStatus === s ? " selected" : "") + ">" + s + "</option>";
+    }).join("") + "</select></label>"
+    + '<button class="btn" id="reset-list" type="button">重置</button>'
+    + '<span class="mini">共 ' + rows.length + " 个客户</span></div>"
+    + '<div class="tablewrap"><table><thead><tr><th>客户</th><th>商户id</th><th>主币种</th><th>总可用余额（主币种）</th><th>可用余额（按币种）</th><th>信用额度（按币种）</th><th>已用额度（按币种）</th><th>剩余额度（按币种）</th><th>真实金额（换算主币种）</th><th>真实金额（按币种）</th><th>待核销预充</th><th>状态</th><th>客户详情</th><th>操作</th></tr></thead><tbody>'
+    + (rows.length ? rows.map(function (c) {
       const pending = pendingUsd(c);
       const ccys = customerCurrencyRows(c);
-      return "<tr><td>" + esc(c.name) + "<div class=\"mini\">" + esc(c.id) + "</div></td><td>" + ccyTag(c.main, true) + "</td><td>" + totalInMain(c, ccys, "usable") + "</td><td>" + stackMoney(ccys, "usable") + "</td><td>" + stackMoney(ccys, "limit") + "</td><td>" + stackMoney(ccys, "used") + "</td><td>" + stackMoney(ccys, "remain") + "</td><td>" + totalInMain(c, ccys, "real") + "</td><td>" + stackMoney(ccys, "real") + "</td><td>" + (pending ? money(pending / RATE[c.main], c.main) : "—") + "</td><td>" + c.merchants.length + "<div class=\"mini\">" + esc(c.merchants.map(function (m) { return m.id; }).join("、")) + "</div></td><td>" + statusTag(c.status) + "</td><td><button class=\"link\" data-open=\"" + c.id + "\">进入钱包</button></td></tr>";
-    }).join("")
+      return "<tr><td>" + esc(c.name) + "<div class=\"mini\">" + esc(c.id) + "</div></td><td>" + merchantIdCell(c) + "</td><td>" + ccyTag(c.main, true) + "</td><td>" + totalInMain(c, ccys, "usable") + "</td><td>" + stackMoney(ccys, "usable") + "</td><td>" + stackMoney(ccys, "limit") + "</td><td>" + stackMoney(ccys, "used") + "</td><td>" + stackMoney(ccys, "remain") + "</td><td>" + totalInMain(c, ccys, "real") + "</td><td>" + stackMoney(ccys, "real") + "</td><td>" + (pending ? money(pending / RATE[c.main], c.main) : "—") + "</td><td>" + statusTag(c.status) + '</td><td><button class="link" data-detail="' + c.id + '">客户详情</button></td><td><button class="link" data-open="' + c.id + '">进入钱包</button></td></tr>';
+    }).join("") : '<tr><td colspan="14">没有符合筛选条件的客户</td></tr>')
     + "</tbody></table></div></div>";
+}
+function matchCustomer(c) {
+  const name = state.filters.name.trim();
+  const mid = state.filters.merchantId.trim();
+  const info = state.filters.info.trim().toLowerCase();
+  const p = c.profile || {};
+  if (name && c.name.indexOf(name) < 0) return false;
+  if (mid && !c.merchants.some(function (m) { return m.id.indexOf(mid) >= 0; })) return false;
+  if (info) {
+    const blob = [c.id, c.name, p.region, p.email, p.contact, p.phone, p.company].join(" ").toLowerCase();
+    if (blob.indexOf(info) < 0) return false;
+  }
+  if (state.listStatus !== "全部" && c.status !== state.listStatus) return false;
+  return true;
+}
+function merchantIdCell(c) {
+  return '<div class="mids">' + c.merchants.map(function (m) {
+    return "<div>" + esc(m.id) + '<div class="mini">' + esc(m.name) + "</div></div>";
+  }).join("") + "</div>";
 }
 function customerCurrencyRows(c) {
   const mine = activeOf(c);
@@ -655,18 +732,18 @@ function viewHome() {
   const pending = pendingList.reduce(function (s, v) { return s + usdOf(v.amount, v.ccy); }, 0);
   const creditRemainUsd = creditTotalUsd("limit") - creditTotalUsd("used");
   const creditBrief = Object.keys(credit).map(function (ccy) { return ccy + " 剩余 " + money(creditSum(ccy).remain, ccy); }).join(" · ");
-  return customerCcyTable(active(), cur().main)
-    + '<div class="kpis">'
-    + kpi("折合可用", mainMoney(avail + creditRemainUsd), "含各币种剩余信用" + (pending ? " · 含待核销预充 " + mainMoney(pending) : ""))
+  return '<div class="kpis">'
+    + kpi("折合可用", mainMoney(avail + creditRemainUsd), "含各币种剩余信用" + (pending ? " · 含待核销预充 " + mainMoney(pending) : ""), true)
     + kpi("折合真实金额", mainMoney(real), "不含尚未到账的预充")
     + kpi("信用剩余折合", mainMoney(creditRemainUsd), creditBrief || "还没有信用额度")
     + "</div>"
+    + customerCcyTable(active(), cur().main)
     + '<div class="panel"><div class="rulebar">'
     + '<span class="pair">可用余额跨业务线 <button class="toggle' + (state.balanceShare ? " on" : "") + '" data-toggle="balanceShare" aria-label="可用余额跨业务线"><i></i></button></span>'
     + '<span class="pair">信用额度跨业务线 <button class="toggle' + (state.creditShare ? " on" : "") + '" data-toggle="creditShare" aria-label="信用额度跨业务线"><i></i></button></span>'
     + '<span class="pair">优先扣 <select data-set="priority">' + prioritySelect() + "</select></span>"
     + "</div></div>"
-    + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">商户</h3><span class="mini">' + merchants.length + " 个</span></div>"
+    + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">商户</h3><span class="mini">' + merchants.length + ' 个</span><span class="spacer"></span><button class="link" data-nav="ledger">资金流水</button><button class="link" data-nav="pay">付款试算</button></div>'
     + '<div class="tablewrap"><table><thead><tr><th>商户id</th><th>商户名称</th><th>店铺</th><th>可用余额</th><th>待核销预充</th><th></th></tr></thead><tbody>'
     + merchants.map(function (m) {
       const mine = active().filter(function (l) { return l.merchantId === m.id; });
@@ -689,8 +766,8 @@ function viewHome() {
       + "</tbody></table></div></div>" : "");
 }
 
-function kpi(k, v, s) {
-  return '<div class="kpi"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div><div class="s">' + esc(s) + '</div></div>';
+function kpi(k, v, s, lead) {
+  return '<div class="kpi' + (lead ? " lead" : "") + '"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div><div class="s">' + esc(s) + '</div></div>';
 }
 function switchBox(key, title, on, text) {
   return '<div class="sw"><div class="hd"><span>' + esc(title) + '</span><button class="toggle' + (on ? " on" : "") + '" data-toggle="' + key + '" aria-label="' + esc(title) + '"><i></i></button></div><p>' + esc(text) + '</p></div>';
@@ -935,6 +1012,9 @@ function viewPay() {
     + '</div><div class="panel"><h3>扣款结果</h3><div class="steps">' + body + "</div></div></div>";
 }
 
+function infoRow(k, v) {
+  return '<div class="k">' + esc(k) + "</div><div>" + v + "</div>";
+}
 function field(label, control) {
   return '<div class="field"><label>' + esc(label) + "</label>" + control + "</div>";
 }
@@ -942,6 +1022,24 @@ function field(label, control) {
 function renderModal() {
   const mask = document.getElementById("mask");
   if (!state.modal) { mask.hidden = true; mask.innerHTML = ""; return; }
+  if (state.modal.type === "customer") {
+    const c = customers.find(function (x) { return x.id === state.modal.id; });
+    const p = c.profile || {};
+    mask.hidden = false;
+    mask.innerHTML = '<div class="dialog wide"><header><h2>客户详情</h2><button class="x" id="close">×</button></header><div class="body"><div class="info">'
+      + infoRow("客户名称", esc(c.name))
+      + infoRow("客户编号", esc(c.id))
+      + infoRow("地区/国家", esc(p.region || "—"))
+      + infoRow("联系人名称", esc(p.contact || "—"))
+      + infoRow("联系方式（邮箱）", esc(p.email || "—"))
+      + infoRow("联系电话", esc(p.phone || "—"))
+      + infoRow("客户主体", esc(p.company || c.name))
+      + infoRow("主币种", ccyTag(c.main, true))
+      + infoRow("状态", statusTag(c.status))
+      + infoRow("商户id", c.merchants.map(function (m) { return esc(m.id) + " · " + esc(m.name); }).join("<br>"))
+      + "</div></div><footer><button class=\"btn\" id=\"close2\">关闭</button></footer></div>";
+    return;
+  }
   const line = lines.find(function (l) { return l.id === state.modal.id; });
   mask.hidden = false;
   let title = "";
@@ -998,6 +1096,12 @@ document.body.addEventListener("click", function (e) {
   }
   const fold = e.target.closest("[data-fold]");
   if (fold) { state.fold = state.fold === fold.dataset.fold ? "" : fold.dataset.fold; render(); return; }
+  const pathBtn = e.target.closest("[data-path]");
+  if (pathBtn) {
+    const item = state.pathItems[Number(pathBtn.dataset.path)];
+    if (item) go(item.page, item.patch || {});
+    return;
+  }
   const nav = e.target.closest("[data-nav]");
   if (nav) {
     const page = nav.dataset.nav;
@@ -1029,6 +1133,18 @@ document.body.addEventListener("click", function (e) {
     bind(open.dataset.open);
     if (location.hash === "#home") { state.page = "home"; render(); }
     else location.hash = "home";
+    return;
+  }
+  const detail = e.target.closest("[data-detail]");
+  if (detail) {
+    state.modal = { type: "customer", id: detail.dataset.detail };
+    render();
+    return;
+  }
+  if (e.target.id === "reset-list") {
+    state.filters = { name: "", merchantId: "", info: "" };
+    state.listStatus = "全部";
+    render();
     return;
   }
   const wo = e.target.closest("[data-writeoff]");
@@ -1154,11 +1270,12 @@ document.body.addEventListener("change", function (e) {
 });
 
 document.body.addEventListener("input", function (e) {
-  if (e.target.dataset.num === "q") {
-    state.q = e.target.value;
+  if (e.target.dataset.filter) {
+    const key = e.target.dataset.filter;
+    state.filters[key] = e.target.value;
     const start = e.target.selectionStart;
     render();
-    const again = document.querySelector('[data-num="q"]');
+    const again = document.querySelector('[data-filter="' + key + '"]');
     if (again) { again.focus(); again.setSelectionRange(start, start); }
     return;
   }

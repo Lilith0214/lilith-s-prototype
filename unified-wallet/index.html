@@ -164,7 +164,10 @@ button { cursor: pointer; }
 .glance-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 1100px) { .glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .glance-grid { grid-template-columns: 1fr; } }
-.glance-card { background: #f7f8fa; border: 0; border-radius: 12px; padding: 16px 16px 14px; }
+.glance-card[data-biz-open] { cursor: pointer; }
+.glance-card[data-biz-open]:hover { background: #f0f2f5; }
+.biz-flag { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.biz-flag .ccy-code { font-size: 22px; }
 .glance-card .hd { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
 .flag { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
 .flag svg { width: 28px; height: 28px; display: block; }
@@ -363,6 +366,7 @@ const state = {
   merchant: "全部",
   detailBiz: "全部",
   detailCcy: "全部",
+  lineMode: "",
   lineId: "",
   group: "biz",
   homeDim: "ccy",
@@ -743,12 +747,16 @@ function go(page, patch) {
 }
 function pathItems() {
   const c = cur();
-  const reset = { merchant: "全部", biz: "全部", ccy: "全部", lineId: "", storeMerchant: "全部", storeFocus: "全部" };
+  const reset = { merchant: "全部", biz: "全部", ccy: "全部", lineId: "", storeMerchant: "全部", storeFocus: "全部", detailBiz: "全部", detailCcy: "全部", lineMode: "" };
   const items = [{ label: "客户统一账户", page: "list", patch: reset }];
   if (state.page === "list") return items;
   items.push({ label: c.name, page: "home", patch: reset });
   if (state.page === "home") return items;
   if (state.page === "lines") {
+    if (state.lineMode === "biz" && BIZ.indexOf(state.detailBiz) >= 0) {
+      items.push({ label: state.detailBiz, page: "lines", patch: {} });
+      return items;
+    }
     const m = merchants.find(function (x) { return x.id === state.merchant; });
     items.push({ label: m ? m.name : "业务线账户", page: "lines", patch: {} });
     return items;
@@ -1235,7 +1243,7 @@ function bizCards(list) {
       const creditLimit = hasCredit(b) ? item.limit : null;
       const creditRemain = hasCredit(b) ? item.limit - item.used : 0;
       const usable = atLeastZero((realUsd - debtUsd) / RATE[main] + creditRemain);
-      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(b.slice(0, 1)) + '</span><span class="ccy-code">' + b + '</span></div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
+      return '<article class="glance-card" role="button" aria-label="' + b + '" data-biz-open="' + b + '"><div class="hd"><span class="mark">' + esc(b.slice(0, 1)) + '</span><span class="ccy-code">' + b + '</span></div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
         + subline("可用金额", money(usable, main), "avail")
         + subline("真实金额", money(realUsd / RATE[main], main))
         + subline("信用额度", creditLimit == null ? "—" : money(creditLimit, main))
@@ -1275,7 +1283,40 @@ function customerCcyTable(list, main) {
     }).join("")
     + "</tbody></table></div></div>";
 }
+function linesTableBody(rows) {
+  return rows.map(function (l) {
+    const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
+    const item = bag(l.ccy, l.biz);
+    const pre = l.ccy === cur().main && m.precharge && m.precharge[l.ccy] ? m.precharge[l.ccy] : null;
+    const showLineCredit = hasCredit(l.biz) && l.ccy === cur().main;
+    return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主币种" : "非主币种") + "</td><td>" + statusTag(l.status) + "</td><td>" + (pre ? money(pre.limit || 0, l.ccy) : "—") + "</td><td>" + (pre ? money(pre.used || 0, l.ccy) : "—") + "</td><td>" + esc(l.fee || "公司承担") + "</td><td>" + esc(l.fxTopup || "关闭") + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(atLeastZero((Number(l.real) || 0) - (Number(l.openingDebt) || 0)), l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + (showLineCredit ? money(item.limit, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.limit - item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? quotaStatus(item.limit, item.limit - item.used) : "—") + "</td><td>" + money(Number(l.openingDebt) || 0, l.ccy) + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td></tr>";
+  }).join("");
+}
+function viewBizWallet() {
+  const biz = state.detailBiz;
+  const main = cur().main;
+  const mine = active().filter(function (l) { return l.biz === biz; });
+  const currentUsd = mine.reduce(function (s, l) { return s + usdOf(Number(l.current) || 0, l.ccy); }, 0);
+  const realUsd = mine.reduce(function (s, l) { return s + usdOf(Number(l.real) || 0, l.ccy); }, 0);
+  const debtUsd = mine.reduce(function (s, l) { return s + usdOf(Number(l.openingDebt) || 0, l.ccy); }, 0);
+  const item = bag(main, biz);
+  const creditLimit = hasCredit(biz) ? item.limit : null;
+  const creditRemain = hasCredit(biz) ? item.limit - item.used : 0;
+  const usable = atLeastZero((realUsd - debtUsd) / RATE[main] + creditRemain);
+  const note = "按主币种" + main + "换算";
+  const rows = detailLines();
+  return '<div class="wallet-board"><div class="biz-flag"><span class="mark">' + esc(biz.slice(0, 1)) + '</span><span class="ccy-code">' + esc(biz) + "</span></div>"
+    + '<div class="hero-row">'
+    + '<div class="hero-amt"><div class="k">当前金额</div><div class="v">' + money(currentUsd / RATE[main], main) + '</div><div class="s">' + note + "</div></div>"
+    + '<div class="hero-amt avail"><div class="k">可用金额</div><div class="v">' + money(usable, main) + '</div><div class="s">' + note + "</div></div>"
+    + '<div class="hero-amt"><div class="k">信用额度</div><div class="v">' + (creditLimit == null ? "—" : money(creditLimit, main)) + "</div></div>"
+    + "</div></div>"
+    + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">账户明细</h3><span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初负债</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
+    + (linesTableBody(rows) || '<tr><td colspan="26">这个业务线还没有账户</td></tr>')
+    + "</tbody></table></div></div>";
+}
 function viewLines() {
+  if (state.lineMode === "biz" && BIZ.indexOf(state.detailBiz) >= 0) return viewBizWallet();
   const scoped = scopedLines();
   let summary = "";
   if (state.group === "ccy") {
@@ -1307,13 +1348,7 @@ function viewLines() {
     + '<button class="btn" id="transfer">发起调拨</button></div>'
     + summary + "</div>"
     + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">' + esc(detailName) + "</h3>" + clearDetail + '<span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初负债</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
-    + rows.map(function (l) {
-      const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
-      const item = bag(l.ccy, l.biz);
-      const pre = l.ccy === cur().main && m.precharge && m.precharge[l.ccy] ? m.precharge[l.ccy] : null;
-      const showLineCredit = hasCredit(l.biz) && l.ccy === cur().main;
-      return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主币种" : "非主币种") + "</td><td>" + statusTag(l.status) + "</td><td>" + (pre ? money(pre.limit || 0, l.ccy) : "—") + "</td><td>" + (pre ? money(pre.used || 0, l.ccy) : "—") + "</td><td>" + esc(l.fee || "公司承担") + "</td><td>" + esc(l.fxTopup || "关闭") + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(atLeastZero((Number(l.real) || 0) - (Number(l.openingDebt) || 0)), l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + (showLineCredit ? money(item.limit, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.limit - item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? quotaStatus(item.limit, item.limit - item.used) : "—") + "</td><td>" + money(Number(l.openingDebt) || 0, l.ccy) + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td></tr>";
-    }).join("")
+    + linesTableBody(rows)
     + "</tbody></table></div></div>";
 }
 
@@ -1681,12 +1716,12 @@ document.body.addEventListener("click", function (e) {
   const midOpen = e.target.closest("[data-mid-open]");
   if (midOpen) {
     bind(midOpen.dataset.cid);
-    go("lines", { merchant: midOpen.dataset.midOpen, biz: "全部", ccy: "全部", lineId: "" });
+    go("lines", { merchant: midOpen.dataset.midOpen, biz: "全部", ccy: "全部", lineId: "", detailBiz: "全部", detailCcy: "全部", lineMode: "" });
     return;
   }
   const jump = e.target.closest("[data-jump]");
   if (jump) {
-    if (jump.dataset.jump === "lines") go("lines", { merchant: jump.dataset.mid, biz: "全部", ccy: "全部", lineId: "" });
+    if (jump.dataset.jump === "lines") go("lines", { merchant: jump.dataset.mid, biz: "全部", ccy: "全部", lineId: "", detailBiz: "全部", detailCcy: "全部", lineMode: "" });
     else go("stores", { storeMerchant: jump.dataset.mid, storeFocus: "全部" });
     return;
   }
@@ -1722,6 +1757,11 @@ document.body.addEventListener("click", function (e) {
       patch.storeFocus = "全部";
     }
     go(page, patch);
+    return;
+  }
+  const bizOpen = e.target.closest("[data-biz-open]");
+  if (bizOpen) {
+    go("lines", { lineMode: "biz", merchant: "全部", biz: bizOpen.dataset.bizOpen, ccy: "全部", detailBiz: bizOpen.dataset.bizOpen, detailCcy: "全部", lineId: "" });
     return;
   }
   const grp = e.target.closest("[data-group]");

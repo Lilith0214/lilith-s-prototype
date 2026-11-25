@@ -171,7 +171,8 @@ button { cursor: pointer; }
   padding: 16px 16px 14px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, .06);
 }
-.glance-card .hd .detail-link { margin-left: auto; white-space: nowrap; }
+.glance-card .hd .tag,
+.biz-flag .tag { flex: 0 0 auto; width: fit-content; align-self: center; }
 .biz-flag { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .biz-flag .ccy-code { font-size: 22px; }
 .glance-card .hd { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
@@ -1130,7 +1131,7 @@ function voucherTable() {
 function stat(k, v) { return '<div><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div></div>'; }
 function tag(cls, text) { return '<span class="tag ' + cls + '">' + esc(text) + '</span>'; }
 function ccyTag(ccy, isMain) {
-  return esc(ccy) + " " + tag(isMain ? "main" : "sub", isMain ? "主" : "非主");
+  return esc(ccy) + " " + tag(isMain ? "main" : "sub", isMain ? "主币种" : "非主币种");
 }
 
 function scopedLines() {
@@ -1236,7 +1237,7 @@ function currencyCards(list) {
       const preUsed = (cur().precharge && cur().precharge[ccy] && cur().precharge[ccy].used) || 0;
       const extra = (ccy === main && cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
       const limit = ccy === main ? creditSum(ccy).limit + (Number(extra.limit) || 0) : null;
-      return '<article class="glance-card"><div class="hd">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主" : "非主") + '<button class="link detail-link" type="button" data-ccy-open="' + esc(ccy) + '">账户明细</button></div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
+      return '<article class="glance-card"><div class="hd">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + '<button class="link detail-link" type="button" data-ccy-open="' + esc(ccy) + '">账户明细</button></div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
         + subline("可用金额", money(usableInCcy(list, ccy, preUsed), ccy), "avail")
         + subline("真实金额", money(sumCcy(list, ccy, "real"), ccy))
         + subline("信用额度", limit == null ? "—" : money(limit, ccy))
@@ -1294,7 +1295,7 @@ function customerCcyTable(list, main) {
       const creditCells = ccy === main
         ? "<td>" + money(sum.limit, ccy) + "</td><td>" + money(sum.used, ccy) + "</td><td>" + money(sum.remain, ccy) + "</td>"
         : "<td>—</td><td>—</td><td>—</td>";
-      return "<tr><td>" + esc(ccy) + "</td><td>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主" : "非主") + "</td><td>" + money(sumCcy(list, ccy, "current"), ccy) + "</td><td>" + money(usable, ccy) + "</td><td>" + money(sumCcy(list, ccy, "real"), ccy) + "</td><td>" + money(sumCcy(list, ccy, "frozen"), ccy) + "</td>" + creditCells + "</tr>";
+      return "<tr><td>" + esc(ccy) + "</td><td>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + "</td><td>" + money(sumCcy(list, ccy, "current"), ccy) + "</td><td>" + money(usable, ccy) + "</td><td>" + money(sumCcy(list, ccy, "real"), ccy) + "</td><td>" + money(sumCcy(list, ccy, "frozen"), ccy) + "</td>" + creditCells + "</tr>";
     }).join("")
     + "</tbody></table></div></div>";
 }
@@ -1304,7 +1305,7 @@ function linesTableBody(rows) {
     const item = bag(l.ccy, l.biz);
     const pre = l.ccy === cur().main && m.precharge && m.precharge[l.ccy] ? m.precharge[l.ccy] : null;
     const showLineCredit = hasCredit(l.biz) && l.ccy === cur().main;
-    return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主" : "非主") + "</td><td>" + statusTag(l.status) + "</td><td>" + (pre ? money(pre.limit || 0, l.ccy) : "—") + "</td><td>" + (pre ? money(pre.used || 0, l.ccy) : "—") + "</td><td>" + esc(l.fee || "公司承担") + "</td><td>" + esc(l.fxTopup || "关闭") + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(atLeastZero((Number(l.real) || 0) - (Number(l.openingDebt) || 0)), l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + (showLineCredit ? money(item.limit, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.limit - item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? quotaStatus(item.limit, item.limit - item.used) : "—") + "</td><td>" + money(Number(l.openingDebt) || 0, l.ccy) + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td></tr>";
+    return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主币种" : "非主币种") + "</td><td>" + statusTag(l.status) + "</td><td>" + (pre ? money(pre.limit || 0, l.ccy) : "—") + "</td><td>" + (pre ? money(pre.used || 0, l.ccy) : "—") + "</td><td>" + esc(l.fee || "公司承担") + "</td><td>" + esc(l.fxTopup || "关闭") + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(atLeastZero((Number(l.real) || 0) - (Number(l.openingDebt) || 0)), l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + (showLineCredit ? money(item.limit, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.limit - item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? quotaStatus(item.limit, item.limit - item.used) : "—") + "</td><td>" + money(Number(l.openingDebt) || 0, l.ccy) + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td></tr>";
   }).join("");
 }
 function viewBizWallet() {
@@ -1339,7 +1340,7 @@ function viewCcyWallet() {
   const creditLimit = ccy === main ? creditSum(ccy).limit + (Number(extra.limit) || 0) : null;
   const note = ccy === main ? "按主币种" + main + "换算" : "原币金额";
   const rows = detailLines();
-  return '<div class="wallet-board"><div class="biz-flag">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主" : "非主") + "</div>"
+  return '<div class="wallet-board"><div class="biz-flag">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + "</div>"
     + '<div class="hero-row">'
     + '<div class="hero-amt"><div class="k">当前金额</div><div class="v">' + money(mine.reduce(function (s, l) { return s + (Number(l.current) || 0); }, 0), ccy) + '</div><div class="s">' + note + "</div></div>"
     + '<div class="hero-amt avail"><div class="k">可用金额</div><div class="v">' + money(usableInCcy(mine, ccy, preUsed), ccy) + '</div><div class="s">' + note + "</div></div>"

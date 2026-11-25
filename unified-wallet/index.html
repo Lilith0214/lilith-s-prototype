@@ -894,8 +894,8 @@ function viewHome() {
   const creditRemainUsd = creditTotalUsd("limit") - creditTotalUsd("used");
   const creditBrief = Object.keys(credit).map(function (ccy) { return ccy + " 剩余 " + money(creditSum(ccy).remain, ccy); }).join(" · ");
   return '<div class="kpis">'
+    + kpi("当前金额", mainMoney(current), "各币种当前金额合计")
     + kpi("折合可用", money(usable, cur().main), "真实金额 − 期初负债 + 剩余信用 + 预充已用", true)
-    + kpi("折合当前金额", mainMoney(current), "各币种当前金额合计")
     + kpi("信用剩余折合", mainMoney(creditRemainUsd), creditBrief || "还没有信用额度", false, true)
     + "</div>"
     + customerCcyTable(active(), cur().main)
@@ -918,9 +918,7 @@ function viewHome() {
         + '<button class="link" data-jump="stores" data-mid="' + esc(m.id) + '">店铺</button></td></tr>';
     }).join("")
     + "</tbody></table></div></div>"
-    + '<div class="panel" style="margin-bottom:12px"><h3>信用额度</h3>' + creditBoard() + '</div>'
-    + '<div class="foldbar"><strong>信用额度明细</strong><span>' + ([creditBrief, customerCreditBrief()].filter(Boolean).join(" · ") || "还没有信用额度") + '</span><span class="spacer"></span><button class="btn" id="apply-credit">申请信用额度</button><button class="btn" data-fold="credit">' + (state.fold === "credit" ? "收起" : "查看明细") + "</button></div>"
-    + (state.fold === "credit" ? creditFoldTable() : "");
+    + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">信用额度</h3><span class="spacer"></span><button class="btn" id="apply-credit">申请信用额度</button></div>' + creditBoard() + '</div>';
 }
 
 function creditBoard() {

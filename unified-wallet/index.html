@@ -164,8 +164,7 @@ button { cursor: pointer; }
 .glance-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 1100px) { .glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .glance-grid { grid-template-columns: 1fr; } }
-.glance-card[data-biz-open] { cursor: pointer; }
-.glance-card[data-biz-open]:hover { background: #f0f2f5; }
+.glance-card .hd .detail-link { margin-left: auto; white-space: nowrap; }
 .biz-flag { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .biz-flag .ccy-code { font-size: 22px; }
 .glance-card .hd { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
@@ -757,6 +756,10 @@ function pathItems() {
       items.push({ label: state.detailBiz, page: "lines", patch: {} });
       return items;
     }
+    if (state.lineMode === "ccy" && RATE[state.detailCcy]) {
+      items.push({ label: state.detailCcy, page: "lines", patch: {} });
+      return items;
+    }
     const m = merchants.find(function (x) { return x.id === state.merchant; });
     items.push({ label: m ? m.name : "业务线账户", page: "lines", patch: {} });
     return items;
@@ -1221,7 +1224,7 @@ function currencyCards(list) {
       const preUsed = (cur().precharge && cur().precharge[ccy] && cur().precharge[ccy].used) || 0;
       const extra = (ccy === main && cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
       const limit = ccy === main ? creditSum(ccy).limit + (Number(extra.limit) || 0) : null;
-      return '<article class="glance-card"><div class="hd">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + '</div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
+      return '<article class="glance-card"><div class="hd">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + '<button class="link detail-link" type="button" data-ccy-open="' + esc(ccy) + '">账户明细</button></div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
         + subline("可用金额", money(usableInCcy(list, ccy, preUsed), ccy), "avail")
         + subline("真实金额", money(sumCcy(list, ccy, "real"), ccy))
         + subline("信用额度", limit == null ? "—" : money(limit, ccy))
@@ -1243,7 +1246,7 @@ function bizCards(list) {
       const creditLimit = hasCredit(b) ? item.limit : null;
       const creditRemain = hasCredit(b) ? item.limit - item.used : 0;
       const usable = atLeastZero((realUsd - debtUsd) / RATE[main] + creditRemain);
-      return '<article class="glance-card" role="button" aria-label="' + b + '" data-biz-open="' + b + '"><div class="hd"><span class="mark">' + esc(b.slice(0, 1)) + '</span><span class="ccy-code">' + b + '</span></div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
+      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(b.slice(0, 1)) + '</span><span class="ccy-code">' + b + '</span><button class="link detail-link" type="button" data-biz-open="' + b + '">账户明细</button></div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
         + subline("可用金额", money(usable, main), "avail")
         + subline("真实金额", money(realUsd / RATE[main], main))
         + subline("信用额度", creditLimit == null ? "—" : money(creditLimit, main))
@@ -1260,7 +1263,7 @@ function merchantCards(list) {
       const mine = list.filter(function (l) { return l.merchantId === m.id; });
       const avail = merchantAvail(mine, main, m);
       const creditMain = merchantCreditMain(mine, main);
-      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(m.id.slice(-2)) + '</span><div class="hd-title"><div class="ccy-code">' + esc(m.id) + '</div><div class="mini">' + esc(m.name) + '</div></div><button class="link" data-jump="lines" data-mid="' + esc(m.id) + '">账户</button></div><div class="big">' + inMainMoney(mine, "current", main) + "</div>"
+      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(m.id.slice(-2)) + '</span><div class="hd-title"><div class="ccy-code">' + esc(m.id) + '</div><div class="mini">' + esc(m.name) + '</div></div><button class="link detail-link" data-jump="lines" data-mid="' + esc(m.id) + '">账户明细</button></div><div class="big">' + inMainMoney(mine, "current", main) + "</div>"
         + subline("可用金额", avail.total, "avail")
         + subline("真实金额", inMainMoney(mine, "real", main))
         + subline("信用额度", creditMain.limit ? money(creditMain.limit, main) : "—")
@@ -1315,7 +1318,27 @@ function viewBizWallet() {
     + (linesTableBody(rows) || '<tr><td colspan="26">这个业务线还没有账户</td></tr>')
     + "</tbody></table></div></div>";
 }
+function viewCcyWallet() {
+  const ccy = state.detailCcy;
+  const main = cur().main;
+  const mine = active().filter(function (l) { return l.ccy === ccy; });
+  const preUsed = (cur().precharge && cur().precharge[ccy] && cur().precharge[ccy].used) || 0;
+  const extra = (ccy === main && cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
+  const creditLimit = ccy === main ? creditSum(ccy).limit + (Number(extra.limit) || 0) : null;
+  const note = ccy === main ? "按主币种" + main + "换算" : "原币金额";
+  const rows = detailLines();
+  return '<div class="wallet-board"><div class="biz-flag">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + "</div>"
+    + '<div class="hero-row">'
+    + '<div class="hero-amt"><div class="k">当前金额</div><div class="v">' + money(mine.reduce(function (s, l) { return s + (Number(l.current) || 0); }, 0), ccy) + '</div><div class="s">' + note + "</div></div>"
+    + '<div class="hero-amt avail"><div class="k">可用金额</div><div class="v">' + money(usableInCcy(mine, ccy, preUsed), ccy) + '</div><div class="s">' + note + "</div></div>"
+    + '<div class="hero-amt"><div class="k">信用额度</div><div class="v">' + (creditLimit == null ? "—" : money(creditLimit, ccy)) + "</div></div>"
+    + "</div></div>"
+    + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">账户明细</h3><span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初负债</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
+    + (linesTableBody(rows) || '<tr><td colspan="26">这个币种还没有账户</td></tr>')
+    + "</tbody></table></div></div>";
+}
 function viewLines() {
+  if (state.lineMode === "ccy" && RATE[state.detailCcy]) return viewCcyWallet();
   if (state.lineMode === "biz" && BIZ.indexOf(state.detailBiz) >= 0) return viewBizWallet();
   const scoped = scopedLines();
   let summary = "";
@@ -1757,6 +1780,11 @@ document.body.addEventListener("click", function (e) {
       patch.storeFocus = "全部";
     }
     go(page, patch);
+    return;
+  }
+  const ccyOpen = e.target.closest("[data-ccy-open]");
+  if (ccyOpen) {
+    go("lines", { lineMode: "ccy", merchant: "全部", biz: "全部", ccy: ccyOpen.dataset.ccyOpen, detailBiz: "全部", detailCcy: ccyOpen.dataset.ccyOpen, lineId: "" });
     return;
   }
   const bizOpen = e.target.closest("[data-biz-open]");

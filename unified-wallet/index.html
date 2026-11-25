@@ -906,6 +906,7 @@ function viewHome() {
     + '<span class="pair">是否开启汇损补足 <button class="toggle' + (state.fxTopup ? " on" : "") + '" data-toggle="fxTopup" aria-label="是否开启汇损补足"><i></i></button></span>'
     + '<span class="pair">优先扣 <select data-set="priority">' + prioritySelect() + "</select></span>"
     + "</div></div>"
+    + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">信用额度</h3><span class="spacer"></span><button class="btn" id="apply-credit">申请信用额度</button></div>' + creditBoard() + '</div>'
     + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">商户</h3><span class="mini">' + merchants.length + ' 个</span><span class="spacer"></span><button class="link" data-nav="ledger">资金流水</button><button class="link" data-nav="pay">付款试算</button></div>'
     + '<div class="tablewrap"><table><thead><tr><th>商户ID</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>店铺</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>当前金额</th><th>可用余额</th><th>主币种</th><th>非主币种</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初设置</th><th>期初时点</th><th>创建时间</th><th></th></tr></thead><tbody>'
     + merchants.map(function (m) {
@@ -917,8 +918,7 @@ function viewHome() {
         + '<button class="link" data-jump="lines" data-mid="' + esc(m.id) + '">账户</button>'
         + '<button class="link" data-jump="stores" data-mid="' + esc(m.id) + '">店铺</button></td></tr>';
     }).join("")
-    + "</tbody></table></div></div>"
-    + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">信用额度</h3><span class="spacer"></span><button class="btn" id="apply-credit">申请信用额度</button></div>' + creditBoard() + '</div>';
+    + "</tbody></table></div></div>";
 }
 
 function creditBoard() {

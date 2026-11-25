@@ -161,7 +161,13 @@ button { cursor: pointer; }
 @media (max-width: 1100px) { .glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .glance-grid { grid-template-columns: 1fr; } }
 .glance-card { background: #f7f8fa; border: 0; border-radius: 12px; padding: 16px 16px 14px; }
-.glance-card .hd { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 16px; }
+.glance-card .hd { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.flag { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.flag svg { width: 28px; height: 28px; display: block; }
+.ccy-code { font-size: 18px; font-weight: 700; color: #1f1f1f; letter-spacing: .3px; line-height: 1.2; }
+.mark { width: 28px; height: 28px; border-radius: 50%; background: #e8eef8; color: #1677ff; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; }
+.hd-title { min-width: 0; flex: 1; }
+.hd-title .mini { margin-top: 2px; }
 .glance-card .big { font-size: 26px; font-weight: 700; letter-spacing: -.4px; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .glance-card .subline { margin-top: 6px; color: var(--muted); font-size: 13px; }
 .glance-card .subline b { color: #434343; font-weight: 550; margin-left: 6px; font-variant-numeric: tabular-nums; }
@@ -355,6 +361,7 @@ const state = {
   detailCcy: "全部",
   lineId: "",
   group: "biz",
+  homeDim: "ccy",
   storeMerchant: "全部",
   storeFocus: "全部",
   fold: "credit",
@@ -909,28 +916,20 @@ function viewHome() {
   const list = active();
   const current = sumUsd(list, "current");
   return '<div class="wallet-board"><div class="hero-amt"><div class="k">当前金额</div><div class="v">' + mainMoney(current) + "</div></div>"
-    + currencyCards(list)
-    + bizCards(list)
-    + "</div>"
+    + '<div class="glance"><div class="glance-head"><div class="seg">'
+    + '<button type="button" data-home-dim="ccy"' + (state.homeDim === "ccy" ? ' class="on"' : "") + ">按币种</button>"
+    + '<button type="button" data-home-dim="biz"' + (state.homeDim === "biz" ? ' class="on"' : "") + ">按业务线</button>"
+    + '<button type="button" data-home-dim="merchant"' + (state.homeDim === "merchant" ? ' class="on"' : "") + ">按商户id</button>"
+    + '</div><span class="spacer"></span><button class="btn" id="apply-credit" type="button">申请信用额度</button><button class="link" data-nav="ledger">资金流水</button><button class="link" data-nav="pay">付款试算</button></div>'
+    + homeCards(list)
+    + "</div></div>"
     + '<div class="panel"><div class="rulebar">'
     + '<span class="pair">可用余额跨业务线 <button class="toggle' + (state.balanceShare ? " on" : "") + '" data-toggle="balanceShare" aria-label="可用余额跨业务线"><i></i></button></span>'
     + '<span class="pair">信用额度跨业务线 <button class="toggle' + (state.creditShare ? " on" : "") + '" data-toggle="creditShare" aria-label="信用额度跨业务线"><i></i></button></span>'
     + '<span class="pair">手续费由公司承担 <button class="toggle' + (state.feeCompany ? " on" : "") + '" data-toggle="feeCompany" aria-label="手续费由公司承担"><i></i></button></span>'
     + '<span class="pair">是否开启汇损补足 <button class="toggle' + (state.fxTopup ? " on" : "") + '" data-toggle="fxTopup" aria-label="是否开启汇损补足"><i></i></button></span>'
     + '<span class="pair">优先扣 <select data-set="priority">' + prioritySelect() + "</select></span>"
-    + "</div></div>"
-    + '<div class="panel"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">商户</h3><span class="mini">' + merchants.length + ' 个</span><span class="spacer"></span><button class="link" data-nav="ledger">资金流水</button><button class="link" data-nav="pay">付款试算</button></div>'
-    + '<div class="tablewrap"><table><thead><tr><th>商户ID</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>店铺</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>当前金额</th><th>可用余额</th><th>主币种</th><th>非主币种</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初设置</th><th>期初时点</th><th>创建时间</th><th></th></tr></thead><tbody>'
-    + merchants.map(function (m) {
-      const mine = active().filter(function (l) { return l.merchantId === m.id; });
-      const avail = merchantAvail(mine, cur().main, m);
-      const creditMain = merchantCreditMain(mine, cur().main);
-      const opened = mine.filter(function (l) { return l.opening; });
-      return "<tr><td>" + esc(m.id) + "</td><td>" + esc(m.name) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(m.uniq || "—") + "</td><td>" + esc(m.erp || "—") + "</td><td>" + m.stores.length + " 个</td><td>" + rollStatus(mine) + "</td><td>" + prechargeLimitCell(m.precharge, cur().main) + "</td><td>" + prechargeUsedCell(m.precharge, cur().main) + "</td><td>" + inMainMoney(mine, "current", cur().main) + "</td><td>" + avail.total + "</td><td>" + avail.main + "</td><td>" + avail.other + "</td><td>" + inMainMoney(mine, "real", cur().main) + "</td><td>" + inMainMoney(mine, "frozen", cur().main) + "</td><td>" + (creditMain.limit ? money(creditMain.limit, cur().main) : "—") + "</td><td>" + (creditMain.limit ? money(creditMain.used, cur().main) : "—") + "</td><td>" + (creditMain.limit ? money(creditMain.remain, cur().main) : "—") + "</td><td>" + quotaStatus(creditMain.limit, creditMain.remain) + "</td><td>" + (opened.length ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + earliest(opened, "openingAt") + "</td><td>" + earliest(mine, "created") + "</td><td>"
-        + '<button class="link" data-jump="lines" data-mid="' + esc(m.id) + '">账户</button>'
-        + '<button class="link" data-jump="stores" data-mid="' + esc(m.id) + '">店铺</button></td></tr>';
-    }).join("")
-    + "</tbody></table></div></div>";
+    + "</div></div>";
 }
 
 function creditBoard() {
@@ -1182,28 +1181,48 @@ function moneyStack(list, key, main, extraByCcy) {
 function subline(label, value, cls) {
   return '<div class="subline">' + label + ' <b' + (cls ? ' class="' + cls + '"' : "") + ">" + value + "</b></div>";
 }
+function flagIcon(ccy) {
+  const body = {
+    USD: '<rect width="32" height="32" fill="#bf0a30"/><rect y="2" width="32" height="2" fill="#fff"/><rect y="6" width="32" height="2" fill="#fff"/><rect y="10" width="32" height="2" fill="#fff"/><rect y="14" width="32" height="2" fill="#fff"/><rect y="18" width="32" height="2" fill="#fff"/><rect y="22" width="32" height="2" fill="#fff"/><rect y="26" width="32" height="2" fill="#fff"/><rect width="14" height="14" fill="#002868"/>',
+    EUR: '<rect width="32" height="32" fill="#003399"/><g fill="#fc0">' + [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(function (deg) {
+      const r = deg * Math.PI / 180;
+      const x = 16 + Math.cos(r) * 8;
+      const y = 16 + Math.sin(r) * 8;
+      return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="1.15"/>';
+    }).join("") + "</g>",
+    GBP: '<rect width="32" height="32" fill="#012169"/><path d="M0 0 L32 32 M32 0 L0 32" stroke="#fff" stroke-width="6"/><path d="M0 0 L32 32 M32 0 L0 32" stroke="#c8102e" stroke-width="2.4"/><path d="M16 0 V32 M0 16 H32" stroke="#fff" stroke-width="10"/><path d="M16 0 V32 M0 16 H32" stroke="#c8102e" stroke-width="6"/>',
+    CNY: '<rect width="32" height="32" fill="#de2910"/><polygon points="9,7 10.1,10.2 13.5,10.2 10.8,12.2 11.8,15.4 9,13.4 6.2,15.4 7.2,12.2 4.5,10.2 7.9,10.2" fill="#ffde00"/>'
+  };
+  const inner = body[ccy] || '<rect width="32" height="32" fill="#8c8c8c"/>';
+  return '<span class="flag"><svg viewBox="0 0 32 32"><defs><clipPath id="f-' + ccy + '"><circle cx="16" cy="16" r="16"/></clipPath></defs><g clip-path="url(#f-' + ccy + ')">' + inner + "</g></svg></span>";
+}
+function homeCards(list) {
+  if (state.homeDim === "biz") return bizCards(list);
+  if (state.homeDim === "merchant") return merchantCards(list);
+  return currencyCards(list);
+}
 function currencyCards(list) {
   const main = cur().main;
   const ccys = ccyOrder(list, main);
   if (!ccys.length) return "";
-  return '<div class="glance"><div class="glance-head"><h3>按币种</h3></div><div class="glance-grid">'
+  return '<div class="glance-grid">'
     + ccys.map(function (ccy) {
       const preUsed = (cur().precharge && cur().precharge[ccy] && cur().precharge[ccy].used) || 0;
       const extra = (ccy === main && cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
       const limit = ccy === main ? creditSum(ccy).limit + (Number(extra.limit) || 0) : null;
-      return '<article class="glance-card"><div class="hd">' + ccyTag(ccy, ccy === main) + '</div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
+      return '<article class="glance-card"><div class="hd">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + '</div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
         + subline("可用金额", money(usableInCcy(list, ccy, preUsed), ccy))
         + subline("真实金额", money(sumCcy(list, ccy, "real"), ccy))
         + subline("信用额度", limit == null ? "—" : money(limit, ccy), "credit")
         + "</article>";
     }).join("")
-    + "</div></div>";
+    + "</div>";
 }
 function bizCards(list) {
   const main = cur().main;
   const bizs = BIZ.filter(function (b) { return list.some(function (l) { return l.biz === b; }); });
   if (!bizs.length) return "";
-  return '<div class="glance"><div class="glance-head"><h3>按业务线</h3><span class="spacer"></span><button class="btn" id="apply-credit" type="button">申请信用额度</button></div><div class="glance-grid">'
+  return '<div class="glance-grid">'
     + bizs.map(function (b) {
       const mine = list.filter(function (l) { return l.biz === b; });
       const currentUsd = mine.reduce(function (s, l) { return s + usdOf(Number(l.current) || 0, l.ccy); }, 0);
@@ -1213,13 +1232,30 @@ function bizCards(list) {
       const creditLimit = hasCredit(b) ? item.limit : null;
       const creditRemain = hasCredit(b) ? item.limit - item.used : 0;
       const usable = atLeastZero((realUsd - debtUsd) / RATE[main] + creditRemain);
-      return '<article class="glance-card"><div class="hd biz ' + b + '">' + b + '</div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
+      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(b.slice(0, 1)) + '</span><span class="ccy-code">' + b + '</span></div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
         + subline("可用金额", money(usable, main))
         + subline("真实金额", money(realUsd / RATE[main], main))
         + subline("信用额度", creditLimit == null ? "—" : money(creditLimit, main), "credit")
         + "</article>";
     }).join("")
-    + "</div></div>";
+    + "</div>";
+}
+function merchantCards(list) {
+  const main = cur().main;
+  const rows = merchants.filter(function (m) { return list.some(function (l) { return l.merchantId === m.id; }); });
+  if (!rows.length) return "";
+  return '<div class="glance-grid">'
+    + rows.map(function (m) {
+      const mine = list.filter(function (l) { return l.merchantId === m.id; });
+      const avail = merchantAvail(mine, main, m);
+      const creditMain = merchantCreditMain(mine, main);
+      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(m.id.slice(-2)) + '</span><div class="hd-title"><div class="ccy-code">' + esc(m.id) + '</div><div class="mini">' + esc(m.name) + '</div></div><button class="link" data-jump="lines" data-mid="' + esc(m.id) + '">账户</button></div><div class="big">' + inMainMoney(mine, "current", main) + "</div>"
+        + subline("可用金额", avail.total)
+        + subline("真实金额", inMainMoney(mine, "real", main))
+        + subline("信用额度", creditMain.limit ? money(creditMain.limit, main) : "—", "credit")
+        + "</article>";
+    }).join("")
+    + "</div>";
 }
 function customerCcyTable(list, main) {
   const ccys = ccyOrder(list, main);
@@ -1687,6 +1723,8 @@ document.body.addEventListener("click", function (e) {
   }
   const grp = e.target.closest("[data-group]");
   if (grp) { state.group = grp.dataset.group; render(); return; }
+  const homeDim = e.target.closest("[data-home-dim]");
+  if (homeDim) { state.homeDim = homeDim.dataset.homeDim; render(); return; }
   const count = e.target.closest("[data-count]");
   if (count) {
     if (count.dataset.count === "biz") {

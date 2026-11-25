@@ -150,17 +150,22 @@ button { cursor: pointer; }
 .kpi.lead .v { color: var(--blue); }
 .kpi.soft .v { color: #8b7cc4; }
 .kpi .s { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.glance { margin-bottom: 12px; }
-.glance-head { display: flex; align-items: center; gap: 12px; margin: 2px 2px 10px; }
-.glance-head h3 { margin: 0; font-size: 14px; font-weight: 650; }
-.glance-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 1200px) { .glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.wallet-board { background: #fff; border-radius: 12px; padding: 20px 20px 8px; margin-bottom: 12px; }
+.hero-amt { padding: 0 2px 18px; }
+.hero-amt .k { color: var(--sub); font-size: 14px; }
+.hero-amt .v { margin-top: 8px; font-size: 36px; font-weight: 700; letter-spacing: -.6px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.glance { margin-bottom: 16px; }
+.glance-head { display: flex; align-items: center; gap: 12px; margin: 0 2px 12px; }
+.glance-head h3 { margin: 0; font-size: 16px; font-weight: 650; }
+.glance-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1100px) { .glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .glance-grid { grid-template-columns: 1fr; } }
-.glance-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 12px; padding: 14px 16px 12px; }
-.glance-card .hd { font-weight: 650; margin-bottom: 4px; }
-.metric { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); }
-.metric b { color: #1f1f1f; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.metric b.credit { color: #8b7cc4; }
+.glance-card { background: #f7f8fa; border: 0; border-radius: 12px; padding: 16px 16px 14px; }
+.glance-card .hd { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 16px; }
+.glance-card .big { font-size: 26px; font-weight: 700; letter-spacing: -.4px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.glance-card .subline { margin-top: 6px; color: var(--muted); font-size: 13px; }
+.glance-card .subline b { color: #434343; font-weight: 550; margin-left: 6px; font-variant-numeric: tabular-nums; }
+.glance-card .subline b.credit { color: #8b7cc4; }
 .switches { display: grid; grid-template-columns: 1.2fr 1.2fr .9fr; gap: 12px; }
 .sw {
   border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
@@ -902,18 +907,11 @@ function totalInMain(c, rows, key) {
 
 function viewHome() {
   const list = active();
-  const usable = usableMainAmount(cur());
   const current = sumUsd(list, "current");
-  const real = sumUsd(list, "real");
-  const credit = mainCredit(cur());
-  return '<div class="kpis">'
-    + kpi("当前金额", mainMoney(current), "各币种折合主币种")
-    + kpi("可用金额", money(usable, cur().main), "含剩余信用及预充已用", true)
-    + kpi("真实金额", mainMoney(real), "各币种折合主币种")
-    + kpi("信用额度", money(credit.limit, cur().main), "剩余 " + money(credit.remain, cur().main), false, true)
-    + "</div>"
+  return '<div class="wallet-board"><div class="hero-amt"><div class="k">当前金额</div><div class="v">' + mainMoney(current) + "</div></div>"
     + currencyCards(list)
     + bizCards(list)
+    + "</div>"
     + '<div class="panel"><div class="rulebar">'
     + '<span class="pair">可用余额跨业务线 <button class="toggle' + (state.balanceShare ? " on" : "") + '" data-toggle="balanceShare" aria-label="可用余额跨业务线"><i></i></button></span>'
     + '<span class="pair">信用额度跨业务线 <button class="toggle' + (state.creditShare ? " on" : "") + '" data-toggle="creditShare" aria-label="信用额度跨业务线"><i></i></button></span>'
@@ -1181,8 +1179,8 @@ function moneyStack(list, key, main, extraByCcy) {
   if (ccys.length > 1 || ccys[0] !== main || extraUsd) html += '<div class="mini">折合 ' + money((sumMain(list, key) + extraUsd) / RATE[main], main) + "</div>";
   return html;
 }
-function metricRow(label, value, cls) {
-  return '<div class="metric"><span>' + label + '</span><b' + (cls ? ' class="' + cls + '"' : "") + ">" + value + "</b></div>";
+function subline(label, value, cls) {
+  return '<div class="subline">' + label + ' <b' + (cls ? ' class="' + cls + '"' : "") + ">" + value + "</b></div>";
 }
 function currencyCards(list) {
   const main = cur().main;
@@ -1193,11 +1191,10 @@ function currencyCards(list) {
       const preUsed = (cur().precharge && cur().precharge[ccy] && cur().precharge[ccy].used) || 0;
       const extra = (ccy === main && cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
       const limit = ccy === main ? creditSum(ccy).limit + (Number(extra.limit) || 0) : null;
-      return '<article class="glance-card"><div class="hd">' + ccyTag(ccy, ccy === main) + "</div>"
-        + metricRow("当前金额", money(sumCcy(list, ccy, "current"), ccy))
-        + metricRow("可用金额", money(usableInCcy(list, ccy, preUsed), ccy))
-        + metricRow("真实金额", money(sumCcy(list, ccy, "real"), ccy))
-        + metricRow("信用额度", limit == null ? "—" : money(limit, ccy), "credit")
+      return '<article class="glance-card"><div class="hd">' + ccyTag(ccy, ccy === main) + '</div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
+        + subline("可用金额", money(usableInCcy(list, ccy, preUsed), ccy))
+        + subline("真实金额", money(sumCcy(list, ccy, "real"), ccy))
+        + subline("信用额度", limit == null ? "—" : money(limit, ccy), "credit")
         + "</article>";
     }).join("")
     + "</div></div>";
@@ -1216,11 +1213,10 @@ function bizCards(list) {
       const creditLimit = hasCredit(b) ? item.limit : null;
       const creditRemain = hasCredit(b) ? item.limit - item.used : 0;
       const usable = atLeastZero((realUsd - debtUsd) / RATE[main] + creditRemain);
-      return '<article class="glance-card"><div class="hd biz ' + b + '">' + b + "</div>"
-        + metricRow("当前金额", money(currentUsd / RATE[main], main))
-        + metricRow("可用金额", money(usable, main))
-        + metricRow("真实金额", money(realUsd / RATE[main], main))
-        + metricRow("信用额度", creditLimit == null ? "—" : money(creditLimit, main), "credit")
+      return '<article class="glance-card"><div class="hd biz ' + b + '">' + b + '</div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
+        + subline("可用金额", money(usable, main))
+        + subline("真实金额", money(realUsd / RATE[main], main))
+        + subline("信用额度", creditLimit == null ? "—" : money(creditLimit, main), "credit")
         + "</article>";
     }).join("")
     + "</div></div>";

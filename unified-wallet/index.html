@@ -767,6 +767,11 @@ function pathItems() {
       items.push({ label: state.detailCcy, page: "lines", patch: {} });
       return items;
     }
+    if (state.lineMode === "merchant") {
+      const focus = merchants.find(function (x) { return x.id === state.merchant; });
+      items.push({ label: focus ? focus.id : "商户", page: "lines", patch: {} });
+      return items;
+    }
     const m = merchants.find(function (x) { return x.id === state.merchant; });
     items.push({ label: m ? m.name : "业务线账户", page: "lines", patch: {} });
     return items;
@@ -1270,7 +1275,7 @@ function merchantCards(list) {
       const mine = list.filter(function (l) { return l.merchantId === m.id; });
       const avail = merchantAvail(mine, main, m);
       const creditMain = merchantCreditMain(mine, main);
-      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(m.id.slice(-2)) + '</span><div class="hd-title"><div class="ccy-code">' + esc(m.id) + '</div><div class="mini">' + esc(m.name) + '</div></div><button class="link detail-link" data-jump="lines" data-mid="' + esc(m.id) + '">账户明细</button></div><div class="big">' + inMainMoney(mine, "current", main) + "</div>"
+      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(m.id.slice(-2)) + '</span><div class="hd-title"><div class="ccy-code">' + esc(m.id) + '</div><div class="mini">' + esc(m.name) + '</div></div><button class="link detail-link" type="button" data-merchant-open="' + esc(m.id) + '">账户明细</button></div><div class="big">' + inMainMoney(mine, "current", main) + "</div>"
         + subline("可用金额", avail.total, "avail")
         + subline("真实金额", inMainMoney(mine, "real", main))
         + subline("信用额度", creditMain.limit ? money(creditMain.limit, main) : "—")
@@ -1344,7 +1349,26 @@ function viewCcyWallet() {
     + (linesTableBody(rows) || '<tr><td colspan="26">这个币种还没有账户</td></tr>')
     + "</tbody></table></div></div>";
 }
+function viewMerchantWallet() {
+  const main = cur().main;
+  const merchant = merchants.find(function (x) { return x.id === state.merchant; }) || { id: state.merchant, name: "" };
+  const mine = active().filter(function (l) { return l.merchantId === merchant.id; });
+  const avail = merchantAvail(mine, main, merchant);
+  const creditMain = merchantCreditMain(mine, main);
+  const note = "按主币种" + main + "换算";
+  const rows = detailLines();
+  return '<div class="wallet-board"><div class="biz-flag"><span class="mark">' + esc(String(merchant.id).slice(-2)) + '</span><div><div class="ccy-code">' + esc(merchant.id) + '</div><div class="mini">' + esc(merchant.name || "") + "</div></div></div>"
+    + '<div class="hero-row">'
+    + '<div class="hero-amt"><div class="k">当前金额</div><div class="v">' + inMainMoney(mine, "current", main) + '</div><div class="s">' + note + "</div></div>"
+    + '<div class="hero-amt avail"><div class="k">可用金额</div><div class="v">' + avail.total + '</div><div class="s">' + note + "</div></div>"
+    + '<div class="hero-amt"><div class="k">信用额度</div><div class="v">' + (creditMain.limit ? money(creditMain.limit, main) : "—") + "</div></div>"
+    + "</div></div>"
+    + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">账户明细</h3><span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初负债</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
+    + (linesTableBody(rows) || '<tr><td colspan="26">这个商户还没有账户</td></tr>')
+    + "</tbody></table></div></div>";
+}
 function viewLines() {
+  if (state.lineMode === "merchant" && state.merchant && state.merchant !== "全部") return viewMerchantWallet();
   if (state.lineMode === "ccy" && RATE[state.detailCcy]) return viewCcyWallet();
   if (state.lineMode === "biz" && BIZ.indexOf(state.detailBiz) >= 0) return viewBizWallet();
   const scoped = scopedLines();
@@ -1787,6 +1811,11 @@ document.body.addEventListener("click", function (e) {
       patch.storeFocus = "全部";
     }
     go(page, patch);
+    return;
+  }
+  const merchantOpen = e.target.closest("[data-merchant-open]");
+  if (merchantOpen) {
+    go("lines", { lineMode: "merchant", merchant: merchantOpen.dataset.merchantOpen, biz: "全部", ccy: "全部", detailBiz: "全部", detailCcy: "全部", lineId: "" });
     return;
   }
   const ccyOpen = e.target.closest("[data-ccy-open]");

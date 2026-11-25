@@ -151,9 +151,12 @@ button { cursor: pointer; }
 .kpi.soft .v { color: #8b7cc4; }
 .kpi .s { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .wallet-board { background: #fff; border-radius: 12px; padding: 20px 20px 8px; margin-bottom: 12px; }
-.hero-amt { padding: 0 2px 18px; }
+.hero-row { display: flex; gap: 56px; flex-wrap: wrap; padding: 0 2px 20px; }
+.hero-amt { padding: 0; }
 .hero-amt .k { color: var(--sub); font-size: 14px; }
-.hero-amt .v { margin-top: 8px; font-size: 36px; font-weight: 700; letter-spacing: -.6px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.hero-amt .v { margin-top: 8px; font-size: 32px; font-weight: 700; letter-spacing: -.6px; line-height: 1.1; font-variant-numeric: tabular-nums; color: #1f1f1f; }
+.hero-amt .s { margin-top: 6px; color: var(--muted); font-size: 12px; }
+.hero-amt.avail .v { color: var(--blue); }
 .glance { margin-bottom: 16px; }
 .glance-head { display: flex; align-items: center; gap: 12px; margin: 0 2px 12px; }
 .glance-head h3 { margin: 0; font-size: 16px; font-weight: 650; }
@@ -170,8 +173,8 @@ button { cursor: pointer; }
 .hd-title .mini { margin-top: 2px; }
 .glance-card .big { font-size: 26px; font-weight: 700; letter-spacing: -.4px; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .glance-card .subline { margin-top: 6px; color: var(--muted); font-size: 13px; }
-.glance-card .subline b { color: #434343; font-weight: 550; margin-left: 6px; font-variant-numeric: tabular-nums; }
-.glance-card .subline b.credit { color: #8b7cc4; }
+.glance-card .subline b { color: #1f1f1f; font-weight: 550; margin-left: 6px; font-variant-numeric: tabular-nums; }
+.glance-card .subline b.avail { color: var(--blue); }
 .switches { display: grid; grid-template-columns: 1.2fr 1.2fr .9fr; gap: 12px; }
 .sw {
   border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
@@ -914,21 +917,20 @@ function totalInMain(c, rows, key) {
 
 function viewHome() {
   const list = active();
-  const current = sumUsd(list, "current");
-  return '<div class="wallet-board"><div class="hero-amt"><div class="k">当前金额</div><div class="v">' + mainMoney(current) + "</div></div>"
+  const main = cur().main;
+  const note = "按主币种" + main + "换算";
+  const credit = mainCredit(cur());
+  return '<div class="wallet-board"><div class="hero-row">'
+    + '<div class="hero-amt"><div class="k">当前金额</div><div class="v">' + mainMoney(sumUsd(list, "current")) + '</div><div class="s">' + note + "</div></div>"
+    + '<div class="hero-amt avail"><div class="k">可用余额</div><div class="v">' + money(usableMainAmount(cur()), main) + '</div><div class="s">' + note + "</div></div>"
+    + '<div class="hero-amt"><div class="k">信用额度</div><div class="v">' + money(credit.limit, main) + "</div></div>"
+    + "</div>"
     + '<div class="glance"><div class="glance-head"><div class="seg">'
     + '<button type="button" data-home-dim="ccy"' + (state.homeDim === "ccy" ? ' class="on"' : "") + ">按币种</button>"
     + '<button type="button" data-home-dim="biz"' + (state.homeDim === "biz" ? ' class="on"' : "") + ">按业务线</button>"
     + '<button type="button" data-home-dim="merchant"' + (state.homeDim === "merchant" ? ' class="on"' : "") + ">按商户id</button>"
     + '</div><span class="spacer"></span><button class="btn" id="apply-credit" type="button">申请信用额度</button><button class="link" data-nav="ledger">资金流水</button><button class="link" data-nav="pay">付款试算</button></div>'
     + homeCards(list)
-    + "</div></div>"
-    + '<div class="panel"><div class="rulebar">'
-    + '<span class="pair">可用余额跨业务线 <button class="toggle' + (state.balanceShare ? " on" : "") + '" data-toggle="balanceShare" aria-label="可用余额跨业务线"><i></i></button></span>'
-    + '<span class="pair">信用额度跨业务线 <button class="toggle' + (state.creditShare ? " on" : "") + '" data-toggle="creditShare" aria-label="信用额度跨业务线"><i></i></button></span>'
-    + '<span class="pair">手续费由公司承担 <button class="toggle' + (state.feeCompany ? " on" : "") + '" data-toggle="feeCompany" aria-label="手续费由公司承担"><i></i></button></span>'
-    + '<span class="pair">是否开启汇损补足 <button class="toggle' + (state.fxTopup ? " on" : "") + '" data-toggle="fxTopup" aria-label="是否开启汇损补足"><i></i></button></span>'
-    + '<span class="pair">优先扣 <select data-set="priority">' + prioritySelect() + "</select></span>"
     + "</div></div>";
 }
 
@@ -1211,9 +1213,9 @@ function currencyCards(list) {
       const extra = (ccy === main && cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
       const limit = ccy === main ? creditSum(ccy).limit + (Number(extra.limit) || 0) : null;
       return '<article class="glance-card"><div class="hd">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + '</div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
-        + subline("可用金额", money(usableInCcy(list, ccy, preUsed), ccy))
+        + subline("可用金额", money(usableInCcy(list, ccy, preUsed), ccy), "avail")
         + subline("真实金额", money(sumCcy(list, ccy, "real"), ccy))
-        + subline("信用额度", limit == null ? "—" : money(limit, ccy), "credit")
+        + subline("信用额度", limit == null ? "—" : money(limit, ccy))
         + "</article>";
     }).join("")
     + "</div>";
@@ -1233,9 +1235,9 @@ function bizCards(list) {
       const creditRemain = hasCredit(b) ? item.limit - item.used : 0;
       const usable = atLeastZero((realUsd - debtUsd) / RATE[main] + creditRemain);
       return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(b.slice(0, 1)) + '</span><span class="ccy-code">' + b + '</span></div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
-        + subline("可用金额", money(usable, main))
+        + subline("可用金额", money(usable, main), "avail")
         + subline("真实金额", money(realUsd / RATE[main], main))
-        + subline("信用额度", creditLimit == null ? "—" : money(creditLimit, main), "credit")
+        + subline("信用额度", creditLimit == null ? "—" : money(creditLimit, main))
         + "</article>";
     }).join("")
     + "</div>";
@@ -1250,9 +1252,9 @@ function merchantCards(list) {
       const avail = merchantAvail(mine, main, m);
       const creditMain = merchantCreditMain(mine, main);
       return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(m.id.slice(-2)) + '</span><div class="hd-title"><div class="ccy-code">' + esc(m.id) + '</div><div class="mini">' + esc(m.name) + '</div></div><button class="link" data-jump="lines" data-mid="' + esc(m.id) + '">账户</button></div><div class="big">' + inMainMoney(mine, "current", main) + "</div>"
-        + subline("可用金额", avail.total)
+        + subline("可用金额", avail.total, "avail")
         + subline("真实金额", inMainMoney(mine, "real", main))
-        + subline("信用额度", creditMain.limit ? money(creditMain.limit, main) : "—", "credit")
+        + subline("信用额度", creditMain.limit ? money(creditMain.limit, main) : "—")
         + "</article>";
     }).join("")
     + "</div>";

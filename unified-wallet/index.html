@@ -359,7 +359,7 @@ const state = {
 };
 
 function wallet(row) {
-  const base = Object.assign({ frozen: 0, opening: 0, openingAt: "—", fee: "公司承担", fxTopup: "关闭", created: "2026-01-09", main: false, status: "正常" }, row);
+  const base = Object.assign({ frozen: 0, opening: 0, openingDebt: 0, openingAt: "—", fee: "公司承担", fxTopup: "关闭", created: "2026-01-09", main: false, status: "正常" }, row);
   if (base.current == null) base.current = base.real;
   return base;
 }
@@ -383,7 +383,7 @@ const customers = [
       { id: "10087", name: "示例客户A-商户02", email: "eu.ops@example.com", uniq: "SL-EU-014", erp: "SL-EU", stores: ["独立站-DE"], precharge: { EUR: { limit: 30000, used: 0 }, GBP: { limit: 8000, used: 0 }, CNY: { limit: 50000, used: 0 } } }
     ],
     lines: [
-      wallet({ id: "WA-1001", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "代发", ccy: "USD", main: true, available: 13200, real: 8800, current: 10000, frozen: 600, opening: 2000, openingAt: "2026-01-01 00:00", fxTopup: "开启", created: "2025-12-18" }),
+      wallet({ id: "WA-1001", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "代发", ccy: "USD", main: true, available: 13200, real: 8800, current: 10000, frozen: 600, opening: 2000, openingDebt: 1500, openingAt: "2026-01-01 00:00", fxTopup: "开启", created: "2025-12-18" }),
       wallet({ id: "WA-1002", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "代发", ccy: "EUR", available: 1800, real: 1800, created: "2026-02-03" }),
       wallet({ id: "WA-1003", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "广告", ccy: "USD", main: true, available: 3600, real: 3600, opening: 500, openingAt: "2026-01-01 00:00", created: "2025-12-18" }),
       wallet({ id: "WA-1004", merchantId: "10086", merchantName: "示例客户A-商户01", uniq: "SL-NA-001", erp: "SL-NA", biz: "拒付", ccy: "USD", main: true, available: 900, real: 900, fee: "客户承担", created: "2026-03-11" }),
@@ -467,7 +467,7 @@ const customers = [
       { id: "31502", name: "示例客户C-商户01", email: "c.ops@example.com", uniq: "BJ-DE-01", erp: "BJ-DE", stores: ["店铺01"], precharge: { EUR: { limit: 100000, used: 0 } } }
     ],
     lines: [
-      wallet({ id: "WA-4001", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "代发", ccy: "EUR", main: true, available: 900, real: 900 }),
+      wallet({ id: "WA-4001", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "代发", ccy: "EUR", main: true, available: 900, real: 900, openingDebt: 200 }),
       wallet({ id: "WA-4002", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "广告", ccy: "EUR", main: true, available: 200, real: 200 }),
       wallet({ id: "WA-4003", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "拒付", ccy: "EUR", main: true, available: 0, real: 80, status: "异常", fee: "客户承担" }),
       wallet({ id: "WA-4004", merchantId: "31502", merchantName: "示例客户C-商户01", uniq: "BJ-DE-01", erp: "BJ-DE", biz: "垫资", ccy: "EUR", main: true, available: 1500, real: 1600, current: 1700, frozen: 100 })
@@ -487,7 +487,7 @@ const customers = [
       { id: "42618", name: "示例客户D-商户01", email: "d.ops@example.com", uniq: "LQ-001", erp: "LQ-MAIN", stores: ["店铺01"], precharge: { USD: { limit: 100000, used: 2500 } } }
     ],
     lines: [
-      wallet({ id: "WA-5001", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "代发", ccy: "USD", main: true, available: 4100, real: 1600 }),
+      wallet({ id: "WA-5001", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "代发", ccy: "USD", main: true, available: 4100, real: 1600, openingDebt: 800 }),
       wallet({ id: "WA-5002", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "广告", ccy: "USD", main: true, available: 800, real: 800 }),
       wallet({ id: "WA-5003", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "拒付", ccy: "USD", main: true, available: 0, real: 0, status: "已停用", fee: "客户承担" }),
       wallet({ id: "WA-5004", merchantId: "42618", merchantName: "示例客户D-商户01", uniq: "LQ-001", erp: "LQ-MAIN", biz: "垫资", ccy: "USD", main: true, available: 500, real: 500 })
@@ -774,7 +774,7 @@ function viewList() {
         + '<span class="asset-go">›</span></div>'
         + '<div class="asset-amt">' + totalInMain(c, ccys, "current") + "</div>"
         + '<div class="asset-line"><span>总信用额度</span><b class="credit">' + money(creditMain.limit, c.main) + "</b></div>"
-        + '<div class="asset-line"><span>可用余额（含信用及预充额度）</span><b>' + usableInMain(c, ccys) + "</b></div>"
+        + '<div class="asset-line"><span>可用余额（含信用及预充额度）</span><b>' + usableInMain(c) + "</b></div>"
         + '<div class="asset-line"><span>非主币种</span><b>' + (others.length ? esc(others.join("、")) : "—") + "</b></div>"
         + '<div class="asset-foot"><span>商户id</span>' + merchantIdCell(c) + '<span class="spacer"></span><button class="link" data-detail="' + c.id + '">客户详情</button></div>'
         + "</article>";
@@ -793,10 +793,30 @@ function mainCredit(c) {
   used += extra.used || 0;
   return { limit: limit, used: used, remain: limit - used };
 }
-function usableInMain(c, rows) {
-  const fundUsd = rows.reduce(function (s, r) { return s + usdOf(Number(r.fund) || 0, r.ccy); }, 0);
+function atLeastZero(n) {
+  return n < 0 ? 0 : n;
+}
+function usableMainAmount(c) {
+  const mine = activeOf(c);
+  const realUsd = mine.reduce(function (s, l) { return s + usdOf(Number(l.real) || 0, l.ccy); }, 0);
+  const debtUsd = mine.reduce(function (s, l) { return s + usdOf(Number(l.openingDebt) || 0, l.ccy); }, 0);
   const creditUsd = usdOf(mainCredit(c).remain, c.main);
-  return money((fundUsd + creditUsd) / RATE[c.main], c.main);
+  const pre = (c.precharge && c.precharge[c.main] && c.precharge[c.main].used) || 0;
+  return atLeastZero((realUsd - debtUsd + creditUsd + usdOf(pre, c.main)) / RATE[c.main]);
+}
+function usableInMain(c) {
+  return money(usableMainAmount(c), c.main);
+}
+function usableInCcy(list, ccy, preUsed) {
+  const real = list.filter(function (l) { return l.ccy === ccy; }).reduce(function (s, l) { return s + (Number(l.real) || 0); }, 0);
+  const debt = list.filter(function (l) { return l.ccy === ccy; }).reduce(function (s, l) { return s + (Number(l.openingDebt) || 0); }, 0);
+  let credit = 0;
+  if (ccy === cur().main) {
+    const extra = (cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
+    credit = creditSum(ccy).remain + (Number(extra.limit) || 0) - (Number(extra.used) || 0);
+  }
+  const pre = ccy === cur().main ? (Number(preUsed) || 0) : 0;
+  return atLeastZero(real - debt + credit + pre);
 }
 function matchCustomer(c) {
   const name = state.filters.name.trim();
@@ -870,12 +890,12 @@ function totalInMain(c, rows, key) {
 }
 
 function viewHome() {
-  const avail = sumUsd(active(), "available");
+  const usable = usableMainAmount(cur());
   const current = sumUsd(active(), "current");
   const creditRemainUsd = creditTotalUsd("limit") - creditTotalUsd("used");
   const creditBrief = Object.keys(credit).map(function (ccy) { return ccy + " 剩余 " + money(creditSum(ccy).remain, ccy); }).join(" · ");
   return '<div class="kpis">'
-    + kpi("折合可用", mainMoney(avail + creditRemainUsd), "含主币种剩余信用", true)
+    + kpi("折合可用", money(usable, cur().main), "真实金额 − 期初负债 + 剩余信用 + 预充已用", true)
     + kpi("折合当前金额", mainMoney(current), "各币种当前金额合计")
     + kpi("信用剩余折合", mainMoney(creditRemainUsd), creditBrief || "还没有信用额度", false, true)
     + "</div>"
@@ -891,7 +911,7 @@ function viewHome() {
     + '<div class="tablewrap"><table><thead><tr><th>商户ID</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>店铺</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>当前金额</th><th>可用余额</th><th>主币种</th><th>非主币种</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初设置</th><th>期初时点</th><th>创建时间</th><th></th></tr></thead><tbody>'
     + merchants.map(function (m) {
       const mine = active().filter(function (l) { return l.merchantId === m.id; });
-      const avail = merchantAvail(mine, cur().main);
+      const avail = merchantAvail(mine, cur().main, m);
       const creditMain = merchantCreditMain(mine, cur().main);
       const opened = mine.filter(function (l) { return l.opening; });
       return "<tr><td>" + esc(m.id) + "</td><td>" + esc(m.name) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(m.uniq || "—") + "</td><td>" + esc(m.erp || "—") + "</td><td>" + m.stores.length + " 个</td><td>" + rollStatus(mine) + "</td><td>" + prechargeLimitCell(m.precharge, cur().main) + "</td><td>" + prechargeUsedCell(m.precharge, cur().main) + "</td><td>" + inMainMoney(mine, "current", cur().main) + "</td><td>" + avail.total + "</td><td>" + avail.main + "</td><td>" + avail.other + "</td><td>" + inMainMoney(mine, "real", cur().main) + "</td><td>" + inMainMoney(mine, "frozen", cur().main) + "</td><td>" + (creditMain.limit ? money(creditMain.limit, cur().main) : "—") + "</td><td>" + (creditMain.limit ? money(creditMain.used, cur().main) : "—") + "</td><td>" + (creditMain.limit ? money(creditMain.remain, cur().main) : "—") + "</td><td>" + quotaStatus(creditMain.limit, creditMain.remain) + "</td><td>" + (opened.length ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + earliest(opened, "openingAt") + "</td><td>" + earliest(mine, "created") + "</td><td>"
@@ -1045,13 +1065,23 @@ function merchantCreditMain(list, main) {
   });
   return { limit: limitUsd / RATE[main], used: usedUsd / RATE[main], remain: (limitUsd - usedUsd) / RATE[main] };
 }
-function merchantAvail(list, main) {
+function merchantAvail(list, main, merchant) {
   const others = ccyOrder(list, main).filter(function (ccy) { return ccy !== main; });
   const hasMain = list.some(function (l) { return l.ccy === main; });
+  function raw(ccy) {
+    return list.filter(function (l) { return l.ccy === ccy; }).reduce(function (s, l) {
+      return s + (Number(l.real) || 0) - (Number(l.openingDebt) || 0);
+    }, 0);
+  }
+  const pre = merchant && merchant.precharge && merchant.precharge[main] ? Number(merchant.precharge[main].used) || 0 : 0;
+  let totalUsd = 0;
+  ccyOrder(list, main).forEach(function (ccy) {
+    totalUsd += usdOf(atLeastZero(raw(ccy) + (ccy === main ? pre : 0)), ccy);
+  });
   return {
-    total: list.length ? money(sumMain(list, "available") / RATE[main], main) : "—",
-    main: hasMain ? money(sumCcy(list, main, "available"), main) : "—",
-    other: others.length ? others.map(function (ccy) { return "<div>" + money(sumCcy(list, ccy, "available"), ccy) + "</div>"; }).join("") : "—"
+    total: list.length ? money(totalUsd / RATE[main], main) : "—",
+    main: hasMain ? money(atLeastZero(raw(main) + pre), main) : "—",
+    other: others.length ? others.map(function (ccy) { return "<div>" + money(atLeastZero(raw(ccy)), ccy) + "</div>"; }).join("") : "—"
   };
 }
 function voucherTable() {
@@ -1100,6 +1130,19 @@ function creditStackCells(biz) {
   if (!item.limit && !item.used) return "<td>—</td><td>—</td><td>—</td>";
   return "<td>" + money(item.limit, ccy) + "</td><td>" + money(item.used, ccy) + "</td><td>" + money(item.limit - item.used, ccy) + "</td>";
 }
+function bizUsableStack(list, biz) {
+  const main = cur().main;
+  const ccys = ccyOrder(list, main);
+  if (!ccys.length) return "—";
+  const item = bag(main, biz);
+  const credit = hasCredit(biz) ? item.limit - item.used : 0;
+  return ccys.map(function (ccy) {
+    const raw = list.filter(function (l) { return l.ccy === ccy; }).reduce(function (s, l) {
+      return s + (Number(l.real) || 0) - (Number(l.openingDebt) || 0);
+    }, 0);
+    return "<div>" + money(atLeastZero(raw + (ccy === main ? credit : 0)), ccy) + "</div>";
+  }).join("");
+}
 function ccyOrder(list, main) {
   const ccys = [];
   list.forEach(function (l) { if (ccys.indexOf(l.ccy) < 0) ccys.push(l.ccy); });
@@ -1132,9 +1175,9 @@ function customerCcyTable(list, main) {
   return '<div class="panel"><h3>多币种余额</h3>'
     + '<div class="tablewrap"><table><thead><tr><th>币种</th><th>币种属性</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
     + ccys.map(function (ccy) {
-      const fund = sumCcy(list, ccy, "available");
+      const preUsed = (cur().precharge && cur().precharge[ccy] && cur().precharge[ccy].used) || 0;
+      const usable = usableInCcy(list, ccy, preUsed);
       const sum = creditSum(ccy);
-      const usable = ccy === main ? fund + sum.remain : fund;
       const creditCells = ccy === main
         ? "<td>" + money(sum.limit, ccy) + "</td><td>" + money(sum.used, ccy) + "</td><td>" + money(sum.remain, ccy) + "</td>"
         : "<td>—</td><td>—</td><td>—</td>";
@@ -1149,17 +1192,19 @@ function viewLines() {
     summary = '<div class="tablewrap"><table><thead><tr><th>币种</th><th>账户数</th><th>包含业务线</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
       + uniqOf(scoped, "ccy").map(function (ccy) {
         const list = scoped.filter(function (l) { return l.ccy === ccy; });
-        const fund = list.reduce(function (s, l) { return s + l.available; }, 0);
+        const holder = state.merchant !== "全部" ? (merchants.find(function (m) { return m.id === state.merchant; }) || cur()) : cur();
+        const preUsed = (holder.precharge && holder.precharge[ccy] && holder.precharge[ccy].used) || 0;
         const sum = creditSum(ccy, uniqOf(list, "biz"));
         const showCredit = ccy === cur().main;
-        return "<tr><td>" + ccyTag(ccy, showCredit) + "</td><td>" + countLink("ccy", ccy, list.length) + "</td><td>" + esc(uniqOf(list, "biz").join("、")) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.current; }, 0), ccy) + "</td><td>" + money(fund + (showCredit ? sum.remain : 0), ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.real; }, 0), ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.frozen; }, 0), ccy) + "</td><td>" + (showCredit ? money(sum.limit, ccy) : "—") + "</td><td>" + (showCredit ? money(sum.used, ccy) : "—") + "</td><td>" + (showCredit ? money(sum.remain, ccy) : "—") + "</td></tr>";
+        const usable = usableInCcy(list, ccy, showCredit ? preUsed : 0);
+        return "<tr><td>" + ccyTag(ccy, showCredit) + "</td><td>" + countLink("ccy", ccy, list.length) + "</td><td>" + esc(uniqOf(list, "biz").join("、")) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.current; }, 0), ccy) + "</td><td>" + money(usable, ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.real; }, 0), ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.frozen; }, 0), ccy) + "</td><td>" + (showCredit ? money(sum.limit, ccy) : "—") + "</td><td>" + (showCredit ? money(sum.used, ccy) : "—") + "</td><td>" + (showCredit ? money(sum.remain, ccy) : "—") + "</td></tr>";
       }).join("")
       + "</tbody></table></div>";
   } else {
     summary = '<div class="tablewrap"><table><thead><tr><th>业务线</th><th>账户数</th><th>包含币种</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
       + BIZ.filter(function (b) { return scoped.some(function (l) { return l.biz === b; }); }).map(function (b) {
         const list = scoped.filter(function (l) { return l.biz === b; });
-        return "<tr><td class=\"biz " + b + "\">" + b + "</td><td>" + countLink("biz", b, list.length) + "</td><td>" + esc(uniqOf(list, "ccy").join("、")) + "</td><td>" + moneyStack(list, "current", cur().main) + "</td><td>" + moneyStack(list, "available", cur().main) + "</td><td>" + moneyStack(list, "real", cur().main) + "</td><td>" + moneyStack(list, "frozen", cur().main) + "</td>" + creditStackCells(b) + "</tr>";
+        return "<tr><td class=\"biz " + b + "\">" + b + "</td><td>" + countLink("biz", b, list.length) + "</td><td>" + esc(uniqOf(list, "ccy").join("、")) + "</td><td>" + moneyStack(list, "current", cur().main) + "</td><td>" + bizUsableStack(list, b) + "</td><td>" + moneyStack(list, "real", cur().main) + "</td><td>" + moneyStack(list, "frozen", cur().main) + "</td>" + creditStackCells(b) + "</tr>";
       }).join("")
       + "</tbody></table></div>";
   }
@@ -1171,20 +1216,20 @@ function viewLines() {
     + select("merchant", [["全部", "全部商户"]].concat(merchants.map(function (m) { return [m.id, m.id + " " + m.name]; })), state.merchant)
     + '<button class="btn" id="transfer">发起调拨</button></div>'
     + summary + "</div>"
-    + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">' + esc(detailName) + "</h3>" + clearDetail + '<span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
+    + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">' + esc(detailName) + "</h3>" + clearDetail + '<span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初负债</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
     + rows.map(function (l) {
       const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
       const item = bag(l.ccy, l.biz);
       const pre = l.ccy === cur().main && m.precharge && m.precharge[l.ccy] ? m.precharge[l.ccy] : null;
       const showLineCredit = hasCredit(l.biz) && l.ccy === cur().main;
-      return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主币种" : "非主币种") + "</td><td>" + statusTag(l.status) + "</td><td>" + (pre ? money(pre.limit || 0, l.ccy) : "—") + "</td><td>" + (pre ? money(pre.used || 0, l.ccy) : "—") + "</td><td>" + esc(l.fee || "公司承担") + "</td><td>" + esc(l.fxTopup || "关闭") + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(l.available, l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + (showLineCredit ? money(item.limit, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.limit - item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? quotaStatus(item.limit, item.limit - item.used) : "—") + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td></tr>";
+      return "<tr><td>" + esc(l.merchantId) + "</td><td class=\"biz " + l.biz + "\">" + l.biz + "</td><td>" + esc(l.merchantName) + "</td><td>" + esc(m.email || "—") + "</td><td>" + esc(l.uniq || m.uniq || "—") + "</td><td>" + esc(l.erp || m.erp || "—") + "</td><td>" + esc(l.ccy) + "</td><td>" + tag(l.ccy === cur().main ? "main" : "sub", l.ccy === cur().main ? "主币种" : "非主币种") + "</td><td>" + statusTag(l.status) + "</td><td>" + (pre ? money(pre.limit || 0, l.ccy) : "—") + "</td><td>" + (pre ? money(pre.used || 0, l.ccy) : "—") + "</td><td>" + esc(l.fee || "公司承担") + "</td><td>" + esc(l.fxTopup || "关闭") + "</td><td>" + money(l.current, l.ccy) + "</td><td>" + money(atLeastZero((Number(l.real) || 0) - (Number(l.openingDebt) || 0)), l.ccy) + "</td><td>" + money(l.real, l.ccy) + "</td><td>" + money(l.frozen, l.ccy) + "</td><td>" + (showLineCredit ? money(item.limit, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? money(item.limit - item.used, l.ccy) : "—") + "</td><td>" + (showLineCredit ? quotaStatus(item.limit, item.limit - item.used) : "—") + "</td><td>" + money(Number(l.openingDebt) || 0, l.ccy) + "</td><td>" + (l.opening ? tag("ok", "已设置") : tag("off", "未设置")) + "</td><td>" + (l.opening ? esc(l.openingAt) : "—") + "</td><td>" + esc(l.id) + "</td><td>" + esc(l.created) + "</td></tr>";
     }).join("")
     + "</tbody></table></div></div>";
 }
 
 function exportAccountLines() {
   const rows = detailLines();
-  const header = ["商户ID", "业务线", "商户名称", "商户邮箱", "商户唯一标识", "ERP代码", "币种", "币种属性", "账户状态", "预充总额限制", "预充已用额度", "手续费承担方式", "是否开启汇损补足", "当前金额", "可用余额", "真实金额", "冻结金额", "信用额度", "已用额度", "剩余额度", "额度状态", "期初设置", "期初时点", "资金账户ID", "创建时间"];
+  const header = ["商户ID", "业务线", "商户名称", "商户邮箱", "商户唯一标识", "ERP代码", "币种", "币种属性", "账户状态", "预充总额限制", "预充已用额度", "手续费承担方式", "是否开启汇损补足", "当前金额", "可用余额", "真实金额", "冻结金额", "信用额度", "已用额度", "剩余额度", "额度状态", "期初负债", "期初设置", "期初时点", "资金账户ID", "创建时间"];
   const body = rows.map(function (l) {
     const m = merchants.find(function (x) { return x.id === l.merchantId; }) || {};
     const item = bag(l.ccy, l.biz);
@@ -1194,7 +1239,7 @@ function exportAccountLines() {
     const creditLimit = showLineCredit ? money(item.limit, l.ccy) : "—";
     const creditUsed = showLineCredit ? money(item.used, l.ccy) : "—";
     const creditRemainText = showLineCredit ? money(item.limit - item.used, l.ccy) : "—";
-    return [l.merchantId, l.biz, l.merchantName, m.email || "—", l.uniq || m.uniq || "—", l.erp || m.erp || "—", l.ccy, l.ccy === cur().main ? "主币种" : "非主币种", l.status, pre ? money(pre.limit || 0, l.ccy) : "—", pre ? money(pre.used || 0, l.ccy) : "—", l.fee || "公司承担", l.fxTopup || "关闭", money(l.current, l.ccy), money(l.available, l.ccy), money(l.real, l.ccy), money(l.frozen, l.ccy), creditLimit, creditUsed, creditRemainText, quota, l.opening ? "已设置" : "未设置", l.opening ? l.openingAt : "—", l.id, l.created];
+    return [l.merchantId, l.biz, l.merchantName, m.email || "—", l.uniq || m.uniq || "—", l.erp || m.erp || "—", l.ccy, l.ccy === cur().main ? "主币种" : "非主币种", l.status, pre ? money(pre.limit || 0, l.ccy) : "—", pre ? money(pre.used || 0, l.ccy) : "—", l.fee || "公司承担", l.fxTopup || "关闭", money(l.current, l.ccy), money(atLeastZero((Number(l.real) || 0) - (Number(l.openingDebt) || 0)), l.ccy), money(l.real, l.ccy), money(l.frozen, l.ccy), creditLimit, creditUsed, creditRemainText, quota, money(Number(l.openingDebt) || 0, l.ccy), l.opening ? "已设置" : "未设置", l.opening ? l.openingAt : "—", l.id, l.created];
   });
   const csv = "\uFEFF" + [header].concat(body).map(function (row) {
     return row.map(function (cell) { return '"' + String(cell == null ? "" : cell).replace(/"/g, '""') + '"'; }).join(",");

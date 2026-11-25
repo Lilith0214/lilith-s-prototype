@@ -957,11 +957,11 @@ function customerCreditBrief() {
 function creditFoldTable() {
   const customerRows = (cur().customerCredit && cur().customerCredit[cur().main] && (cur().customerCredit[cur().main].limit || cur().customerCredit[cur().main].used)) ? (function () {
     const item = cur().customerCredit[cur().main];
-    return "<tr><td>" + esc(cur().main) + "</td><td>客户</td><td>" + money(item.limit, cur().main) + "</td><td>" + money(item.used, cur().main) + "</td><td>" + money(item.limit - item.used, cur().main) + "</td></tr>";
+    return "<tr><td>" + ccyTag(cur().main, true) + "</td><td>客户</td><td>" + money(item.limit, cur().main) + "</td><td>" + money(item.used, cur().main) + "</td><td>" + money(item.limit - item.used, cur().main) + "</td></tr>";
   })() : "";
   const lineRows = CREDIT_BIZ.filter(function (b) { const item = bag(cur().main, b); return item.limit || item.used; }).map(function (b) {
     const item = bag(cur().main, b);
-    return "<tr><td>" + esc(cur().main) + "</td><td class=\"biz " + b + "\">" + b + "</td><td>" + money(item.limit, cur().main) + "</td><td>" + money(item.used, cur().main) + "</td><td>" + money(item.limit - item.used, cur().main) + "</td></tr>";
+    return "<tr><td>" + ccyTag(cur().main, true) + "</td><td class=\"biz " + b + "\">" + b + "</td><td>" + money(item.limit, cur().main) + "</td><td>" + money(item.used, cur().main) + "</td><td>" + money(item.limit - item.used, cur().main) + "</td></tr>";
   }).join("");
   const body = customerRows + lineRows;
   return '<div class="panel"><div class="tablewrap"><table><thead><tr><th>币种</th><th>维度</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'

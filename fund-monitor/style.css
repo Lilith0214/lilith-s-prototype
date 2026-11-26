@@ -17,11 +17,11 @@ button {
 }
 button:hover { background: #f4f7fe; border-color: #7599f3; }
 button.primary {
-  background: #3370ff;
-  border-color: #3370ff;
+  background: #1677ff;
+  border-color: #1677ff;
   color: #fff;
 }
-button.primary:hover { background: #245bdb; }
+button.primary:hover { background: #4096ff; border-color: #4096ff; }
 button.text-button {
   border: 0;
   background: none;
@@ -239,63 +239,77 @@ button.text-button {
 
 /* Feishu message card = the board */
 .message-card {
-  border: 1px solid #dee5ef;
+  border: 1px solid #e5e6eb;
   border-radius: 8px;
   overflow: hidden;
   max-width: 420px;
   background: #fff;
 }
-.card-title {
-  padding: 14px 16px;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+.card-head {
+  padding: 14px 16px 12px;
+  background: #f7f8fa;
+  border-bottom: 1px solid #eef0f3;
 }
-.card-title.warn { background: #ff8800; }
-.card-title.ok { background: #34c724; }
-.card-title .sub {
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title-row b {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2329;
+}
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 4px;
   font-size: 11px;
-  font-weight: 400;
-  opacity: .92;
+  font-weight: 500;
+  line-height: 20px;
+}
+.status-tag.muted {
+  background: #eef0f3;
+  color: #646a73;
+}
+.status-tag.ok {
+  background: #f0faf3;
+  color: #2f6b45;
+}
+.card-sub {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #8f959e;
 }
 .card-body { padding: 14px 16px 16px; }
-
-.board-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-  color: #646a73;
-  margin-bottom: 12px;
-}
-.board-meta b { color: #1f2329; font-weight: 500; }
 
 .board-kpis {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  background: #f5f6f7;
-  border-radius: 6px;
-  padding: 12px 8px;
-  margin-bottom: 12px;
+  gap: 0;
+  background: #fafbfc;
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  overflow: hidden;
 }
 .board-kpis button {
   border: 0;
+  border-right: 1px solid #eef0f3;
   background: transparent;
-  padding: 4px 2px;
-  text-align: center;
-  border-radius: 4px;
+  padding: 12px 8px;
+  text-align: left;
+  border-radius: 0;
 }
-.board-kpis button:hover { background: #eaf1ff; }
+.board-kpis button:last-child { border-right: 0; }
+.board-kpis button:hover { background: #f2f6ff; }
 .board-kpis span {
   display: block;
   font-size: 11px;
   color: #8f959e;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .board-kpis strong {
   display: block;
@@ -305,65 +319,49 @@ button.text-button {
   line-height: 1.1;
   color: #1f2329;
 }
-.board-kpis strong.danger { color: #f54a45; }
-.board-kpis strong.warn { color: #ff8800; }
 .board-kpis em {
   display: block;
-  margin-top: 4px;
+  margin-top: 6px;
   font-style: normal;
-  font-size: 10px;
+  font-size: 11px;
   color: #8f959e;
 }
 
 .board-section-title {
   font-size: 12px;
   color: #8f959e;
-  margin: 0 0 8px;
+  margin: 0 0 4px;
 }
 .board-hits {
   list-style: none;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   padding: 0;
 }
 .board-hits li {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  padding: 8px 0;
-  border-top: 1px solid #eef1f5;
+  padding: 10px 0;
+  border-top: 1px solid #f0f1f3;
+}
+.board-hits li:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+.hit-main {
+  display: grid;
+  gap: 4px;
   font-size: 12px;
   line-height: 1.5;
   color: #4e5969;
 }
-.board-hits li:first-child { border-top: 0; padding-top: 0; }
-.hit-tag {
-  flex-shrink: 0;
-  font-size: 11px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: #fff7e6;
-  color: #d48806;
-}
-.hit-tag.danger {
-  background: #fff1f0;
-  color: #cf1322;
-}
-.hit-tag.ok {
-  background: #f6ffed;
-  color: #389e0d;
+.hit-main b {
+  color: #1f2329;
+  font-weight: 500;
 }
 .board-empty {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-size: 13px;
-  color: #4e5969;
+  color: #646a73;
   line-height: 1.7;
-  padding: 4px 0;
-}
-.card-note {
-  color: #8f959e;
-  font-size: 11px;
-  line-height: 1.6;
-  margin: 0 0 12px;
+  padding: 2px 0 0;
 }
 .card-actions {
   display: flex;
@@ -372,7 +370,9 @@ button.text-button {
 }
 .card-actions button {
   font-size: 12px;
-  padding: 7px 12px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 6px;
 }
 .chat-end {
   font-size: 11px;

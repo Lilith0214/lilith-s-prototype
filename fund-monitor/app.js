@@ -64,24 +64,25 @@ function shell(chatBody) {
 
 function alertCard() {
   return `<div class="message-card">
-    <div class="card-title warn">
-      <span>流水监控看板</span>
-      <span class="sub">有异常</span>
+    <div class="card-head">
+      <div>
+        <div class="card-title-row">
+          <b>流水监控看板</b>
+          <span class="status-tag muted">待关注</span>
+        </div>
+        <p class="card-sub">2026-11-26 · 财务群定向推送</p>
+      </div>
     </div>
     <div class="card-body">
-      <div class="board-meta">
-        <span>统计日期 <b>2026-11-26</b></span>
-        <span>推送财务群</span>
-      </div>
       <div class="board-kpis">
         <button type="button" data-action="open-detail" data-tab="refund">
           <span>异常退款</span>
-          <strong class="warn">3</strong>
+          <strong>3</strong>
           <em>Payoneer</em>
         </button>
         <button type="button" data-action="open-detail" data-tab="pull">
           <span>拉流异常</span>
-          <strong class="danger">1</strong>
+          <strong>1</strong>
           <em>Worldfirst</em>
         </button>
         <button type="button" data-action="open-detail" data-tab="recon">
@@ -90,13 +91,18 @@ function alertCard() {
           <em>Airwallex</em>
         </button>
       </div>
-      <p class="board-section-title">待关注摘要</p>
+      <p class="board-section-title">摘要</p>
       <ul class="board-hits">
-        <li><span class="hit-tag">异常退款</span><span>Payoneer · 3 笔命中 debit</span></li>
-        <li><span class="hit-tag danger">拉流频率</span><span>Worldfirst / WF-Ops-01 超时未执行</span></li>
-        <li><span class="hit-tag ok">对账兜底</span><span>Airwallex / AWX-Main 缺失 3 笔，已补拉成功</span></li>
+        <li>
+          <div class="hit-main"><b>异常退款</b><span>Payoneer · 3 笔命中 debit</span></div>
+        </li>
+        <li>
+          <div class="hit-main"><b>拉流频率</b><span>Worldfirst / WF-Ops-01 超时未执行</span></div>
+        </li>
+        <li>
+          <div class="hit-main"><b>对账兜底</b><span>Airwallex / AWX-Main 缺失 3 笔，已补拉成功</span></div>
+        </li>
       </ul>
-      <p class="card-note">三类监控合并推送。卡片只展示汇总与摘要，完整明细点击进入。</p>
       <div class="card-actions">
         <button type="button" class="primary" data-action="open-detail" data-tab="refund">查看明细</button>
         <button type="button" data-action="toast-download">下载明细</button>
@@ -107,15 +113,16 @@ function alertCard() {
 
 function okCard() {
   return `<div class="message-card">
-    <div class="card-title ok">
-      <span>流水监控看板</span>
-      <span class="sub">全部正常</span>
+    <div class="card-head">
+      <div>
+        <div class="card-title-row">
+          <b>流水监控看板</b>
+          <span class="status-tag ok">全部正常</span>
+        </div>
+        <p class="card-sub">2026-11-26 · 财务群定向推送</p>
+      </div>
     </div>
     <div class="card-body">
-      <div class="board-meta">
-        <span>统计日期 <b>2026-11-26</b></span>
-        <span>推送财务群</span>
-      </div>
       <div class="board-kpis">
         <button type="button" data-action="open-detail" data-tab="refund">
           <span>异常退款</span>

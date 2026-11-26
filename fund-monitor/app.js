@@ -145,7 +145,7 @@ function okCard() {
           <em>轧差一致</em>
         </button>
       </div>
-      <p class="board-empty">三类监控均无异常。绿色卡片表示日报正常，仍推送避免财务漏看。</p>
+      <p class="board-empty">三类监控均无异常。</p>
       <div class="card-actions">
         <button type="button" class="primary" data-action="open-detail" data-tab="logs">查看任务记录</button>
       </div>

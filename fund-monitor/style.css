@@ -245,44 +245,57 @@ button.text-button {
   max-width: 420px;
   background: #fff;
 }
-.card-head {
-  padding: 14px 16px 12px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #eef0f3;
+.card-banner {
+  padding: 14px 16px;
+  color: #fff;
 }
-.card-title-row {
+.card-banner-main {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
-.card-title-row b {
-  font-size: 15px;
+.card-banner-main b {
+  font-size: 16px;
   font-weight: 600;
-  color: #1f2329;
 }
-.status-tag {
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  padding: 0 7px;
-  border-radius: 4px;
-  font-size: 11px;
+.card-banner-main span {
+  font-size: 12px;
   font-weight: 500;
-  line-height: 20px;
+  opacity: .92;
 }
-.status-tag.muted {
-  background: #eef0f3;
-  color: #646a73;
-}
-.status-tag.ok {
-  background: #f0faf3;
-  color: #2f6b45;
-}
-.card-sub {
+.card-banner p {
   margin: 6px 0 0;
   font-size: 12px;
-  color: #8f959e;
+  opacity: .88;
 }
+
+/* 有异常：黄色卡片 */
+.message-card.tone-warn {
+  border-color: #f0d48a;
+}
+.message-card.tone-warn .card-banner {
+  background: #f5c518;
+  color: #5c4300;
+}
+.message-card.tone-warn .card-banner p {
+  color: #7a5a00;
+  opacity: 1;
+}
+
+/* 无异常：绿色卡片 */
+.message-card.tone-ok {
+  border-color: #b7e0bf;
+}
+.message-card.tone-ok .card-banner {
+  background: #34c724;
+  color: #fff;
+}
+.message-card.tone-ok .card-banner p {
+  color: rgba(255, 255, 255, .9);
+  opacity: 1;
+}
+
 .card-body { padding: 14px 16px 16px; }
 
 .board-kpis {
@@ -304,7 +317,7 @@ button.text-button {
   border-radius: 0;
 }
 .board-kpis button:last-child { border-right: 0; }
-.board-kpis button:hover { background: #f2f6ff; }
+.board-kpis button:hover { background: #f5f7fa; }
 .board-kpis span {
   display: block;
   font-size: 11px;
@@ -319,6 +332,8 @@ button.text-button {
   line-height: 1.1;
   color: #1f2329;
 }
+.board-kpis strong.sev-critical { color: #d92d20; }
+.board-kpis strong.sev-normal { color: #1f2329; }
 .board-kpis em {
   display: block;
   margin-top: 6px;
@@ -355,6 +370,16 @@ button.text-button {
 .hit-main b {
   color: #1f2329;
   font-weight: 500;
+}
+.hit-main.sev-critical,
+.hit-main.sev-critical b,
+.hit-main.sev-critical span {
+  color: #d92d20;
+}
+.hit-main.sev-normal,
+.hit-main.sev-normal b,
+.hit-main.sev-normal span {
+  color: #1f2329;
 }
 .board-empty {
   margin: 0 0 14px;

@@ -63,15 +63,13 @@ function shell(chatBody) {
 }
 
 function alertCard() {
-  return `<div class="message-card">
-    <div class="card-head">
-      <div>
-        <div class="card-title-row">
-          <b>流水监控看板</b>
-          <span class="status-tag muted">待关注</span>
-        </div>
-        <p class="card-sub">2026-11-26 · 财务群定向推送</p>
+  return `<div class="message-card tone-warn">
+    <div class="card-banner">
+      <div class="card-banner-main">
+        <b>流水监控看板</b>
+        <span>有异常</span>
       </div>
+      <p>2026-11-26 · 财务群定向推送</p>
     </div>
     <div class="card-body">
       <div class="board-kpis">
@@ -82,25 +80,34 @@ function alertCard() {
         </button>
         <button type="button" data-action="open-detail" data-tab="pull">
           <span>拉流异常</span>
-          <strong>1</strong>
-          <em>Worldfirst</em>
+          <strong class="sev-critical">1</strong>
+          <em>Worldfirst 超时</em>
         </button>
         <button type="button" data-action="open-detail" data-tab="recon">
           <span>缺失 / 补拉</span>
-          <strong>1 / 1</strong>
-          <em>Airwallex</em>
+          <strong class="sev-normal">1 / 1</strong>
+          <em>已补拉成功</em>
         </button>
       </div>
       <p class="board-section-title">摘要</p>
       <ul class="board-hits">
         <li>
-          <div class="hit-main"><b>异常退款</b><span>Payoneer · 3 笔命中 debit</span></div>
+          <div class="hit-main">
+            <b>异常退款</b>
+            <span>Payoneer · 3 笔命中 debit</span>
+          </div>
         </li>
         <li>
-          <div class="hit-main"><b>拉流频率</b><span>Worldfirst / WF-Ops-01 超时未执行</span></div>
+          <div class="hit-main sev-critical">
+            <b>拉流频率</b>
+            <span>Worldfirst / WF-Ops-01 超时未执行</span>
+          </div>
         </li>
         <li>
-          <div class="hit-main"><b>对账兜底</b><span>Airwallex / AWX-Main 缺失 3 笔，已补拉成功</span></div>
+          <div class="hit-main sev-normal">
+            <b>对账兜底</b>
+            <span>Airwallex / AWX-Main 缺失 3 笔，已补拉成功</span>
+          </div>
         </li>
       </ul>
       <div class="card-actions">
@@ -112,35 +119,33 @@ function alertCard() {
 }
 
 function okCard() {
-  return `<div class="message-card">
-    <div class="card-head">
-      <div>
-        <div class="card-title-row">
-          <b>流水监控看板</b>
-          <span class="status-tag ok">全部正常</span>
-        </div>
-        <p class="card-sub">2026-11-26 · 财务群定向推送</p>
+  return `<div class="message-card tone-ok">
+    <div class="card-banner">
+      <div class="card-banner-main">
+        <b>流水监控看板</b>
+        <span>全部正常</span>
       </div>
+      <p>2026-11-26 · 财务群定向推送</p>
     </div>
     <div class="card-body">
       <div class="board-kpis">
         <button type="button" data-action="open-detail" data-tab="refund">
           <span>异常退款</span>
-          <strong>0</strong>
+          <strong class="sev-normal">0</strong>
           <em>无命中</em>
         </button>
         <button type="button" data-action="open-detail" data-tab="pull">
           <span>拉流异常</span>
-          <strong>0</strong>
+          <strong class="sev-normal">0</strong>
           <em>全部按时</em>
         </button>
         <button type="button" data-action="open-detail" data-tab="recon">
           <span>缺失 / 补拉</span>
-          <strong>0 / 0</strong>
+          <strong class="sev-normal">0 / 0</strong>
           <em>轧差一致</em>
         </button>
       </div>
-      <p class="board-empty">三类监控均无异常。无异常日报仍推送，避免财务漏看。</p>
+      <p class="board-empty">三类监控均无异常。绿色卡片表示日报正常，仍推送避免财务漏看。</p>
       <div class="card-actions">
         <button type="button" class="primary" data-action="open-detail" data-tab="logs">查看任务记录</button>
       </div>

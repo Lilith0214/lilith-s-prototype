@@ -141,6 +141,19 @@ button { cursor: pointer; }
 .asset-foot .mids { flex-direction: row; flex-wrap: wrap; gap: 2px 10px; }
 .asset-foot .spacer { flex: 1; }
 .amt-neg { color: #cf1322; }
+.amt-pos { color: #389e0d; }
+.txn-form { display: grid; grid-template-columns: repeat(5, minmax(140px, 1fr)); gap: 12px 16px; align-items: end; }
+.txn-form input, .txn-form select { width: 100%; height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 10px; background: #fff; }
+.txn-range { display: flex; align-items: center; gap: 6px; }
+.txn-range input { min-width: 0; }
+.txn-range span { color: var(--muted); }
+.txn-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.txn-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.txn-table { border-collapse: separate; border-spacing: 0; min-width: 1960px; width: 100%; }
+.txn-table th, .txn-table td { background: #fff; white-space: nowrap; }
+.txn-table th { background: #fafafa; position: sticky; top: 0; z-index: 1; }
+.txn-table .freeze { position: sticky; right: 0; z-index: 2; box-shadow: -8px 0 8px rgba(0,0,0,.05); }
+.txn-table th.freeze { z-index: 3; background: #fafafa; }
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
 @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
 .kpi { background: #fff; border-radius: 8px; padding: 16px 20px 18px; }
@@ -365,7 +378,7 @@ const CHANNELS = ["银行", "PayPal", "Airwallex", "WorldFirst"];
 const CYCLES = ["一周", "两周", "三周", "一个月", "固定天数"];
 const CREDIT_GROUPS = ["履约一组", "广告一组", "资金组"];
 const CONTACTS = ["陈可", "林夏", "周宁", "王敏"];
-const PAGES = { list: "客户列表", home: "客户总览", lines: "业务线账户", stores: "店铺对账", ledger: "资金流水", pay: "付款试算" };
+const PAGES = { list: "客户列表", home: "客户总览", lines: "业务线账户", stores: "店铺对账", ledger: "交易详情", pay: "付款试算" };
 
 const state = {
   page: "list",
@@ -391,7 +404,8 @@ const state = {
   fold: "credit",
   store: "全部",
   ledgerType: "全部",
-  ledgerFilters: { merchantId: "", biz: "全部", ccy: "全部", type: "全部", time: "", txnNo: "", transferNo: "" },
+  ledgerFilters: { merchantId: "", merchantName: "", uniq: "", biz: "", type: "", timeStart: "", timeEnd: "", txnNo: "", txnId: "", transferNo: "" },
+  ledgerCollapsed: false,
   payBiz: "代发",
   payMerchant: "10086",
   payCcy: "USD",
@@ -806,6 +820,8 @@ function renderPath() {
 }
 function render() {
   renderPath();
+  const tab = document.querySelector(".pagetab");
+  if (tab) tab.textContent = state.page === "ledger" ? "交易详情" : "客户统一账户";
   const view = document.getElementById("view");
   const banner = state.banner ? '<div class="banner"><span>' + esc(state.banner) + '</span><button class="link" id="dismiss">知道了</button></div>' : "";
   view.innerHTML = banner + ({ list: viewList, home: viewHome, lines: viewLines, stores: viewStores, ledger: viewLedger, pay: viewPay })[state.page]();
@@ -1373,7 +1389,7 @@ function viewMerchantWallet() {
     + '<div class="hero-amt avail"><div class="k">可用金额</div><div class="v">' + avail.total + '</div><div class="s">' + note + "</div></div>"
     + '<div class="hero-amt"><div class="k">信用额度</div><div class="v">' + (creditMain.limit ? money(creditMain.limit, main) : "—") + "</div></div>"
     + "</div></div>"
-    + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">账户明细</h3><span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初负债</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
+    + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">账户明细</h3><span class="spacer"></span><button class="link" id="merchant-ledger" type="button">资金流水</button><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初负债</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
     + (linesTableBody(rows) || '<tr><td colspan="26">这个商户还没有账户</td></tr>')
     + "</tbody></table></div></div>";
 }
@@ -1516,49 +1532,75 @@ function balanceAfterOf(entries) {
   });
   return map;
 }
+function blankLedgerFilters() {
+  return { merchantId: "", merchantName: "", uniq: "", biz: "", type: "", timeStart: "", timeEnd: "", txnNo: "", txnId: "", transferNo: "" };
+}
+function openCustomerLedger() {
+  const filters = blankLedgerFilters();
+  const ids = (cur().merchants || []).map(function (m) { return m.id; });
+  if (ids.length === 1) filters.merchantId = ids[0];
+  state.ledgerFilters = filters;
+  state.ledgerCollapsed = false;
+  go("ledger");
+}
+function plainNum(n) {
+  const num = Number(n) || 0;
+  const text = Math.abs(num).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (num < 0) return '<span class="amt-neg">-' + text + "</span>";
+  if (num > 0) return '<span class="amt-pos">' + text + "</span>";
+  return text;
+}
+function fxToMain(amount, ccy) {
+  return (Number(amount) || 0) * (RATE[ccy] || 1) / (RATE[cur().main] || 1);
+}
+function rateText(ccy) {
+  if (ccy === cur().main) return "1";
+  const rate = (RATE[ccy] || 1) / (RATE[cur().main] || 1);
+  return String(Math.round(rate * 1000000) / 1000000);
+}
 function viewLedger() {
   const f = state.ledgerFilters;
-  const after = balanceAfterOf(ledger);
+  const afterAvail = balanceAfterOf(ledger);
   const types = [];
   ledger.forEach(function (e) { if (types.indexOf(e.type) < 0) types.push(e.type); });
   const rows = ledger.filter(function (e) {
+    const m = (cur().merchants || []).find(function (x) { return x.id === e.merchantId; }) || {};
     const nos = ledgerNos(e);
-    const txn = (nos.payNo + " " + nos.fulfillNo + " " + nos.receiptNo + " " + (e.doc || "")).toLowerCase();
     if (f.merchantId && String(e.merchantId).indexOf(f.merchantId.trim()) < 0) return false;
-    if (f.biz !== "全部" && e.biz !== f.biz) return false;
-    if (f.ccy !== "全部" && e.ccy !== f.ccy) return false;
-    if (f.type !== "全部" && e.type !== f.type) return false;
-    if (f.time && String(e.time).indexOf(f.time.trim()) < 0) return false;
-    if (f.txnNo && txn.indexOf(f.txnNo.trim().toLowerCase()) < 0) return false;
-    if (f.transferNo && String(nos.transferNo).toLowerCase().indexOf(f.transferNo.trim().toLowerCase()) < 0) return false;
+    if (f.merchantName && String(m.name || "").indexOf(f.merchantName.trim()) < 0) return false;
+    if (f.uniq && String(m.uniq || "").indexOf(f.uniq.trim()) < 0) return false;
+    if (f.biz && e.biz !== f.biz) return false;
+    if (f.type && e.type !== f.type) return false;
+    if (f.timeStart && String(e.time).slice(0, 10) < f.timeStart) return false;
+    if (f.timeEnd && String(e.time).slice(0, 10) > f.timeEnd) return false;
+    const txnNo = (nos.payNo || nos.receiptNo || e.doc || "");
+    if (f.txnNo && txnNo.toLowerCase().indexOf(f.txnNo.trim().toLowerCase()) < 0) return false;
+    if (f.txnId && String(e.txnId || "").toLowerCase().indexOf(f.txnId.trim().toLowerCase()) < 0) return false;
+    if (f.transferNo && String(nos.transferNo || "").toLowerCase().indexOf(f.transferNo.trim().toLowerCase()) < 0) return false;
     return true;
   });
-  function opt(list, value, all) {
-    return '<option value="' + esc(all[0]) + '"' + (value === all[0] ? " selected" : "") + ">" + esc(all[1]) + "</option>" + list.map(function (item) {
-      const v = item[0] || item;
-      const label = item[1] || item;
-      return '<option value="' + esc(v) + '"' + (value === v ? " selected" : "") + ">" + esc(label) + "</option>";
-    }).join("");
-  }
-  return '<div class="panel"><div class="qform">'
-    + '<div class="field"><label>商户id</label><input data-ledger="merchantId" placeholder="请输入" value="' + esc(f.merchantId) + '" /></div>'
-    + '<div class="field"><label>业务线</label><select data-ledger="biz">' + opt(BIZ.map(function (b) { return [b, b]; }), f.biz, ["全部", "全部"]) + "</select></div>"
-    + '<div class="field"><label>币种</label><select data-ledger="ccy">' + opt(Object.keys(RATE).map(function (c) { return [c, c]; }), f.ccy, ["全部", "全部"]) + "</select></div>"
-    + '<div class="field"><label>变动类型</label><select data-ledger="type">' + opt(types.map(function (t) { return [t, t]; }), f.type, ["全部", "全部"]) + "</select></div>"
-    + '<div class="field"><label>交易时间</label><input data-ledger="time" placeholder="如 2026-11-18" value="' + esc(f.time) + '" /></div>'
-    + '<div class="field"><label>交易单号</label><input data-ledger="txnNo" placeholder="付款/履约/收款单号" value="' + esc(f.txnNo) + '" /></div>'
-    + '<div class="field"><label>调拨单号</label><input data-ledger="transferNo" placeholder="请输入" value="' + esc(f.transferNo) + '" /></div>'
-    + '<div class="actions"><button class="btn primary" id="ledger-search" type="button">查询</button><button class="btn" id="ledger-reset" type="button">重置</button></div></div>'
-    + '<div class="tablewrap"><table><thead><tr><th>商户id</th><th>客户名称</th><th>交易时间</th><th>所属业务</th><th>变动类型</th><th>变动金额</th><th>变动后余额</th><th>币种</th><th>变动后信用额度</th><th>变动后已用额度</th><th>变动后信用剩余额度</th><th>汇率</th><th>付款单号</th><th>履约单号</th><th>调拨单号</th><th>收款单号</th><th>备注</th></tr></thead><tbody>'
+  const fields = state.ledgerCollapsed ? "" : '<div class="txn-form">'
+    + '<div class="field"><label>商户ID</label><input data-ledger="merchantId" placeholder="请输入商户ID" value="' + esc(f.merchantId) + '" /></div>'
+    + '<div class="field"><label>商户名称</label><input data-ledger="merchantName" placeholder="请输入商户名称" value="' + esc(f.merchantName) + '" /></div>'
+    + '<div class="field"><label>商户唯一标识</label><input data-ledger="uniq" placeholder="请输入商户唯一标识" value="' + esc(f.uniq) + '" /></div>'
+    + '<div class="field"><label>所属业务</label><select data-ledger="biz"><option value="">请选择所属业务</option>' + BIZ.map(function (b) { return '<option value="' + b + '"' + (f.biz === b ? " selected" : "") + ">" + b + "</option>"; }).join("") + "</select></div>"
+    + '<div class="field"><label>变动类型</label><select data-ledger="type"><option value="">请选择变动类型</option>' + types.map(function (t) { return '<option value="' + esc(t) + '"' + (f.type === t ? " selected" : "") + ">" + esc(t) + "</option>"; }).join("") + "</select></div>"
+    + '<div class="field"><label>交易时间</label><div class="txn-range"><input data-ledger="timeStart" type="date" value="' + esc(f.timeStart) + '" /><span>→</span><input data-ledger="timeEnd" type="date" value="' + esc(f.timeEnd) + '" /></div></div>'
+    + '<div class="field"><label>交易单号</label><input data-ledger="txnNo" placeholder="请输入交易单号" value="' + esc(f.txnNo) + '" /></div>'
+    + '<div class="field"><label>交易ID</label><input data-ledger="txnId" placeholder="请输入交易ID" value="' + esc(f.txnId) + '" /></div>'
+    + '<div class="field"><label>调拨单号</label><input data-ledger="transferNo" placeholder="请输入调拨单号" value="' + esc(f.transferNo) + '" /></div>'
+    + '<div class="txn-actions"><button class="btn primary" id="ledger-search" type="button">搜索</button><button class="btn" id="ledger-reset" type="button">重置</button><button class="link" id="ledger-fold" type="button">' + (state.ledgerCollapsed ? "展开" : "收起") + "</button></div></div>";
+  const head = ["商户ID", "商户名称", "交易时间", "所属业务", "变动类型", "变动原因", "交易币种", "交易金额", "默认币种", "变动金额", "变动后当前余额", "变动后的可用余额", "汇率", "操作来源", "交易单号", "交易ID", "调拨单号", "描述/备注", "操作"];
+  return '<div class="panel">' + fields
+    + '<div class="txn-bar"><button class="btn primary" id="export-ledger" type="button">导出数据</button></div>'
+    + '<div class="txn-wrap"><table class="txn-table"><thead><tr>' + head.map(function (h, i) { return '<th' + (i === head.length - 1 ? ' class="freeze"' : "") + ">" + h + "</th>"; }).join("") + "</tr></thead><tbody>"
     + (rows.length ? rows.map(function (e) {
+      const m = (cur().merchants || []).find(function (x) { return x.id === e.merchantId; }) || {};
       const nos = ledgerNos(e);
-      const creditItem = bag(e.ccy, e.biz);
-      const showCredit = e.type === "信用占用" || e.bucket === "信用额度";
-      const rate = e.ccy === cur().main ? "1.00" : (RATE[e.ccy] / RATE[cur().main]).toFixed(4);
-      const afterBal = after.get(e);
-      const amtCls = e.amount < 0 ? "amt-neg" : "amt-pos";
-      return "<tr><td>" + esc(e.merchantId) + "</td><td>" + esc(cur().name) + "</td><td>" + esc(e.time) + "</td><td>" + esc(e.biz) + "</td><td>" + esc(e.type) + "</td><td class=\"" + amtCls + "\">" + money(e.amount, e.ccy) + "</td><td>" + (afterBal == null ? "—" : money(afterBal, e.ccy)) + "</td><td>" + esc(e.ccy) + "</td><td>" + (showCredit ? money(creditItem.limit, e.ccy) : "—") + "</td><td>" + (showCredit ? money(creditItem.used, e.ccy) : "—") + "</td><td>" + (showCredit ? money(creditItem.limit - creditItem.used, e.ccy) : "—") + "</td><td>" + rate + "</td><td>" + esc(nos.payNo || "—") + "</td><td>" + esc(nos.fulfillNo || "—") + "</td><td>" + esc(nos.transferNo || "—") + "</td><td>" + esc(nos.receiptNo || "—") + "</td><td>" + esc(e.note || "") + "</td></tr>";
-    }).join("") : '<tr><td colspan="17">没有符合条件的流水</td></tr>')
+      const moved = fxToMain(e.amount, e.ccy);
+      const after = afterAvail.get(e);
+      return "<tr><td>" + esc(e.merchantId) + "</td><td>" + esc(m.name || "—") + "</td><td>" + esc(e.time) + "</td><td>" + esc(e.biz) + "</td><td>" + esc(e.type) + "</td><td>—</td><td>" + esc(e.ccy) + "</td><td>" + plainNum(e.amount) + "</td><td>" + esc(cur().main) + "</td><td>" + plainNum(moved) + "</td><td>" + (after == null ? "—" : plainNum(after)) + "</td><td>" + (after == null ? "—" : plainNum(after)) + "</td><td>" + rateText(e.ccy) + "</td><td>" + esc(e.channel && e.channel !== "—" ? e.channel : "—") + "</td><td>" + esc(nos.payNo || nos.receiptNo || "—") + "</td><td>" + esc(e.txnId || "—") + "</td><td>" + esc(nos.transferNo || "—") + "</td><td>" + esc(e.note || "—") + '</td><td class="freeze"><button class="link" type="button" data-attach="1">查看附件</button></td></tr>';
+    }).join("") : '<tr><td colspan="19">没有符合条件的流水</td></tr>')
     + "</tbody></table></div></div>";
 }
 
@@ -1811,7 +1853,7 @@ document.body.addEventListener("click", function (e) {
       patch.ccy = "全部";
       patch.lineId = "";
     } else if (page === "home" || page === "list" || page === "ledger") {
-      if (page === "ledger") state.ledgerFilters = { merchantId: "", biz: "全部", ccy: "全部", type: "全部", time: "", txnNo: "", transferNo: "" };
+      if (page === "ledger") { openCustomerLedger(); return; }
       if (page === "home") state.fold = "credit";
       patch.merchant = "全部";
       patch.biz = "全部";
@@ -1876,8 +1918,11 @@ document.body.addEventListener("click", function (e) {
     else location.hash = "home";
     return;
   }
+  if (e.target.id === "merchant-ledger") { openCustomerLedger(); return; }
+  if (e.target.id === "ledger-fold") { state.ledgerCollapsed = !state.ledgerCollapsed; render(); return; }
+  if (e.target.closest("[data-attach]")) { state.banner = "这条流水暂无附件。"; render(); return; }
   if (e.target.id === "ledger-search") {
-    ["merchantId", "biz", "ccy", "type", "time", "txnNo", "transferNo"].forEach(function (key) {
+    ["merchantId", "merchantName", "uniq", "biz", "type", "timeStart", "timeEnd", "txnNo", "txnId", "transferNo"].forEach(function (key) {
       const el = document.querySelector('[data-ledger="' + key + '"]');
       if (el) state.ledgerFilters[key] = el.value;
     });
@@ -1885,7 +1930,7 @@ document.body.addEventListener("click", function (e) {
     return;
   }
   if (e.target.id === "ledger-reset") {
-    state.ledgerFilters = { merchantId: "", biz: "全部", ccy: "全部", type: "全部", time: "", txnNo: "", transferNo: "" };
+    state.ledgerFilters = blankLedgerFilters();
     render();
     return;
   }

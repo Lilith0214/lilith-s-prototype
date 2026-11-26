@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>收付款流水监控看板</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="proto-bar">
+    <div>
+      <b>收付款流水监控</b>
+      <small>统一看板 + 飞书定向推送样式稿</small>
+    </div>
+    <nav>
+      <button type="button" class="scene active" data-scene="board">监控看板</button>
+      <button type="button" class="scene" data-scene="push">飞书推送卡片</button>
+    </nav>
+  </header>
+
+  <main id="scene-board" class="scene-panel">
+    <section class="board">
+      <div class="board-head">
+        <div>
+          <h1>收付款流水监控看板</h1>
+          <p>统计周期 2026-11-26 · 三类监控合并展示</p>
+        </div>
+        <div class="board-meta">
+          <span class="status warn">今日有异常 · 5 项待关注</span>
+          <label>
+            日期
+            <input type="date" value="2026-11-26" />
+          </label>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <article class="kpi warn">
+          <span class="kpi-label">异常退款</span>
+          <strong>3</strong>
+          <em>命中关键词 · Payoneer</em>
+        </article>
+        <article class="kpi danger">
+          <span class="kpi-label">拉流频率异常</span>
+          <strong>1</strong>
+          <em>超时未执行 · Worldfirst</em>
+        </article>
+        <article class="kpi ok">
+          <span class="kpi-label">对账缺失 / 补拉</span>
+          <strong>1 / 1</strong>
+          <em>已触发补拉 · Airwallex</em>
+        </article>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="refund">异常退款</button>
+        <button type="button" class="tab" data-tab="pull">拉流频率</button>
+        <button type="button" class="tab" data-tab="recon">对账兜底</button>
+        <button type="button" class="tab" data-tab="logs">任务记录</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-refund">
+        <table>
+          <thead>
+            <tr>
+              <th>平台</th>
+              <th>账户别名</th>
+              <th>发生时间</th>
+              <th>交易信息</th>
+              <th>命中关键词</th>
+              <th>金额</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Payoneer</td>
+              <td>Payoneer-Luzhennan</td>
+              <td>2026-11-18 13:19</td>
+              <td>Debit from Payoneer</td>
+              <td><code>debit</code></td>
+              <td>-1,280.00 USD</td>
+            </tr>
+            <tr>
+              <td>Payoneer</td>
+              <td>Payoneer-Bestads</td>
+              <td>2026-11-12 09:41</td>
+              <td>Debit from Payoneer</td>
+              <td><code>debit</code></td>
+              <td>-560.40 USD</td>
+            </tr>
+            <tr>
+              <td>Payoneer</td>
+              <td>Payoneer-Besttech</td>
+              <td>2026-11-05 16:02</td>
+              <td>Debit from Payoneer</td>
+              <td><code>debit</code></td>
+              <td>-2,100.00 USD</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tab-panel" id="tab-pull">
+        <table>
+          <thead>
+            <tr>
+              <th>平台</th>
+              <th>账户别名</th>
+              <th>约定频率</th>
+              <th>最近执行</th>
+              <th>状态</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Worldfirst</td>
+              <td>WF-Ops-01</td>
+              <td>每 2 小时</td>
+              <td>2026-11-26 12:10</td>
+              <td><span class="pill danger">超时未执行</span></td>
+              <td>超过约定窗口 40 分钟</td>
+            </tr>
+            <tr>
+              <td>Payoneer</td>
+              <td>Payoneer-Bestads</td>
+              <td>每 2 小时</td>
+              <td>2026-11-26 16:02</td>
+              <td><span class="pill ok">正常</span></td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>Airwallex</td>
+              <td>AWX-Main</td>
+              <td>每 1 小时</td>
+              <td>2026-11-26 16:55</td>
+              <td><span class="pill ok">正常</span></td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tab-panel" id="tab-recon">
+        <table>
+          <thead>
+            <tr>
+              <th>平台</th>
+              <th>账户别名</th>
+              <th>校验结果</th>
+              <th>差额</th>
+              <th>补拉结果</th>
+              <th>执行时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Airwallex</td>
+              <td>AWX-Main</td>
+              <td><span class="pill warn">流水缺失</span></td>
+              <td>3 笔 / 420.00 USD</td>
+              <td><span class="pill ok">补拉成功</span></td>
+              <td>2026-11-26 15:30</td>
+            </tr>
+            <tr>
+              <td>Payoneer</td>
+              <td>Payoneer-Luzhennan</td>
+              <td><span class="pill ok">一致</span></td>
+              <td>—</td>
+              <td>—</td>
+              <td>2026-11-26 15:30</td>
+            </tr>
+            <tr>
+              <td>Worldfirst</td>
+              <td>WF-Ops-01</td>
+              <td><span class="pill ok">一致</span></td>
+              <td>—</td>
+              <td>—</td>
+              <td>2026-11-26 15:30</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tab-panel" id="tab-logs">
+        <table>
+          <thead>
+            <tr>
+              <th>任务执行时间</th>
+              <th>平台</th>
+              <th>账户别名</th>
+              <th>任务内容</th>
+              <th>执行结果</th>
+              <th>补拉结果</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2026-11-26 15:30</td>
+              <td>Airwallex</td>
+              <td>AWX-Main</td>
+              <td>对账兜底</td>
+              <td>部分成功</td>
+              <td>补拉 3 笔成功</td>
+            </tr>
+            <tr>
+              <td>2026-11-26 14:05</td>
+              <td>Worldfirst</td>
+              <td>WF-Ops-01</td>
+              <td>拉流频率检查</td>
+              <td>失败</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>2026-11-26 09:00</td>
+              <td>Payoneer</td>
+              <td>Payoneer-Bestads</td>
+              <td>异常退款扫描</td>
+              <td>成功</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <main id="scene-push" class="scene-panel hidden">
+    <section class="feishu-shell">
+      <aside class="rail">
+        <div class="feishu-mark">飞</div>
+        <div class="rail-item selected">消息<small>消息</small></div>
+        <div class="rail-item">云<small>云文档</small></div>
+      </aside>
+      <aside class="conv">
+        <div class="search">搜索</div>
+        <div class="conv-item active">
+          <div class="bot">监</div>
+          <div>
+            <b>资金流水监控 · 财务群</b>
+            <p>今日流水监控日报 · 有异常</p>
+          </div>
+        </div>
+        <div class="conv-item">
+          <div class="bot soft">财</div>
+          <div>
+            <b>Airwallex 专属群</b>
+            <p>按平台定向推送示意</p>
+          </div>
+        </div>
+      </aside>
+      <section class="chat">
+        <header class="chat-head">
+          <div>
+            <h1>资金流水监控 · 财务群 <span>应用</span></h1>
+            <p>定向推送 · 汇总三类监控结果</p>
+          </div>
+        </header>
+        <div class="chat-scroll">
+          <div class="date-line">今天 18:00</div>
+          <article class="message">
+            <div class="bot">监</div>
+            <div class="message-body">
+              <div class="sender">流水监控助手 <span>机器人</span></div>
+              <div class="push-card">
+                <div class="push-head">
+                  <div>
+                    <b>流水监控日报</b>
+                    <p>2026-11-26 · 定向推送财务群</p>
+                  </div>
+                  <span class="tag warn">有异常</span>
+                </div>
+                <div class="push-kpis">
+                  <div>
+                    <span>异常退款</span>
+                    <strong>3</strong>
+                  </div>
+                  <div>
+                    <span>拉流异常</span>
+                    <strong class="danger">1</strong>
+                  </div>
+                  <div>
+                    <span>缺失 / 补拉</span>
+                    <strong>1 / 1</strong>
+                  </div>
+                </div>
+                <ul class="push-list">
+                  <li><b>异常退款</b> Payoneer · 3 笔命中 debit</li>
+                  <li><b>拉流频率</b> Worldfirst / WF-Ops-01 超时未执行</li>
+                  <li><b>对账兜底</b> Airwallex / AWX-Main 缺失 3 笔，已补拉成功</li>
+                </ul>
+                <div class="push-actions">
+                  <button type="button" class="primary">查看监控看板</button>
+                  <button type="button">下载明细</button>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="message">
+            <div class="bot">监</div>
+            <div class="message-body">
+              <div class="sender">流水监控助手 <span>机器人</span></div>
+              <div class="push-card ok-card">
+                <div class="push-head">
+                  <div>
+                    <b>流水监控日报</b>
+                    <p>无异常时的报送样式</p>
+                  </div>
+                  <span class="tag ok">全部正常</span>
+                </div>
+                <p class="push-empty">三类监控均无异常：异常退款 0 · 拉流异常 0 · 对账缺失 0</p>
+                <div class="push-actions">
+                  <button type="button" class="primary">查看监控看板</button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

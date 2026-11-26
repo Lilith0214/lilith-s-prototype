@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>飞书 · 流水监控看板推送</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header class="proto-bar">
@@ -18,7 +18,18 @@
     </nav>
     <span class="demo-note">飞书消息卡片 · 非网页看板</span>
   </header>
-  <div id="app"></div>
-  <script src="app.js"></script>
+  <div id="app">
+    <noscript>
+      <p style="padding:24px;font:14px/1.6 sans-serif;color:#646a73">
+        需要启用 JavaScript 才能查看飞书消息看板原型。
+      </p>
+    </noscript>
+    <p id="boot-hint" style="padding:24px;font:14px/1.6 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;color:#646a73">
+      正在加载飞书消息看板原型…若长时间空白，请打开
+      <a href="https://lilith0214.github.io/lilith-s-prototype/fund-monitor/">线上地址</a>
+      ，或确认同目录下的 <code>app.js</code> / <code>style.css</code> 已加载。
+    </p>
+  </div>
+  <script src="./app.js"></script>
 </body>
 </html>

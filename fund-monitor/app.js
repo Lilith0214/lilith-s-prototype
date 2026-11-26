@@ -250,7 +250,9 @@ function render() {
   document.querySelectorAll("[data-scene]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.scene === scene);
   });
-  document.getElementById("app").innerHTML = view === "detail" ? detailPage() : messagePage();
+  const app = document.getElementById("app");
+  if (!app) return;
+  app.innerHTML = view === "detail" ? detailPage() : messagePage();
 }
 
 document.addEventListener("click", (event) => {

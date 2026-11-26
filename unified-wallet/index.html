@@ -171,11 +171,20 @@ button { cursor: pointer; }
   padding: 16px 16px 14px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, .06);
 }
+.glance-card { position: relative; }
+.glance-card .hd { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; padding-right: 76px; }
+.glance-card .hd .detail-link {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  margin: 0;
+  padding: 0;
+  flex: none;
+}
 .glance-card .hd .tag,
 .biz-flag .tag { flex: 0 0 auto; width: fit-content; align-self: center; }
 .biz-flag { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .biz-flag .ccy-code { font-size: 22px; }
-.glance-card .hd { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
 .flag { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
 .flag svg { width: 28px; height: 28px; display: block; }
 .ccy-code { font-size: 18px; font-weight: 700; color: #1f1f1f; letter-spacing: .3px; line-height: 1.2; }
@@ -1237,7 +1246,7 @@ function currencyCards(list) {
       const preUsed = (cur().precharge && cur().precharge[ccy] && cur().precharge[ccy].used) || 0;
       const extra = (ccy === main && cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
       const limit = ccy === main ? creditSum(ccy).limit + (Number(extra.limit) || 0) : null;
-      return '<article class="glance-card"><div class="hd">' + flagIcon(ccy) + '<span class="ccy-code">' + esc(ccy) + "</span>" + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + '<button class="link detail-link" type="button" data-ccy-open="' + esc(ccy) + '">账户明细</button></div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
+      return '<article class="glance-card"><div class="hd">' + flagIcon(ccy) + '<div class="hd-title"><span class="ccy-code">' + esc(ccy) + "</span> " + tag(ccy === main ? "main" : "sub", ccy === main ? "主币种" : "非主币种") + '</div><button class="link detail-link" type="button" data-ccy-open="' + esc(ccy) + '">账户明细</button></div><div class="big">' + money(sumCcy(list, ccy, "current"), ccy) + "</div>"
         + subline("可用金额", money(usableInCcy(list, ccy, preUsed), ccy), "avail")
         + subline("真实金额", money(sumCcy(list, ccy, "real"), ccy))
         + subline("信用额度", limit == null ? "—" : money(limit, ccy))
@@ -1259,7 +1268,7 @@ function bizCards(list) {
       const creditLimit = hasCredit(b) ? item.limit : null;
       const creditRemain = hasCredit(b) ? item.limit - item.used : 0;
       const usable = atLeastZero((realUsd - debtUsd) / RATE[main] + creditRemain);
-      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(b.slice(0, 1)) + '</span><span class="ccy-code">' + b + '</span><button class="link detail-link" type="button" data-biz-open="' + b + '">账户明细</button></div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
+      return '<article class="glance-card"><div class="hd"><span class="mark">' + esc(b.slice(0, 1)) + '</span><div class="hd-title"><span class="ccy-code">' + b + '</span></div><button class="link detail-link" type="button" data-biz-open="' + b + '">账户明细</button></div><div class="big">' + money(currentUsd / RATE[main], main) + "</div>"
         + subline("可用金额", money(usable, main), "avail")
         + subline("真实金额", money(realUsd / RATE[main], main))
         + subline("信用额度", creditLimit == null ? "—" : money(creditLimit, main))

@@ -67,7 +67,7 @@ function alertCard() {
     <div class="card-banner">
       <div class="card-banner-main">
         <b>流水监控看板</b>
-        <span>有异常</span>
+        <span class="banner-tag">有异常</span>
       </div>
       <p>2026-11-26 · 财务群定向推送</p>
     </div>
@@ -123,7 +123,7 @@ function okCard() {
     <div class="card-banner">
       <div class="card-banner-main">
         <b>流水监控看板</b>
-        <span>全部正常</span>
+        <span class="banner-tag">全部正常</span>
       </div>
       <p>2026-11-26 · 财务群定向推送</p>
     </div>

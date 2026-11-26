@@ -244,56 +244,78 @@ button.text-button {
   overflow: hidden;
   max-width: 420px;
   background: #fff;
+  box-shadow: none;
 }
 .card-banner {
-  padding: 14px 16px;
-  color: #fff;
+  position: relative;
+  padding: 14px 16px 14px 18px;
+  border-bottom: 1px solid transparent;
+}
+.card-banner::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
 }
 .card-banner-main {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 .card-banner-main b {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
+  color: #1f2329;
 }
-.card-banner-main span {
+.banner-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  opacity: .92;
+  line-height: 22px;
 }
 .card-banner p {
   margin: 6px 0 0;
   font-size: 12px;
-  opacity: .88;
+  color: #8f959e;
 }
 
-/* 有异常：黄色卡片 */
+/* 有异常：柔和黄色语义 */
 .message-card.tone-warn {
-  border-color: #f0d48a;
+  border-color: #f0e3c4;
 }
 .message-card.tone-warn .card-banner {
-  background: #f5c518;
-  color: #5c4300;
+  background: #fff9eb;
+  border-bottom-color: #f3e7cb;
 }
-.message-card.tone-warn .card-banner p {
-  color: #7a5a00;
-  opacity: 1;
+.message-card.tone-warn .card-banner::before {
+  background: #d4a017;
+}
+.message-card.tone-warn .banner-tag {
+  background: #fff1cc;
+  color: #8a6a12;
 }
 
-/* 无异常：绿色卡片 */
+/* 无异常：柔和绿色语义 */
 .message-card.tone-ok {
-  border-color: #b7e0bf;
+  border-color: #cfe8d4;
 }
 .message-card.tone-ok .card-banner {
-  background: #34c724;
-  color: #fff;
+  background: #f3fbf5;
+  border-bottom-color: #dcebdf;
 }
-.message-card.tone-ok .card-banner p {
-  color: rgba(255, 255, 255, .9);
-  opacity: 1;
+.message-card.tone-ok .card-banner::before {
+  background: #3ba55c;
+}
+.message-card.tone-ok .banner-tag {
+  background: #e5f6ea;
+  color: #2f6b45;
 }
 
 .card-body { padding: 14px 16px 16px; }
@@ -332,7 +354,7 @@ button.text-button {
   line-height: 1.1;
   color: #1f2329;
 }
-.board-kpis strong.sev-critical { color: #d92d20; }
+.board-kpis strong.sev-critical { color: #c9362d; }
 .board-kpis strong.sev-normal { color: #1f2329; }
 .board-kpis em {
   display: block;
@@ -371,15 +393,19 @@ button.text-button {
   color: #1f2329;
   font-weight: 500;
 }
-.hit-main.sev-critical,
-.hit-main.sev-critical b,
+.hit-main.sev-critical b {
+  color: #c9362d;
+}
 .hit-main.sev-critical span {
-  color: #d92d20;
+  color: #4e5969;
 }
 .hit-main.sev-normal,
 .hit-main.sev-normal b,
 .hit-main.sev-normal span {
   color: #1f2329;
+}
+.hit-main.sev-normal span {
+  color: #4e5969;
 }
 .board-empty {
   margin: 0 0 14px;

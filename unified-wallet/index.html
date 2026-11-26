@@ -1816,7 +1816,14 @@ function renderModal() {
       + infoRow("客户主体", esc(p.company || c.name))
       + infoRow("主币种", ccyTag(c.main, true))
       + infoRow("状态", statusTag(c.status))
-      + infoRow("商户id", c.merchants.map(function (m) { return esc(m.id) + " · " + esc(m.name) + (m.email ? " · " + esc(m.email) : ""); }).join("<br>"))
+      + infoRow("商户id", c.merchants.map(function (m) { return esc(m.id); }).join("<br>") || "—")
+      + infoRow("店铺名称", (function () {
+        const names = [];
+        c.merchants.forEach(function (m) {
+          (m.stores || []).forEach(function (s) { if (s && names.indexOf(s) < 0) names.push(s); });
+        });
+        return names.length ? names.map(esc).join("<br>") : "—";
+      })())
       + "</div></div><footer><button class=\"btn\" id=\"close2\">关闭</button></footer></div>";
     return;
   }

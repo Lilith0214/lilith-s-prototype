@@ -443,7 +443,7 @@ function creditBag(byCcy) {
 
 const customers = [
   {
-    id: "C20240018", name: "示例客户A", main: "USD", status: "正常", grade: "s", demoPay: 20000, payCcy: "USD",
+    id: "C20240018", name: "示例客户A", main: "USD", status: "正常", grade: "S", demoPay: 20000, payCcy: "USD",
     profile: { region: "美国", email: "ke.chen@example.com", contact: "陈可", phone: "+1 628 555 0142", company: "示例客户A" },
     balanceShare: true, priority: "reason", creditShare: false, feeCompany: true, fxTopup: true,
     precharge: { USD: { limit: 200000, used: 5000 }, EUR: { limit: 50000, used: 0 }, GBP: { limit: 20000, used: 0 }, CNY: { limit: 150000, used: 0 } },
@@ -505,7 +505,7 @@ const customers = [
     ]
   },
   {
-    id: "C20240032", name: "示例客户B", main: "USD", status: "正常", grade: "a", demoPay: 8000, payCcy: "USD",
+    id: "C20240032", name: "示例客户B", main: "USD", status: "正常", grade: "A", demoPay: 8000, payCcy: "USD",
     profile: { region: "中国 / 广东", email: "lin.xia@example.com", contact: "林夏", phone: "+86 138 0000 2081", company: "示例客户B" },
     balanceShare: false, priority: "reason", creditShare: false, feeCompany: true, fxTopup: false,
     precharge: { USD: { limit: 100000, used: 0 } },
@@ -528,7 +528,7 @@ const customers = [
     ]
   },
   {
-    id: "C20240041", name: "示例客户C", main: "EUR", status: "正常", grade: "b", demoPay: 2000, payCcy: "EUR",
+    id: "C20240041", name: "示例客户C", main: "EUR", status: "正常", grade: "B", demoPay: 2000, payCcy: "EUR",
     profile: { region: "德国", email: "anna.keller@example.com", contact: "Anna Keller", phone: "+49 30 5550 3150", company: "示例客户C" },
     balanceShare: true, priority: "reason", creditShare: false, feeCompany: true, fxTopup: false,
     precharge: { EUR: { limit: 100000, used: 0 } },
@@ -548,7 +548,7 @@ const customers = [
     ]
   },
   {
-    id: "C20240055", name: "示例客户D", main: "USD", status: "正常", grade: "c", demoPay: 5000, payCcy: "USD",
+    id: "C20240055", name: "示例客户D", main: "USD", status: "正常", grade: "C", demoPay: 5000, payCcy: "USD",
     profile: { region: "英国", email: "james.holt@example.com", contact: "James Holt", phone: "+44 20 7946 4261", company: "示例客户D" },
     balanceShare: true, priority: "reason", creditShare: true, feeCompany: true, fxTopup: false,
     precharge: { USD: { limit: 100000, used: 2500 } },
@@ -570,7 +570,7 @@ const customers = [
     ]
   },
   {
-    id: "C20230102", name: "示例客户E", main: "USD", status: "已停用", grade: "d", demoPay: 1000, payCcy: "USD",
+    id: "C20230102", name: "示例客户E", main: "USD", status: "已停用", grade: "D", demoPay: 1000, payCcy: "USD",
     profile: { region: "中国 / 上海", email: "zhou.ning@example.com", contact: "周宁", phone: "+86 139 0000 1102", company: "示例客户E" },
     balanceShare: false, priority: "reason", creditShare: false, feeCompany: true, fxTopup: false,
     precharge: { USD: { limit: 100000, used: 0 } },
@@ -849,7 +849,7 @@ function render() {
 }
 
 function viewList() {
-  const grades = ["s", "a", "b", "c", "d"];
+  const grades = ["S", "A", "B", "C", "D"];
   const rows = customers.filter(matchCustomer);
   const head = ["客户名称", "客户联系方式", "商户id", "主币种", "客户状态", "客户等级", "当前金额", "可用余额", "信用额度", "已用额度", "剩余额度", "手续费承担方式", "是否开启汇损补足", "操作"];
   const body = rows.length ? rows.map(function (c) {

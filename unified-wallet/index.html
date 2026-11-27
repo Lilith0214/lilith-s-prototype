@@ -594,6 +594,144 @@ const customers = [
     credit: creditBag({}),
     vouchers: [],
     ledger: []
+  },
+  {
+    id: "C20240068", name: "示例客户F", main: "USD", status: "正常", grade: "S", demoPay: 6000, payCcy: "USD",
+    profile: { region: "新加坡", email: "zhao.ning@example.com", contact: "赵宁", phone: "+65 8123 5201", company: "示例客户F" },
+    balanceShare: true, priority: "reason", creditShare: false, feeCompany: true, fxTopup: true,
+    precharge: { USD: { limit: 80000, used: 2000 } },
+    merchants: [
+      { id: "52011", name: "示例客户F-商户01", email: "f01@example.com", uniq: "FN-US-01", erp: "FN-US", stores: ["独立站-US", "独立站-UK"], precharge: { USD: { limit: 80000, used: 2000 } } },
+      { id: "52012", name: "示例客户F-商户02", email: "f02@example.com", uniq: "FN-GB-02", erp: "FN-GB", stores: ["独立站-SG"], precharge: { GBP: { limit: 20000, used: 0 } } },
+      { id: "52013", name: "示例客户F-商户03", email: "f03@example.com", uniq: "FN-JP-03", erp: "FN-JP", stores: ["独立站-JP"], precharge: { CNY: { limit: 60000, used: 0 } } }
+    ],
+    lines: [
+      wallet({ id: "WA-6101", merchantId: "52011", merchantName: "示例客户F-商户01", uniq: "FN-US-01", erp: "FN-US", biz: "代发", ccy: "USD", main: true, available: 11000, real: 11000, current: 12000, frozen: 200, openingDebt: 500, openingAt: "2026-01-01 00:00", fxTopup: "开启" }),
+      wallet({ id: "WA-6102", merchantId: "52011", merchantName: "示例客户F-商户01", uniq: "FN-US-01", erp: "FN-US", biz: "广告", ccy: "USD", main: true, available: 4000, real: 4000, current: 4000 }),
+      wallet({ id: "WA-6103", merchantId: "52011", merchantName: "示例客户F-商户01", uniq: "FN-US-01", erp: "FN-US", biz: "拒付", ccy: "USD", main: true, available: 800, real: 800, fee: "客户承担" }),
+      wallet({ id: "WA-6104", merchantId: "52011", merchantName: "示例客户F-商户01", uniq: "FN-US-01", erp: "FN-US", biz: "垫资", ccy: "USD", main: true, available: 1500, real: 1500 }),
+      wallet({ id: "WA-6105", merchantId: "52011", merchantName: "示例客户F-商户01", uniq: "FN-US-01", erp: "FN-US", biz: "代发", ccy: "EUR", available: 2200, real: 2200 }),
+      wallet({ id: "WA-6201", merchantId: "52012", merchantName: "示例客户F-商户02", uniq: "FN-GB-02", erp: "FN-GB", biz: "代发", ccy: "GBP", available: 1800, real: 1800 }),
+      wallet({ id: "WA-6202", merchantId: "52012", merchantName: "示例客户F-商户02", uniq: "FN-GB-02", erp: "FN-GB", biz: "广告", ccy: "GBP", available: 600, real: 600 }),
+      wallet({ id: "WA-6301", merchantId: "52013", merchantName: "示例客户F-商户03", uniq: "FN-JP-03", erp: "FN-JP", biz: "代发", ccy: "CNY", available: 28000, real: 28000 }),
+      wallet({ id: "WA-6302", merchantId: "52013", merchantName: "示例客户F-商户03", uniq: "FN-JP-03", erp: "FN-JP", biz: "广告", ccy: "USD", main: true, available: 900, real: 900 })
+    ],
+    credit: creditBag({ USD: { 代发: { limit: 10000, used: 3000 }, 广告: { limit: 5000, used: 1000 } } }),
+    vouchers: [],
+    ledger: [
+      { time: "2026-11-12 11:20", type: "认领", biz: "代发", merchantId: "52011", ccy: "USD", amount: 12000, store: "独立站-US", doc: "转账充值 RC-5201", bucket: "可用余额", channel: "银行", note: "认领到代发" },
+      { time: "2026-11-06 09:40", type: "认领", biz: "代发", merchantId: "52012", ccy: "GBP", amount: 1800, store: "独立站-SG", doc: "转账充值 RC-5202", bucket: "可用余额", channel: "WorldFirst", note: "英镑商户认领" },
+      { time: "2026-10-28 16:05", type: "认领", biz: "代发", merchantId: "52013", ccy: "CNY", amount: 28000, store: "独立站-JP", doc: "转账充值 RC-5203", bucket: "可用余额", channel: "银行", note: "人民币商户认领" }
+    ]
+  },
+  {
+    id: "C20240073", name: "示例客户G", main: "GBP", status: "正常", grade: "A", demoPay: 3000, payCcy: "GBP",
+    profile: { region: "英国", email: "sun.qi@example.com", contact: "孙琪", phone: "+44 20 7946 6302", company: "示例客户G" },
+    balanceShare: false, priority: "reason", creditShare: false, feeCompany: false, fxTopup: false,
+    precharge: { GBP: { limit: 50000, used: 0 } },
+    merchants: [
+      { id: "63021", name: "示例客户G-商户01", email: "g01@example.com", uniq: "GQ-UK-01", erp: "GQ-UK", stores: ["独立站-UK"], precharge: { GBP: { limit: 50000, used: 0 } } }
+    ],
+    lines: [
+      wallet({ id: "WA-7101", merchantId: "63021", merchantName: "示例客户G-商户01", uniq: "GQ-UK-01", erp: "GQ-UK", biz: "代发", ccy: "GBP", main: true, available: 5000, real: 5000 }),
+      wallet({ id: "WA-7102", merchantId: "63021", merchantName: "示例客户G-商户01", uniq: "GQ-UK-01", erp: "GQ-UK", biz: "广告", ccy: "GBP", main: true, available: 1200, real: 1200 }),
+      wallet({ id: "WA-7103", merchantId: "63021", merchantName: "示例客户G-商户01", uniq: "GQ-UK-01", erp: "GQ-UK", biz: "拒付", ccy: "GBP", main: true, available: 300, real: 300, fee: "客户承担" }),
+      wallet({ id: "WA-7104", merchantId: "63021", merchantName: "示例客户G-商户01", uniq: "GQ-UK-01", erp: "GQ-UK", biz: "垫资", ccy: "GBP", main: true, available: 800, real: 800, fee: "客户承担" })
+    ],
+    credit: creditBag({ GBP: { 代发: { limit: 4000, used: 500 }, 广告: { limit: 1500, used: 0 } } }),
+    vouchers: [],
+    ledger: [
+      { time: "2026-11-09 14:18", type: "认领", biz: "代发", merchantId: "63021", ccy: "GBP", amount: 5000, store: "独立站-UK", doc: "转账充值 RC-6301", bucket: "可用余额", channel: "银行", note: "只有英镑" }
+    ]
+  },
+  {
+    id: "C20240081", name: "示例客户H", main: "CNY", status: "正常", grade: "B", demoPay: 10000, payCcy: "CNY",
+    profile: { region: "中国 / 浙江", email: "wu.lan@example.com", contact: "吴岚", phone: "+86 137 0000 7403", company: "示例客户H" },
+    balanceShare: true, priority: "reason", creditShare: false, feeCompany: true, fxTopup: false,
+    precharge: { CNY: { limit: 200000, used: 8000 } },
+    merchants: [
+      { id: "74031", name: "示例客户H-商户01", email: "h01@example.com", uniq: "HL-HZ-01", erp: "HL-HZ", stores: ["独立站-HZ"], precharge: { CNY: { limit: 100000, used: 8000 } } },
+      { id: "74032", name: "示例客户H-商户02", email: "h02@example.com", uniq: "HL-NB-02", erp: "HL-NB", stores: ["独立站-NB"], precharge: { CNY: { limit: 50000, used: 0 } } },
+      { id: "74033", name: "示例客户H-商户03", email: "h03@example.com", uniq: "HL-WZ-03", erp: "HL-WZ", stores: ["独立站-WZ"], precharge: { CNY: { limit: 50000, used: 0 } } }
+    ],
+    lines: [
+      wallet({ id: "WA-8101", merchantId: "74031", merchantName: "示例客户H-商户01", uniq: "HL-HZ-01", erp: "HL-HZ", biz: "代发", ccy: "CNY", main: true, available: 8000, real: 8000 }),
+      wallet({ id: "WA-8102", merchantId: "74031", merchantName: "示例客户H-商户01", uniq: "HL-HZ-01", erp: "HL-HZ", biz: "广告", ccy: "CNY", main: true, available: 2000, real: 2000 }),
+      wallet({ id: "WA-8201", merchantId: "74032", merchantName: "示例客户H-商户02", uniq: "HL-NB-02", erp: "HL-NB", biz: "代发", ccy: "CNY", main: true, available: 4500, real: 4500 }),
+      wallet({ id: "WA-8202", merchantId: "74032", merchantName: "示例客户H-商户02", uniq: "HL-NB-02", erp: "HL-NB", biz: "拒付", ccy: "CNY", main: true, available: 600, real: 600 }),
+      wallet({ id: "WA-8301", merchantId: "74033", merchantName: "示例客户H-商户03", uniq: "HL-WZ-03", erp: "HL-WZ", biz: "代发", ccy: "CNY", main: true, available: 3000, real: 3000 }),
+      wallet({ id: "WA-8302", merchantId: "74033", merchantName: "示例客户H-商户03", uniq: "HL-WZ-03", erp: "HL-WZ", biz: "垫资", ccy: "CNY", main: true, available: 12000, real: 12000 })
+    ],
+    credit: creditBag({ CNY: { 代发: { limit: 20000, used: 4000 }, 广告: { limit: 8000, used: 2000 } } }),
+    vouchers: [
+      { id: "PZ-20261121", merchantId: "74031", biz: "代发", ccy: "CNY", amount: 8000, status: "待核销", time: "2026-11-21 10:12", proof: "银行回单 CMB-7403", flow: "" }
+    ],
+    ledger: [
+      { time: "2026-11-21 10:12", type: "预充入账", biz: "代发", merchantId: "74031", ccy: "CNY", amount: 8000, store: "—", doc: "凭证 PZ-20261121", bucket: "可用余额", channel: "—", note: "凭转账凭证先增加可用余额" },
+      { time: "2026-11-04 15:30", type: "认领", biz: "代发", merchantId: "74032", ccy: "CNY", amount: 4500, store: "独立站-NB", doc: "转账充值 RC-7402", bucket: "可用余额", channel: "银行", note: "第二个商户认领" },
+      { time: "2026-10-16 11:08", type: "认领", biz: "垫资", merchantId: "74033", ccy: "CNY", amount: 12000, store: "独立站-WZ", doc: "转账充值 RC-7403", bucket: "可用余额", channel: "银行", note: "垫资没有信用" }
+    ]
+  },
+  {
+    id: "C20240090", name: "示例客户I", main: "USD", status: "正常", grade: "C", demoPay: 2500, payCcy: "USD",
+    profile: { region: "美国", email: "zheng.kai@example.com", contact: "郑凯", phone: "+1 415 555 8504", company: "示例客户I" },
+    balanceShare: true, priority: "reason", creditShare: false, feeCompany: true, fxTopup: false,
+    precharge: { USD: { limit: 30000, used: 0 } },
+    merchants: [
+      { id: "85041", name: "示例客户I-商户01", email: "i01@example.com", uniq: "ZK-US-01", erp: "ZK-US", stores: ["独立站-US"], precharge: { USD: { limit: 30000, used: 0 } } }
+    ],
+    lines: [
+      wallet({ id: "WA-9101", merchantId: "85041", merchantName: "示例客户I-商户01", uniq: "ZK-US-01", erp: "ZK-US", biz: "代发", ccy: "USD", main: true, available: 2800, real: 3000, openingDebt: 200, openingAt: "2026-03-01 00:00" }),
+      wallet({ id: "WA-9102", merchantId: "85041", merchantName: "示例客户I-商户01", uniq: "ZK-US-01", erp: "ZK-US", biz: "广告", ccy: "EUR", available: 700, real: 700 }),
+      wallet({ id: "WA-9103", merchantId: "85041", merchantName: "示例客户I-商户01", uniq: "ZK-US-01", erp: "ZK-US", biz: "代发", ccy: "GBP", available: 400, real: 400 }),
+      wallet({ id: "WA-9104", merchantId: "85041", merchantName: "示例客户I-商户01", uniq: "ZK-US-01", erp: "ZK-US", biz: "垫资", ccy: "CNY", available: 5000, real: 5000 })
+    ],
+    credit: creditBag({ USD: { 代发: { limit: 2000, used: 2000 }, 广告: { limit: 1000, used: 0 } } }),
+    vouchers: [],
+    ledger: [
+      { time: "2026-11-11 08:22", type: "认领", biz: "代发", merchantId: "85041", ccy: "USD", amount: 3000, store: "独立站-US", doc: "转账充值 RC-8501", bucket: "可用余额", channel: "Airwallex", note: "一个商户下有多个币种" },
+      { time: "2026-10-30 13:46", type: "认领", biz: "广告", merchantId: "85041", ccy: "EUR", amount: 700, store: "—", doc: "转账充值 RC-8502", bucket: "可用余额", channel: "银行", note: "欧元记在同一商户" }
+    ]
+  },
+  {
+    id: "C20240106", name: "示例客户J", main: "EUR", status: "正常", grade: "D", demoPay: 1800, payCcy: "EUR",
+    profile: { region: "法国", email: "he.min@example.com", contact: "何敏", phone: "+33 1 5550 9605", company: "示例客户J" },
+    balanceShare: false, priority: "reason", creditShare: false, feeCompany: false, fxTopup: true,
+    precharge: { EUR: { limit: 40000, used: 1200 } },
+    merchants: [
+      { id: "96051", name: "示例客户J-商户01", email: "j01@example.com", uniq: "HM-FR-01", erp: "HM-FR", stores: ["独立站-FR"], precharge: { EUR: { limit: 40000, used: 1200 } } },
+      { id: "96052", name: "示例客户J-商户02", email: "j02@example.com", uniq: "HM-FR-02", erp: "HM-FR2", stores: ["独立站-FR"], precharge: { EUR: { limit: 20000, used: 0 } } }
+    ],
+    lines: [
+      wallet({ id: "WA-10101", merchantId: "96051", merchantName: "示例客户J-商户01", uniq: "HM-FR-01", erp: "HM-FR", biz: "代发", ccy: "EUR", main: true, available: 2600, real: 2600, fxTopup: "开启", fee: "客户承担" }),
+      wallet({ id: "WA-10102", merchantId: "96051", merchantName: "示例客户J-商户01", uniq: "HM-FR-01", erp: "HM-FR", biz: "广告", ccy: "EUR", main: true, available: 900, real: 900, fxTopup: "开启", fee: "客户承担" }),
+      wallet({ id: "WA-10201", merchantId: "96052", merchantName: "示例客户J-商户02", uniq: "HM-FR-02", erp: "HM-FR2", biz: "拒付", ccy: "EUR", main: true, available: 150, real: 150, fee: "客户承担" }),
+      wallet({ id: "WA-10202", merchantId: "96052", merchantName: "示例客户J-商户02", uniq: "HM-FR-02", erp: "HM-FR2", biz: "垫资", ccy: "EUR", main: true, available: 1100, real: 1100, fee: "客户承担" })
+    ],
+    credit: creditBag({ EUR: { 代发: { limit: 3000, used: 2500 }, 广告: { limit: 1000, used: 800 } } }),
+    vouchers: [],
+    ledger: [
+      { time: "2026-11-14 17:02", type: "认领", biz: "代发", merchantId: "96051", ccy: "EUR", amount: 2600, store: "独立站-FR", doc: "转账充值 RC-9601", bucket: "可用余额", channel: "银行", note: "两个商户都是欧元" },
+      { time: "2026-10-21 10:16", type: "认领", biz: "垫资", merchantId: "96052", ccy: "EUR", amount: 1100, store: "独立站-FR", doc: "转账充值 RC-9602", bucket: "可用余额", channel: "PayPal", note: "第二个商户" }
+    ]
+  },
+  {
+    id: "C20240118", name: "示例客户K", main: "USD", status: "正常", grade: "C", demoPay: 500, payCcy: "USD",
+    profile: { region: "加拿大", email: "xu.ran@example.com", contact: "徐然", phone: "+1 604 555 1700", company: "示例客户K" },
+    balanceShare: false, priority: "reason", creditShare: false, feeCompany: true, fxTopup: false,
+    precharge: { USD: { limit: 10000, used: 0 } },
+    merchants: [
+      { id: "17008", name: "示例客户K-商户01", email: "k01@example.com", uniq: "XR-CA-01", erp: "XR-CA", stores: ["独立站-CA"], precharge: { USD: { limit: 10000, used: 0 } } }
+    ],
+    lines: [
+      wallet({ id: "WA-11101", merchantId: "17008", merchantName: "示例客户K-商户01", uniq: "XR-CA-01", erp: "XR-CA", biz: "代发", ccy: "USD", main: true, available: 1500, real: 1500 }),
+      wallet({ id: "WA-11102", merchantId: "17008", merchantName: "示例客户K-商户01", uniq: "XR-CA-01", erp: "XR-CA", biz: "广告", ccy: "USD", main: true, available: 400, real: 400 })
+    ],
+    credit: creditBag({}),
+    vouchers: [],
+    ledger: [
+      { time: "2026-09-12 09:00", type: "认领", biz: "代发", merchantId: "17008", ccy: "USD", amount: 1500, store: "独立站-CA", doc: "转账充值 RC-1701", bucket: "可用余额", channel: "银行", note: "只有主币种，没有信用额度" }
+    ]
   }
 ];
 

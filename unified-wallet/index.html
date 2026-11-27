@@ -248,7 +248,7 @@ button { cursor: pointer; }
   display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px; align-items: end; margin-bottom: 16px;
 }
-.qform.list-form { grid-template-columns: 220px 220px 220px 1fr; }
+.qform.list-form { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 .qform .actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
 .cust-table { border-collapse: separate; border-spacing: 0; min-width: 1680px; }
 .cust-table td.stack { white-space: normal; line-height: 1.7; }
@@ -408,7 +408,7 @@ th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky;
     <div class="menu-group">
       <div class="menu-title"><span>额度管理</span></div>
       <button class="menu-sub" type="button" disabled>额度账单</button>
-      <button class="menu-sub" type="button" disabled>信用额度</button>
+      <button class="menu-sub" type="button" data-nav="credit">信用额度</button>
     </div>
   </aside>
   <section class="main">
@@ -426,12 +426,13 @@ const CHANNELS = ["银行", "PayPal", "Airwallex", "WorldFirst"];
 const CYCLES = ["一周", "两周", "三周", "一个月", "固定天数"];
 const CREDIT_GROUPS = ["履约一组", "广告一组", "资金组"];
 const CONTACTS = ["陈可", "林夏", "周宁", "王敏"];
-const PAGES = { list: "客户列表", home: "客户总览", lines: "业务线账户", stores: "店铺对账", ledger: "交易详情", pay: "付款试算" };
+const PAGES = { list: "客户列表", home: "客户总览", lines: "业务线账户", stores: "店铺对账", ledger: "交易详情", credit: "信用额度", pay: "付款试算" };
 
 const state = {
   page: "list",
   customerId: "C20240018",
-  filters: { name: "", merchantId: "", grade: "" },
+  filters: { name: "", merchantId: "", grade: "", main: "", biz: "" },
+  creditFilters: { merchantId: "", biz: "", status: "" },
   shownContacts: {},
   balanceShare: true,
   priority: "reason",
@@ -761,6 +762,7 @@ const customers = [
       wallet({ id: "WA-11102", merchantId: "17008", merchantName: "示例客户K-商户01", uniq: "XR-CA-01", erp: "XR-CA", biz: "广告", ccy: "USD", main: true, available: 400, real: 400 })
     ],
     credit: creditBag({}),
+    customerCredit: { USD: { limit: 5000, used: 500 } },
     vouchers: [],
     ledger: [
       { time: "2026-09-12 09:00", type: "认领", biz: "代发", merchantId: "17008", ccy: "USD", amount: 1500, store: "独立站-CA", doc: "转账充值 RC-1701", bucket: "可用余额", channel: "银行", note: "只有主币种，没有信用额度" }
@@ -966,6 +968,7 @@ function pathItems() {
   const c = cur();
   const reset = { merchant: "全部", biz: "全部", ccy: "全部", lineId: "", storeMerchant: "全部", storeFocus: "全部", detailBiz: "全部", detailCcy: "全部", lineMode: "" };
   const items = [{ label: "客户统一账户", page: "list", patch: reset }];
+  if (state.page === "credit") return [{ label: "信用额度", page: "credit", patch: {} }];
   if (state.page === "ledger") {
     if (state.ledgerScope === "customer") {
       items.push({ label: c.name, page: "home", patch: reset });
@@ -1024,32 +1027,110 @@ function render() {
   }
   renderPath();
   const tab = document.querySelector(".pagetab");
-  if (tab) tab.textContent = state.page === "ledger" ? "交易详情" : "客户统一账户";
+  if (tab) tab.textContent = state.page === "ledger" ? "交易详情" : state.page === "credit" ? "信用额度" : "客户统一账户";
   document.querySelectorAll(".menu-sub[data-nav]").forEach(function (btn) {
-    const active = state.page === "ledger" ? btn.dataset.nav === "ledger" : btn.dataset.nav === "list";
-    btn.classList.toggle("on", active);
+    const on = state.page === "ledger" ? "ledger" : state.page === "credit" ? "credit" : "list";
+    btn.classList.toggle("on", btn.dataset.nav === on);
   });
   const view = document.getElementById("view");
   const banner = state.banner ? '<div class="banner"><span>' + esc(state.banner) + '</span><button class="link" id="dismiss">知道了</button></div>' : "";
-  view.innerHTML = banner + ({ list: viewList, home: viewHome, lines: viewLines, stores: viewStores, ledger: viewLedger })[state.page]();
+  view.innerHTML = banner + ({ list: viewList, home: viewHome, lines: viewLines, stores: viewStores, ledger: viewLedger, credit: viewCredit })[state.page]();
   renderModal();
 }
 
 function viewList() {
   const grades = ["S", "A", "B", "C", "D"];
+  const mains = ["USD", "EUR", "GBP", "CNY"];
   const rows = customers.filter(matchCustomer);
-  const head = ["客户名称", "客户联系方式", "商户id", "主币种", "客户状态", "客户等级", "当前金额", "可用余额", "信用额度", "已用额度", "剩余额度", "手续费承担方式", "是否开启汇损补足", "操作"];
+  const head = ["客户名称", "客户联系方式", "商户id", "主币种", "客户状态", "代发客户等级", "当前金额", "可用余额", "信用额度", "已用额度", "剩余额度", "操作"];
   const body = rows.length ? rows.map(function (c) {
     const creditMain = mainCredit(c);
-    return "<tr><td>" + esc(c.name) + "</td><td>" + contactCell(c) + "</td><td class=\"stack\">" + c.merchants.map(function (m) { return esc(m.id); }).join("<br>") + "</td><td>" + esc(c.main) + "</td><td>" + statusTag(c.status) + "</td><td>" + esc(c.grade || "—") + "</td><td>" + totalInMain(c, customerCurrencyRows(c), "current") + '</td><td class="amt-avail">' + usableInMain(c) + "</td><td>" + money(creditMain.limit, c.main) + "</td><td>" + money(creditMain.used, c.main) + "</td><td>" + money(creditMain.remain, c.main) + "</td><td>" + (c.feeCompany ? "公司承担" : "客户承担") + "</td><td>" + (c.fxTopup ? "开启" : "关闭") + '</td><td class="freeze"><button class="link" type="button" data-open="' + esc(c.id) + '">查看统一钱包</button></td></tr>';
-  }).join("") : '<tr><td colspan="14">没有符合筛选条件的客户</td></tr>';
+    const hasDaifa = (c.lines || []).some(function (l) { return l.biz === "代发"; });
+    return "<tr><td>" + esc(c.name) + "</td><td>" + contactCell(c) + "</td><td class=\"stack\">" + c.merchants.map(function (m) { return esc(m.id); }).join("<br>") + "</td><td>" + esc(c.main) + "</td><td>" + statusTag(c.status) + "</td><td>" + (hasDaifa ? esc(c.grade || "—") : "—") + "</td><td>" + totalInMain(c, customerCurrencyRows(c), "current") + '</td><td class="amt-avail">' + usableInMain(c) + "</td><td>" + money(creditMain.limit, c.main) + "</td><td>" + money(creditMain.used, c.main) + "</td><td>" + money(creditMain.remain, c.main) + '</td><td class="freeze"><button class="link" type="button" data-open="' + esc(c.id) + '">查看统一钱包</button></td></tr>';
+  }).join("") : '<tr><td colspan="12">没有符合筛选条件的客户</td></tr>';
   return '<div class="panel"><div class="qform list-form">'
     + '<div class="field"><label>客户名称</label><input data-query="name" placeholder="模糊搜索" value="' + esc(state.filters.name) + '" /></div>'
     + '<div class="field"><label>商户id</label><input data-query="merchantId" placeholder="请输入" value="' + esc(state.filters.merchantId) + '" /></div>'
-    + '<div class="field"><label>客户等级</label><select data-query="grade"><option value="">请选择</option>'
+    + '<div class="field"><label>主币种</label><select data-query="main"><option value="">请选择</option>' + mains.map(function (ccy) { return '<option value="' + ccy + '"' + (state.filters.main === ccy ? " selected" : "") + ">" + ccy + "</option>"; }).join("") + "</select></div>"
+    + '<div class="field"><label>业务线</label><select data-query="biz"><option value="">请选择</option>' + BIZ.map(function (b) { return '<option value="' + b + '"' + (state.filters.biz === b ? " selected" : "") + ">" + b + "</option>"; }).join("") + "</select></div>"
+    + '<div class="field"><label>代发客户等级</label><select data-query="grade"><option value="">请选择</option>'
     + grades.map(function (g) { return '<option value="' + g + '"' + (state.filters.grade === g ? " selected" : "") + ">" + g + "</option>"; }).join("")
     + "</select></div>"
     + '<div class="actions"><button class="btn primary" id="search-list" type="button">查询</button><button class="btn" id="reset-list" type="button">重置</button></div></div>'
+    + '<div class="tablewrap"><table class="cust-table"><thead><tr>' + head.map(function (h, i) { return "<th" + (i === head.length - 1 ? ' class="freeze"' : "") + ">" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div></div>";
+}
+function creditAmount(c, merchant, biz) {
+  const own = merchant.lineCredit && merchant.lineCredit[biz];
+  if (own && (own.limit || own.used)) return { limit: own.limit, used: own.used, tag: "", source: own };
+  const pool = merchant.credit;
+  if (pool && (pool.limit || pool.used)) return { limit: pool.limit, used: pool.used, tag: "商户维度共用", source: pool };
+  const shared = c.customerCredit && c.customerCredit[c.main];
+  if (shared && (shared.limit || shared.used)) return { limit: shared.limit, used: shared.used, tag: "客户维度共用", source: shared };
+  const bagItem = c.credit && c.credit[c.main] && c.credit[c.main][biz];
+  if (bagItem && (bagItem.limit || bagItem.used)) return { limit: bagItem.limit, used: bagItem.used, tag: "", source: bagItem };
+  return null;
+}
+function pushCreditRow(rows, row) {
+  row.id = rows.length;
+  rows.push(row);
+}
+function creditRecords() {
+  const rows = [];
+  customers.forEach(function (c) {
+    const total = mainCredit(c);
+    c.merchants.forEach(function (m) {
+      CREDIT_BIZ.forEach(function (biz) {
+        const hasLine = (c.lines || []).some(function (l) { return l.merchantId === m.id && l.biz === biz; });
+        const amount = creditAmount(c, m, biz);
+        if (!hasLine || !amount) return;
+        pushCreditRow(rows, {
+          customer: c.name, customerId: c.id, total: total.limit, merchantId: m.id, merchantName: m.name, email: m.email || "—",
+          biz: biz, ccy: c.main, limit: amount.limit, used: amount.used, tag: amount.tag, status: "审核通过",
+          applicant: (c.profile && c.profile.contact) || "—", applyTime: "2026-10-01 10:00", auditTime: "2026-10-01 15:00",
+          duration: "5小时", remark: "—", source: amount.source
+        });
+      });
+    });
+    Object.keys(c.pendingCredit || {}).forEach(function (key) {
+      const p = c.pendingCredit[key];
+      const targets = [];
+      if (p.dim === "line") targets.push({ merchantId: p.merchantId, biz: p.biz, tag: "" });
+      else if (p.dim === "merchant") CREDIT_BIZ.forEach(function (biz) { targets.push({ merchantId: p.merchantId, biz: biz, tag: "商户维度共用" }); });
+      else c.merchants.forEach(function (m) { CREDIT_BIZ.forEach(function (biz) { if ((c.lines || []).some(function (l) { return l.merchantId === m.id && l.biz === biz; })) targets.push({ merchantId: m.id, biz: biz, tag: "客户维度共用" }); }); });
+      targets.forEach(function (t) {
+        const merchant = c.merchants.find(function (x) { return x.id === t.merchantId; }) || {};
+        pushCreditRow(rows, {
+          customer: c.name, customerId: c.id, total: total.limit, merchantId: t.merchantId, merchantName: merchant.name || "—", email: merchant.email || "—",
+          biz: t.biz, ccy: c.main, limit: p.amount, used: null, tag: t.tag, status: "待审核",
+          applicant: (c.profile && c.profile.contact) || "—", applyTime: "2026-11-27 16:00", auditTime: "—",
+          duration: "—", remark: "待飞书审批，通过后覆盖上一次额度", source: p
+        });
+      });
+    });
+  });
+  return rows;
+}
+function viewCredit() {
+  const f = state.creditFilters;
+  const rows = creditRecords().filter(function (r) {
+    if (f.merchantId && String(r.merchantId).indexOf(f.merchantId.trim()) < 0) return false;
+    if (f.biz && r.biz !== f.biz) return false;
+    if (f.status && r.status !== f.status) return false;
+    return true;
+  });
+  state.creditRows = creditRecords();
+  const head = ["商户ID", "商户名称", "客户名称", "子业务线", "币种", "信用额度", "总信用额度", "已用额度", "剩余额度", "审核状态", "申请人", "申请时间", "操作"];
+  const body = rows.length ? rows.map(function (r) {
+    const amount = '<div>' + money(r.limit, r.ccy) + (r.tag ? ' <span class="tag main">' + esc(r.tag) + "</span>" : "") + "</div>";
+    const used = r.used == null ? "—" : money(r.used, r.ccy);
+    const remain = r.used == null ? "—" : money(r.limit - r.used, r.ccy);
+    return "<tr><td>" + esc(r.merchantId) + "</td><td>" + esc(r.merchantName) + "</td><td>" + esc(r.customer) + "</td><td>" + esc(r.biz) + "</td><td>" + esc(r.ccy) + "</td><td>" + amount + "</td><td>" + money(r.total, r.ccy) + "</td><td>" + used + "</td><td>" + remain + "</td><td>" + statusTag(r.status === "审核通过" ? "已核销" : r.status === "待审核" ? "待核销" : r.status).replace("已核销", "审核通过").replace("待核销", "待审核") + "</td><td>" + esc(r.applicant) + "</td><td>" + esc(r.applyTime) + '</td><td class="freeze"><button class="link" type="button" data-credit="' + r.id + '">详情</button></td></tr>';
+  }).join("") : '<tr><td colspan="13">没有符合条件的信用额度记录</td></tr>';
+  return '<div class="panel"><div class="qform list-form">'
+    + '<div class="field"><label>商户ID</label><input data-credit-q="merchantId" placeholder="请输入" value="' + esc(f.merchantId) + '" /></div>'
+    + '<div class="field"><label>子业务线</label><select data-credit-q="biz"><option value="">全部</option>' + CREDIT_BIZ.map(function (b) { return '<option value="' + b + '"' + (f.biz === b ? " selected" : "") + ">" + b + "</option>"; }).join("") + "</select></div>"
+    + '<div class="field"><label>审核状态</label><select data-credit-q="status"><option value="">全部</option>' + ["待审核", "审核通过"].map(function (s) { return '<option value="' + s + '"' + (f.status === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></div>"
+    + '<div class="actions"><button class="btn primary" id="credit-search" type="button">查询</button><button class="btn" id="credit-reset" type="button">重置</button></div></div>'
     + '<div class="tablewrap"><table class="cust-table"><thead><tr>' + head.map(function (h, i) { return "<th" + (i === head.length - 1 ? ' class="freeze"' : "") + ">" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div></div>";
 }
 function eyeIcon(off) {
@@ -1116,7 +1197,9 @@ function matchCustomer(c) {
   const grade = state.filters.grade;
   if (name && c.name.indexOf(name) < 0) return false;
   if (mid && !c.merchants.some(function (m) { return m.id.indexOf(mid) >= 0; })) return false;
-  if (grade && c.grade !== grade) return false;
+  if (state.filters.main && c.main !== state.filters.main) return false;
+  if (state.filters.biz && !(c.lines || []).some(function (l) { return l.biz === state.filters.biz; })) return false;
+  if (grade && (!(c.lines || []).some(function (l) { return l.biz === "代发"; }) || c.grade !== grade)) return false;
   return true;
 }
 function merchantIdCell(c) {
@@ -2094,6 +2177,37 @@ function renderModal() {
     mask.innerHTML = creditApplyDialog();
     return;
   }
+  if (state.modal.type === "creditDetail") {
+    const r = (state.creditRows || [])[state.modal.id] || {};
+    const src = r.source || {};
+    mask.hidden = false;
+    mask.innerHTML = '<div class="dialog wide"><header><h2>信用额度调整申请详情</h2><button class="x" id="close">×</button></header><div class="body"><div class="sec">申请信息</div><div class="info">'
+      + infoRow("客户名称", esc(r.customer || "—"))
+      + infoRow("总信用额度", money(r.total || 0, r.ccy))
+      + infoRow("商户ID", esc(r.merchantId || "—"))
+      + infoRow("商户名称", esc(r.merchantName || "—"))
+      + infoRow("商户邮箱", esc(r.email || "—"))
+      + infoRow("子业务线", esc(r.biz || "—") + (r.tag ? " " + tag("main", r.tag) : ""))
+      + infoRow("币种", esc(r.ccy || "—"))
+      + infoRow("审核状态", esc(r.status || "—"))
+      + infoRow("申请人", esc(r.applicant || "—"))
+      + infoRow("申请时间", esc(r.applyTime || "—"))
+      + infoRow("审核时间", esc(r.auditTime || "—"))
+      + infoRow("审核时长", esc(r.duration || "—"))
+      + infoRow("审核备注", esc(r.remark || "—"))
+      + '</div><div class="sec">额度设置</div><div class="info">'
+      + infoRow("信用额度", money(r.limit || 0, r.ccy))
+      + infoRow("已用额度", r.used == null ? "—" : money(r.used, r.ccy))
+      + infoRow("剩余额度", r.used == null ? "—" : money((r.limit || 0) - r.used, r.ccy))
+      + infoRow("单日额度", src.daily === "" || src.daily == null ? "—" : money(src.daily, r.ccy))
+      + infoRow("单笔额度", src.single === "" || src.single == null ? "—" : money(src.single, r.ccy))
+      + infoRow("结算周期", esc(src.cycle || "—"))
+      + infoRow("账期（天）", src.days ? esc(src.days) : "—")
+      + infoRow("账单生成日", esc(src.billDay || "—"))
+      + infoRow("宽限期（天）", src.grace === "" || src.grace == null ? "—" : esc(src.grace))
+      + "</div></div><footer><button class=\"btn\" id=\"close2\">关闭</button></footer></div>";
+    return;
+  }
   if (state.modal.type === "customer") {
     const c = customers.find(function (x) { return x.id === state.modal.id; });
     const p = c.profile || {};
@@ -2303,8 +2417,27 @@ document.body.addEventListener("click", function (e) {
     render();
     return;
   }
+  if (e.target.id === "credit-search") {
+    ["merchantId", "biz", "status"].forEach(function (key) {
+      const el = document.querySelector('[data-credit-q="' + key + '"]');
+      state.creditFilters[key] = el ? el.value : "";
+    });
+    render();
+    return;
+  }
+  if (e.target.id === "credit-reset") {
+    state.creditFilters = { merchantId: "", biz: "", status: "" };
+    render();
+    return;
+  }
+  const creditOpen = e.target.closest("[data-credit]");
+  if (creditOpen) {
+    state.modal = { type: "creditDetail", id: Number(creditOpen.dataset.credit) };
+    render();
+    return;
+  }
   if (e.target.id === "search-list") {
-    ["name", "merchantId", "grade"].forEach(function (key) {
+    ["name", "merchantId", "grade", "main", "biz"].forEach(function (key) {
       const input = document.querySelector('[data-query="' + key + '"]');
       state.filters[key] = input ? input.value : "";
     });
@@ -2312,7 +2445,7 @@ document.body.addEventListener("click", function (e) {
     return;
   }
   if (e.target.id === "reset-list") {
-    state.filters = { name: "", merchantId: "", grade: "" };
+    state.filters = { name: "", merchantId: "", grade: "", main: "", biz: "" };
     render();
     return;
   }

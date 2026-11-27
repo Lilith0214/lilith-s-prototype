@@ -248,7 +248,14 @@ button { cursor: pointer; }
   display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px; align-items: end; margin-bottom: 16px;
 }
-.qform .actions { display: flex; gap: 8px; align-items: center; }
+.qform.list-form { grid-template-columns: 220px 220px 220px 1fr; }
+.qform .actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+.cust-table { border-collapse: separate; border-spacing: 0; min-width: 1680px; }
+.cust-table td.stack { white-space: normal; line-height: 1.7; }
+.cust-table .freeze { position: sticky; right: 0; z-index: 2; background: #fff; box-shadow: -8px 0 8px rgba(0,0,0,.04); }
+.cust-table th.freeze { z-index: 3; background: #fafafa; }
+.cust-table tbody tr:hover td { background: #fafafa; }
+.amt-avail { color: var(--blue); font-variant-numeric: tabular-nums; }
 .qform input::placeholder { color: #bfbfbf; }
 .qform select {
   appearance: none; -webkit-appearance: none; padding-right: 28px;
@@ -384,8 +391,7 @@ const PAGES = { list: "客户列表", home: "客户总览", lines: "业务线账
 const state = {
   page: "list",
   customerId: "C20240018",
-  filters: { name: "", merchantId: "", info: "" },
-  listStatus: "全部",
+  filters: { name: "", merchantId: "", grade: "" },
   balanceShare: true,
   priority: "reason",
   creditShare: false,
@@ -437,7 +443,7 @@ function creditBag(byCcy) {
 
 const customers = [
   {
-    id: "C20240018", name: "示例客户A", main: "USD", status: "正常", demoPay: 20000, payCcy: "USD",
+    id: "C20240018", name: "示例客户A", main: "USD", status: "正常", grade: "s", demoPay: 20000, payCcy: "USD",
     profile: { region: "美国", email: "ke.chen@example.com", contact: "陈可", phone: "+1 628 555 0142", company: "示例客户A" },
     balanceShare: true, priority: "reason", creditShare: false, feeCompany: true, fxTopup: true,
     precharge: { USD: { limit: 200000, used: 5000 }, EUR: { limit: 50000, used: 0 }, GBP: { limit: 20000, used: 0 }, CNY: { limit: 150000, used: 0 } },
@@ -499,7 +505,7 @@ const customers = [
     ]
   },
   {
-    id: "C20240032", name: "示例客户B", main: "USD", status: "正常", demoPay: 8000, payCcy: "USD",
+    id: "C20240032", name: "示例客户B", main: "USD", status: "正常", grade: "a", demoPay: 8000, payCcy: "USD",
     profile: { region: "中国 / 广东", email: "lin.xia@example.com", contact: "林夏", phone: "+86 138 0000 2081", company: "示例客户B" },
     balanceShare: false, priority: "reason", creditShare: false, feeCompany: true, fxTopup: false,
     precharge: { USD: { limit: 100000, used: 0 } },
@@ -522,7 +528,7 @@ const customers = [
     ]
   },
   {
-    id: "C20240041", name: "示例客户C", main: "EUR", status: "正常", demoPay: 2000, payCcy: "EUR",
+    id: "C20240041", name: "示例客户C", main: "EUR", status: "正常", grade: "b", demoPay: 2000, payCcy: "EUR",
     profile: { region: "德国", email: "anna.keller@example.com", contact: "Anna Keller", phone: "+49 30 5550 3150", company: "示例客户C" },
     balanceShare: true, priority: "reason", creditShare: false, feeCompany: true, fxTopup: false,
     precharge: { EUR: { limit: 100000, used: 0 } },
@@ -542,7 +548,7 @@ const customers = [
     ]
   },
   {
-    id: "C20240055", name: "示例客户D", main: "USD", status: "正常", demoPay: 5000, payCcy: "USD",
+    id: "C20240055", name: "示例客户D", main: "USD", status: "正常", grade: "c", demoPay: 5000, payCcy: "USD",
     profile: { region: "英国", email: "james.holt@example.com", contact: "James Holt", phone: "+44 20 7946 4261", company: "示例客户D" },
     balanceShare: true, priority: "reason", creditShare: true, feeCompany: true, fxTopup: false,
     precharge: { USD: { limit: 100000, used: 2500 } },
@@ -564,7 +570,7 @@ const customers = [
     ]
   },
   {
-    id: "C20230102", name: "示例客户E", main: "USD", status: "已停用", demoPay: 1000, payCcy: "USD",
+    id: "C20230102", name: "示例客户E", main: "USD", status: "已停用", grade: "d", demoPay: 1000, payCcy: "USD",
     profile: { region: "中国 / 上海", email: "zhou.ning@example.com", contact: "周宁", phone: "+86 139 0000 1102", company: "示例客户E" },
     balanceShare: false, priority: "reason", creditShare: false, feeCompany: true, fxTopup: false,
     precharge: { USD: { limit: 100000, used: 0 } },
@@ -843,32 +849,22 @@ function render() {
 }
 
 function viewList() {
+  const grades = ["s", "a", "b", "c", "d"];
   const rows = customers.filter(matchCustomer);
-  return '<div class="panel"><div class="qform">'
-    + '<div class="field"><label>客户名称</label><input data-query="name" placeholder="请输入" value="' + esc(state.filters.name) + '" /></div>'
+  const head = ["客户名称", "客户联系方式", "商户id", "主币种", "客户状态", "客户等级", "当前金额", "可用余额", "信用额度", "已用额度", "剩余额度", "手续费承担方式", "是否开启汇损补足", "操作"];
+  const body = rows.length ? rows.map(function (c) {
+    const creditMain = mainCredit(c);
+    const contact = (c.profile && c.profile.email) || "—";
+    return "<tr><td>" + esc(c.name) + "</td><td>" + esc(contact) + "</td><td class=\"stack\">" + c.merchants.map(function (m) { return esc(m.id); }).join("<br>") + "</td><td>" + esc(c.main) + "</td><td>" + statusTag(c.status) + "</td><td>" + esc(c.grade || "—") + "</td><td>" + totalInMain(c, customerCurrencyRows(c), "current") + '</td><td class="amt-avail">' + usableInMain(c) + "</td><td>" + money(creditMain.limit, c.main) + "</td><td>" + money(creditMain.used, c.main) + "</td><td>" + money(creditMain.remain, c.main) + "</td><td>" + (c.feeCompany ? "公司承担" : "客户承担") + "</td><td>" + (c.fxTopup ? "开启" : "关闭") + '</td><td class="freeze"><button class="link" type="button" data-open="' + esc(c.id) + '">查看统一钱包</button></td></tr>';
+  }).join("") : '<tr><td colspan="14">没有符合筛选条件的客户</td></tr>';
+  return '<div class="panel"><div class="qform list-form">'
+    + '<div class="field"><label>客户名称</label><input data-query="name" placeholder="模糊搜索" value="' + esc(state.filters.name) + '" /></div>'
     + '<div class="field"><label>商户id</label><input data-query="merchantId" placeholder="请输入" value="' + esc(state.filters.merchantId) + '" /></div>'
-    + '<div class="field"><label>客户信息</label><input data-query="info" placeholder="模糊搜索" value="' + esc(state.filters.info) + '" /></div>'
-    + '<div class="field"><label>状态</label><select data-query="status"><option value="全部"' + (state.listStatus === "全部" ? " selected" : "") + ">请选择</option>"
-    + ["正常", "已停用"].map(function (s) {
-      return '<option value="' + s + '"' + (state.listStatus === s ? " selected" : "") + ">" + s + "</option>";
-    }).join("") + "</select></div>"
-    + '<div class="actions"><button class="btn primary" id="search-list" type="button">查询</button><button class="btn" id="reset-list" type="button">重置</button></div></div></div>'
-    + '<div class="asset-head"><h2>客户资产</h2><span class="count">' + rows.length + " 个客户</span></div>"
-    + (rows.length ? '<div class="asset-grid">' + rows.map(function (c) {
-      const ccys = customerCurrencyRows(c);
-      const others = ccys.map(function (r) { return r.ccy; }).filter(function (ccy) { return ccy !== c.main; });
-      const creditMain = mainCredit(c);
-      return '<article class="asset-card' + (c.status === "已停用" ? " off" : "") + '" data-open="' + esc(c.id) + '">'
-        + '<div class="asset-top"><div class="asset-name">' + esc(c.name) + "</div>"
-        + statusTag(c.status)
-        + '<span class="asset-go">›</span></div>'
-        + '<div class="asset-amt">' + totalInMain(c, ccys, "current") + "</div>"
-        + '<div class="asset-line"><span>总信用额度</span><b class="credit">' + money(creditMain.limit, c.main) + "</b></div>"
-        + '<div class="asset-line"><span>可用余额（含信用及预充额度）</span><b>' + usableInMain(c) + "</b></div>"
-        + '<div class="asset-line"><span>非主币种</span><b>' + (others.length ? esc(others.join("、")) : "—") + "</b></div>"
-        + '<div class="asset-foot"><span>商户id</span>' + merchantIdCell(c) + '<span class="spacer"></span><button class="link" data-detail="' + c.id + '">客户详情</button></div>'
-        + "</article>";
-    }).join("") + "</div>" : '<div class="asset-empty">没有符合筛选条件的客户</div>');
+    + '<div class="field"><label>客户等级</label><select data-query="grade"><option value="">请选择</option>'
+    + grades.map(function (g) { return '<option value="' + g + '"' + (state.filters.grade === g ? " selected" : "") + ">" + g + "</option>"; }).join("")
+    + "</select></div>"
+    + '<div class="actions"><button class="btn primary" id="search-list" type="button">查询</button><button class="btn" id="reset-list" type="button">重置</button></div></div>'
+    + '<div class="tablewrap"><table class="cust-table"><thead><tr>' + head.map(function (h, i) { return "<th" + (i === head.length - 1 ? ' class="freeze"' : "") + ">" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div></div>";
 }
 function mainCredit(c) {
   let limit = 0;
@@ -911,15 +907,10 @@ function usableInCcy(list, ccy, preUsed) {
 function matchCustomer(c) {
   const name = state.filters.name.trim();
   const mid = state.filters.merchantId.trim();
-  const info = state.filters.info.trim().toLowerCase();
-  const p = c.profile || {};
+  const grade = state.filters.grade;
   if (name && c.name.indexOf(name) < 0) return false;
   if (mid && !c.merchants.some(function (m) { return m.id.indexOf(mid) >= 0; })) return false;
-  if (info) {
-    const blob = [c.name, p.region, p.email, p.contact, p.phone, p.company].join(" ").toLowerCase();
-    if (blob.indexOf(info) < 0) return false;
-  }
-  if (state.listStatus !== "全部" && c.status !== state.listStatus) return false;
+  if (grade && c.grade !== grade) return false;
   return true;
 }
 function merchantIdCell(c) {
@@ -2006,18 +1997,15 @@ document.body.addEventListener("click", function (e) {
     return;
   }
   if (e.target.id === "search-list") {
-    ["name", "merchantId", "info"].forEach(function (key) {
+    ["name", "merchantId", "grade"].forEach(function (key) {
       const input = document.querySelector('[data-query="' + key + '"]');
       state.filters[key] = input ? input.value : "";
     });
-    const status = document.querySelector('[data-query="status"]');
-    state.listStatus = status ? status.value : "全部";
     render();
     return;
   }
   if (e.target.id === "reset-list") {
-    state.filters = { name: "", merchantId: "", info: "" };
-    state.listStatus = "全部";
+    state.filters = { name: "", merchantId: "", grade: "" };
     render();
     return;
   }

@@ -330,6 +330,25 @@ th { background: #fafafa; color: var(--sub); font-weight: 550; position: sticky;
 .radios button.on i { border-color: var(--blue); }
 .radios button.on i::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--blue); }
 .search-tag { margin-left: 6px; color: #8c8c8c; font-weight: 400; }
+.field label.warn { color: #cf1322; font-weight: 600; }
+.field label.warn .star { margin-right: 4px; font-family: SimSun, sans-serif; }
+.note-count { text-align: right; color: #bfbfbf; font-size: 12px; margin-top: 4px; }
+.upload {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  min-height: 108px; border: 1px dashed #d9d9d9; border-radius: 8px; background: #fafafa; color: #595959; text-align: center; cursor: pointer;
+}
+.upload input { display: none; }
+.upload strong { color: var(--blue); font-weight: 500; }
+.file-list { margin-top: 8px; color: var(--sub); line-height: 1.6; }
+.cycle-visual { display: flex; flex-direction: column; gap: 10px; }
+.cycle-bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: #f0f0f0; }
+.cycle-bar i { display: block; background: #69b1ff; }
+.cycle-bar i.term { background: #95de64; }
+.cycle-bar i.grace { background: #ff7875; }
+.cycle-caps, .cycle-dates { display: grid; grid-template-columns: 1.4fr .8fr .8fr; gap: 8px; font-size: 12px; color: #8c8c8c; }
+.cycle-dates { grid-template-columns: 1fr 1fr; }
+.cycle-dates b { display: block; color: #1f1f1f; font-weight: 550; margin-top: 2px; }
+.cycle-dates b.blue { color: var(--blue); }
 .req::before { content: "*"; color: #ff4d4f; margin-right: 4px; font-family: SimSun, sans-serif; }
 .segs { display: flex; }
 .segs button { height: 32px; padding: 0 14px; border: 1px solid #d9d9d9; background: #fff; margin-left: -1px; }
@@ -1233,8 +1252,9 @@ function creditRecord(m) {
   }
   if (m.dim === "line") {
     const merchant = (cur().merchants || []).find(function (x) { return x.id === m.merchantId; });
-    const lines = (merchant && merchant.lineCredit) || {};
-    return lines[m.biz] || { limit: 0, used: 0 };
+    const own = merchant && merchant.lineCredit && merchant.lineCredit[m.biz];
+    if (own && (own.limit || own.used)) return own;
+    return bag(ccy, m.biz);
   }
   return (cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
 }
@@ -1244,6 +1264,81 @@ function creditPreviewHtml(m) {
   const ccy = cur().main;
   return "<p>信用额度 <b>" + money(item.limit, ccy) + "</b></p><p>已用额度 <b>" + money(item.used, ccy) + "</b></p><p>剩余额度 <b>" + money(item.limit - item.used, ccy) + "</b></p>";
 }
+function scopeKey(m) {
+  if (m.dim === "merchant") return "merchant:" + m.merchantId;
+  if (m.dim === "line") return "line:" + m.merchantId + ":" + m.biz;
+  return "customer";
+}
+function customerHasEffectiveCredit(c) {
+  const sum = mainCredit(c);
+  return (Number(sum.limit) || 0) > 0 || (Number(sum.used) || 0) > 0;
+}
+function creditNum(n) {
+  if (n === "" || n == null) return "—";
+  const num = Number(n);
+  if (isNaN(num)) return "—";
+  return num.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function ymd(d) {
+  const z = function (n) { return (n < 10 ? "0" : "") + n; };
+  return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+}
+function addDays(d, n) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+}
+function cycleSpan(m) {
+  const now = new Date();
+  const day = now.getDay() || 7;
+  const monday = addDays(now, 1 - day);
+  const sunday = addDays(monday, 6);
+  if (m.cycle === "一周") return { start: monday, end: sunday, label: "一周" };
+  if (m.cycle === "两周") return { start: addDays(sunday, -13), end: sunday, label: "两周" };
+  if (m.cycle === "三周") return { start: addDays(sunday, -20), end: sunday, label: "三周" };
+  if (m.cycle === "一个月") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start: start, end: end, label: "一个月" };
+  }
+  const n = Number(m.days) || 0;
+  if (!n) return null;
+  return { start: addDays(now, 1 - n), end: now, label: "固定天数" };
+}
+function cycleVisual(m) {
+  const span = cycleSpan(m);
+  const days = Number(m.days);
+  const grace = m.grace === "" || m.grace == null ? 0 : Number(m.grace);
+  if (!span || !days || !m.cycle) return "选择周期类型并填写账期后，这里会展示周期预览。";
+  const periodDays = Math.round((span.end - span.start) / 86400000) + 1;
+  let bill = addDays(span.end, 1);
+  if (m.cycle === "一个月" && m.billDay) {
+    const n = Math.min(Number(String(m.billDay).replace("号", "")) || 1, 28);
+    bill = new Date(span.end.getFullYear(), span.end.getMonth() + 1, n);
+  } else if (m.cycle === "一周" && m.billDay) {
+    const map = { 周一: 1, 周二: 2, 周三: 3, 周四: 4, 周五: 5, 周六: 6, 周日: 7 };
+    const target = map[m.billDay] || 1;
+    bill = addDays(span.start, target - 1);
+    if (bill <= span.end) bill = addDays(bill, 7);
+  }
+  const pay = addDays(bill, days);
+  const graceEnd = addDays(pay, grace || 0);
+  const bar = '<div class="cycle-bar"><i style="flex:' + periodDays + '"></i><i class="term" style="flex:' + days + '"></i>' + (grace ? '<i class="grace" style="flex:' + grace + '"></i>' : "") + "</div>";
+  return '<div class="cycle-visual">' + bar
+    + '<div class="cycle-caps"><span>' + esc(span.label) + "<br>" + periodDays + "天</span><span>账期<br>" + days + "天</span><span>宽限期<br>" + (grace || 0) + "天</span></div>"
+    + '<div class="cycle-dates"><div><span>本期结算周期</span><b>' + ymd(span.start) + " ~ " + ymd(span.end) + "</b></div><div><span>账单生成</span><b>" + ymd(bill) + "</b></div><div><span>付款截止</span><b class=\"blue\">" + ymd(pay) + "</b></div><div><span>宽限止</span><b class=\"blue\">" + ymd(graceEnd) + "</b></div></div></div>";
+}
+function pendingOf(m) {
+  return (cur().pendingCredit || {})[scopeKey(m)] || null;
+}
+function fillTermsFromRecord() {
+  const m = state.modal;
+  if (!m || m.mode !== "adjust") return;
+  const item = creditRecord(m);
+  m.lockTerms = !!(item.days);
+  m.days = item.days ? String(item.days) : "";
+  m.grace = item.grace == null || item.grace === "" ? "" : String(item.grace);
+  m.cycle = item.cycle || "";
+  m.billDay = item.billDay || "";
+}
 function readCreditForm() {
   if (!state.modal || state.modal.type !== "creditApply") return;
   function val(id) { const el = document.getElementById(id); return el ? el.value : ""; }
@@ -1251,6 +1346,7 @@ function readCreditForm() {
   m.ccy = cur().main;
   if (document.getElementById("cr-merchant")) m.merchantId = val("cr-merchant");
   if (document.getElementById("cr-biz")) m.biz = val("cr-biz");
+  if (document.getElementById("cr-bill")) m.billDay = val("cr-bill");
   ["amount", "daily", "single", "group", "website", "revenue", "sales", "profit", "note", "days", "grace"].forEach(function (key) {
     const el = document.getElementById("cr-" + (key === "amount" ? "amt" : key));
     if (el) m[key] = el.value;
@@ -1295,33 +1391,61 @@ function creditApplyDialog() {
     const i = html.lastIndexOf("</div>");
     return html.slice(0, i) + '<div class="hint">' + text + "</div></div>";
   };
+  const adjust = m.mode === "adjust";
+  const current = creditRecord(m);
+  const pending = pendingOf(m);
+  const billChoices = m.cycle === "一周" ? ["周一", "周二", "周三", "周四", "周五", "周六", "周日"] : (m.cycle === "固定天数" ? [] : Array.from({ length: 28 }, function (_, i) { return (i + 1) + "号"; }));
+  const billField = adjust && billChoices.length ? '<div class="field"><label class="req">账单生成日</label><select id="cr-bill"><option value="">请选择</option>' + billChoices.map(function (d) { return '<option' + (d === m.billDay ? " selected" : "") + ">" + d + "</option>"; }).join("") + "</select></div>" : "";
+  const locked = function (id) { return m.lockTerms ? " disabled" : ""; };
+  const pendingNote = pending ? '<p class="hint">已有待审批额度 ' + money(pending.amount, c.main) + "，再次提交会覆盖它。通过后覆盖当前额度，不会在原额度上增加。</p>" : "";
+  const files = (m.files || []).map(function (f) { return "<div>" + esc(f.name) + "</div>"; }).join("");
+  let amounts = "";
+  if (adjust) {
+    amounts = '<div class="sec">信用额度</div>'
+      + field("当前信用额度", '<div class="money-input"><span>' + esc(c.main) + '</span><input disabled value="' + esc(creditNum(current.limit || 0)) + '" /></div>')
+      + field("当前已用额度", '<div class="money-input"><span>' + esc(c.main) + '</span><input disabled value="' + esc(creditNum(current.used || 0)) + '" /></div>')
+      + '<div class="field"><label class="warn"><span class="star">*</span>新的信用额度（重新设定上限，不是增加值！不是增加值！不是增加值！）</label>' + moneyInput("cr-amt", m.amount, "请输入新的信用额度") + "</div>"
+      + '<div class="sec">单日额度</div>'
+      + field("当前单日额度", current.daily == null || current.daily === "" ? '<input disabled value="—" />' : '<div class="money-input"><span>' + esc(c.main) + '</span><input disabled value="' + esc(creditNum(current.daily)) + '" /></div>')
+      + field("新的单日额度", moneyInput("cr-daily", m.daily, "请输入新的单日额度"))
+      + '<div class="sec">单笔额度</div>'
+      + field("当前单笔额度", current.single == null || current.single === "" ? '<input disabled value="—" />' : '<div class="money-input"><span>' + esc(c.main) + '</span><input disabled value="' + esc(creditNum(current.single)) + '" /></div>')
+      + field("新的单笔额度", moneyInput("cr-single", m.single, "请输入新的单笔额度"))
+      + '<div class="field"><label>备注</label><textarea id="cr-note" maxlength="500" placeholder="请填写备注">' + esc(m.note) + '</textarea><div class="note-count" id="cr-note-count">' + (m.note || "").length + " / 500</div></div>"
+      + '<div class="field"><label>附件（支持图片/pdf格式文件，最多10个，单个文件20M内）</label><label class="upload" id="cr-upload">点击或拖拽或粘贴文件到此区域上传<div class="mini">支持图片/pdf格式文件</div><input id="cr-files" type="file" accept="image/*,.pdf,application/pdf" multiple /></label><div class="file-list">' + (files || "") + "</div></div>";
+  } else {
+    amounts = '<div class="box"><div class="name">信用配置预览</div>' + creditPreviewHtml(m) + "</div>"
+      + '<div class="sec">信用额度</div>'
+      + field("设置信用额度", moneyInput("cr-amt", m.amount, "请输入设置信用额度")).replace("<label>", '<label class="req">')
+      + '<div class="sec">单日额度</div>'
+      + field("设定单日额度", moneyInput("cr-daily", m.daily, "请输入单日额度"))
+      + '<div class="sec">单笔额度</div>'
+      + field("设定单笔额度", moneyInput("cr-single", m.single, "请输入单笔额度"))
+      + '<div class="sec">更多信息</div>'
+      + '<div class="field"><label class="req">是否有推荐人</label><div class="radios">' + radio("无") + radio("有") + "</div></div>"
+      + field("客户网站", '<input id="cr-website" placeholder="请输入客户网站" value="' + esc(m.website) + '" />').replace("<label>", '<label class="req">')
+      + hint(field("客户每月营收", moneyInput("cr-revenue", m.revenue, "0.00")).replace("<label>", '<label class="req">'), "客户每月店铺总营收/总规模,如客户店铺(含非我司业务部分)整体的收入$10000.00,则填$10000.00")
+      + hint(field("客户每月销售额", moneyInput("cr-sales", m.sales, "0.00")).replace("<label>", '<label class="req">'), "客户每月在我司的收入,如客户在我司业务额为$1000.00,则填$1000.00")
+      + hint(field("客户历史总利润", moneyInput("cr-profit", m.profit, "0.00")).replace("<label>", '<label class="req">'), "若无实际发生额请填写预估值")
+      + field("备注", '<textarea id="cr-note" placeholder="请输入备注">' + esc(m.note) + "</textarea>");
+  }
+  const cycleBody = adjust ? cycleVisual(m) : esc(cycleNote(m));
   return '<div class="dialog apply"><header><h2>发起信用额度调整申请</h2><button class="x" id="close">×</button></header><div class="body">'
     + '<div class="apply-dim"><label class="req">申请维度</label><div class="segs">' + dimBtn("customer", "客户维度") + dimBtn("merchant", "商户id维度") + dimBtn("line", "商户id+业务线") + "</div></div>"
     + '<div class="apply-dim"><label>币种</label><div class="ccy-lock"><b>' + esc(c.main) + "</b>" + tag("main", "主币种") + '<span class="mini">只支持该客户的主币种</span></div></div>'
     + '<div class="apply-grid"><div class="apply-col">'
     + scope
     + '<div class="box"><div class="name">' + (m.dim === "customer" ? "客户信息" : "商户信息") + "</div>" + info + "</div>"
-    + '<div class="box"><div class="name">信用配置预览</div>' + creditPreviewHtml(m) + "</div>"
     + '<div class="field"><label class="req">销售部业务组<span class="search-tag">可搜索</span></label><input id="cr-group" list="cr-groups" placeholder="输入小组/部门名称搜索" value="' + esc(m.group) + '" /><datalist id="cr-groups">' + CREDIT_GROUPS.map(function (g) { return "<option value=\"" + esc(g) + "\"></option>"; }).join("") + "</datalist></div>"
-    + '<div class="sec">信用额度</div>'
-    + field("设置信用额度", moneyInput("cr-amt", m.amount, "请输入设置信用额度")).replace("<label>", '<label class="req">')
-    + '<div class="sec">单日额度</div>'
-    + field("设定单日额度", moneyInput("cr-daily", m.daily, "请输入单日额度"))
-    + '<div class="sec">单笔额度</div>'
-    + field("设定单笔额度", moneyInput("cr-single", m.single, "请输入单笔额度"))
-    + '<div class="sec">更多信息</div>'
-    + '<div class="field"><label class="req">是否有推荐人</label><div class="radios">' + radio("无") + radio("有") + "</div></div>"
-    + field("客户网站", '<input id="cr-website" placeholder="请输入客户网站" value="' + esc(m.website) + '" />').replace("<label>", '<label class="req">')
-    + hint(field("客户每月营收", moneyInput("cr-revenue", m.revenue, "0.00")).replace("<label>", '<label class="req">'), "客户每月店铺总营收/总规模,如客户店铺(含非我司业务部分)整体的收入$10000.00,则填$10000.00")
-    + hint(field("客户每月销售额", moneyInput("cr-sales", m.sales, "0.00")).replace("<label>", '<label class="req">'), "客户每月在我司的收入,如客户在我司业务额为$1000.00,则填$1000.00")
-    + hint(field("客户历史总利润", moneyInput("cr-profit", m.profit, "0.00")).replace("<label>", '<label class="req">'), "若无实际发生额请填写预估值")
-    + field("备注", '<textarea id="cr-note" placeholder="请输入备注">' + esc(m.note) + "</textarea>")
+    + amounts
+    + pendingNote
     + (m.error ? '<div class="err">' + esc(m.error) + "</div>" : "")
     + '</div><div class="apply-col side"><div class="sec">周期与日期设置</div>'
     + '<div class="field"><label class="req">结算周期类型</label><div class="segs">' + CYCLES.map(cycleBtn).join("") + "</div></div>"
-    + field("账期（天）", '<input id="cr-days" placeholder="请输入账期（1-365）" value="' + esc(m.days) + '" />').replace("<label>", '<label class="req">')
-    + field("宽限期（天）", '<input id="cr-grace" placeholder="请输入宽限期（1-365）" value="' + esc(m.grace) + '" />')
-    + '<div class="sec">周期说明</div><div class="cycle-note" id="cr-cycle-note">' + esc(cycleNote(m)) + "</div>"
+    + billField
+    + field("账期（天）", '<input id="cr-days" placeholder="请输入账期（1-365）" value="' + esc(m.days) + '"' + locked() + " />").replace("<label>", '<label class="req">')
+    + field("宽限期（天）", '<input id="cr-grace" placeholder="请输入宽限期（1-365）" value="' + esc(m.grace) + '"' + locked() + " />")
+    + '<div class="sec">周期说明</div><div class="cycle-note" id="cr-cycle-note">' + cycleBody + "</div>"
     + "</div></div></div><footer><button class=\"btn\" id=\"close2\">取消</button><button class=\"btn primary\" id=\"save\">确认</button></footer></div>";
 }
 function kpi(k, v, s, lead, soft) {
@@ -2243,6 +2367,7 @@ document.body.addEventListener("click", function (e) {
     readCreditForm();
     state.modal.dim = creditDim.dataset.creditDim;
     state.modal.error = "";
+    fillTermsFromRecord();
     render();
     return;
   }
@@ -2250,6 +2375,9 @@ document.body.addEventListener("click", function (e) {
   if (creditCycle && state.modal && state.modal.type === "creditApply") {
     readCreditForm();
     state.modal.cycle = creditCycle.dataset.creditCycle;
+    if (state.modal.cycle === "一周" && /号$/.test(state.modal.billDay || "")) state.modal.billDay = "";
+    if (state.modal.cycle !== "一周" && /周/.test(state.modal.billDay || "")) state.modal.billDay = "";
+    if (state.modal.cycle === "固定天数") state.modal.billDay = "";
     render();
     return;
   }
@@ -2267,11 +2395,13 @@ document.body.addEventListener("click", function (e) {
     return;
   }
   if (e.target.id === "apply-credit") {
+    const adjust = customerHasEffectiveCredit(cur());
     state.modal = {
-      type: "creditApply", dim: "customer", ccy: cur().main, biz: "代发", merchantId: cur().merchants[0].id,
+      type: "creditApply", mode: adjust ? "adjust" : "apply", dim: "customer", ccy: cur().main, biz: "代发", merchantId: cur().merchants[0].id,
       amount: "", daily: "", single: "", group: "", referrer: "无", website: "", revenue: "0.00", sales: "0.00", profit: "0.00", note: "",
-      cycle: "", days: "", grace: "", error: ""
+      cycle: "", days: "", grace: "", billDay: "", lockTerms: false, files: [], error: ""
     };
+    fillTermsFromRecord();
     render();
     return;
   }
@@ -2303,35 +2433,20 @@ document.body.addEventListener("click", function (e) {
       const profit = Number(m.profit);
       if (m.dim === "line" && !hasCredit(m.biz)) { m.error = "拒付和垫资没有信用额度。"; render(); return; }
       if ((m.dim === "merchant" || m.dim === "line") && !cur().merchants.some(function (x) { return x.id === m.merchantId; })) { m.error = "请选择商户。"; render(); return; }
-      if (CREDIT_GROUPS.indexOf(m.group) < 0 || !(amount > 0) || !m.cycle || !days || days < 1 || days > 365 || (m.grace !== "" && (!grace || grace < 1 || grace > 365)) || (m.daily !== "" && daily < 0) || (m.single !== "" && single < 0) || !m.website.trim() || isNaN(revenue) || isNaN(sales) || isNaN(profit)) {
-        m.error = "请完整填写必填项。信用额度只记在主币种，账期和宽限期为 1-365。";
+      const needBill = m.mode === "adjust" && m.cycle !== "固定天数";
+      const websiteOk = m.mode === "adjust" || !!m.website.trim();
+      if (CREDIT_GROUPS.indexOf(m.group) < 0 || !(amount > 0) || !m.cycle || !days || days < 1 || days > 365 || (m.grace !== "" && (!grace || grace < 1 || grace > 365)) || (m.daily !== "" && daily < 0) || (m.single !== "" && single < 0) || !websiteOk || (m.mode !== "adjust" && (isNaN(revenue) || isNaN(sales) || isNaN(profit))) || (needBill && !m.billDay) || (m.note || "").length > 500 || (m.files || []).length > 10) {
+        m.error = "请完整填写必填项。新额度会覆盖上一次，不会累加。账期和宽限期为 1-365。";
         render();
         return;
       }
-      const terms = { cycle: m.cycle, days: days, grace: grace, group: m.group, daily: daily, single: single, referrer: m.referrer, website: m.website.trim(), revenue: revenue, sales: sales, profit: profit, note: m.note };
-      let target;
-      let where = "客户维度";
-      if (m.dim === "merchant") {
-        const merchant = cur().merchants.find(function (x) { return x.id === m.merchantId; });
-        if (!merchant.credit) merchant.credit = { limit: 0, used: 0 };
-        target = merchant.credit;
-        where = "商户 " + merchant.id;
-      } else if (m.dim === "line") {
-        const merchant = cur().merchants.find(function (x) { return x.id === m.merchantId; });
-        if (!merchant.lineCredit) merchant.lineCredit = {};
-        if (!merchant.lineCredit[m.biz]) merchant.lineCredit[m.biz] = { limit: 0, used: 0 };
-        target = merchant.lineCredit[m.biz];
-        where = "商户 " + merchant.id + " 的" + m.biz;
-      } else {
-        if (!cur().customerCredit) cur().customerCredit = {};
-        if (!cur().customerCredit[m.ccy]) cur().customerCredit[m.ccy] = { limit: 0, used: 0 };
-        target = cur().customerCredit[m.ccy];
-      }
-      target.limit = amount;
-      Object.assign(target, terms);
-      state.banner = "已按" + where + "设置 " + m.ccy + " 信用额度 " + money(amount, m.ccy) + "。";
+      if (!cur().pendingCredit) cur().pendingCredit = {};
+      const key = scopeKey(m);
+      const replaced = !!cur().pendingCredit[key];
+      cur().pendingCredit[key] = { amount: amount, daily: daily, single: single, cycle: m.cycle, days: days, grace: grace, billDay: m.billDay || "", group: m.group, referrer: m.referrer, website: (m.website || "").trim(), revenue: revenue, sales: sales, profit: profit, note: m.note, files: (m.files || []).map(function (f) { return f.name; }), dim: m.dim, merchantId: m.merchantId, biz: m.biz };
+      const where = m.dim === "merchant" ? "商户 " + m.merchantId : (m.dim === "line" ? "商户 " + m.merchantId + " 的" + m.biz : "客户维度");
+      state.banner = "已提交飞书审批（" + where + "，新额度 " + money(amount, m.ccy) + "）。通过后才会生效，并且覆盖上一次的信用额度，不会在原额度上增加。" + (replaced ? " 这次提交覆盖了上一条待审批申请。" : "");
       state.modal = null;
-      state.fold = "credit";
       render();
       return;
     }
@@ -2393,6 +2508,21 @@ document.body.addEventListener("click", function (e) {
   if (del) { state.splits.splice(Number(del.dataset.splitDel), 1); render(); }
 });
 
+function addCreditFiles(list) {
+  if (!state.modal || state.modal.type !== "creditApply" || !list) return;
+  const files = state.modal.files || [];
+  Array.prototype.forEach.call(list, function (file) {
+    const pdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    const image = file.type.indexOf("image/") === 0;
+    if (!pdf && !image) { state.modal.error = "只支持图片或 pdf。"; return; }
+    if (file.size > 20 * 1024 * 1024) { state.modal.error = "单个文件不能超过 20M。"; return; }
+    if (files.length >= 10) { state.modal.error = "最多 10 个附件。"; return; }
+    state.modal.error = "";
+    files.push({ name: file.name, size: file.size });
+  });
+  state.modal.files = files;
+  render();
+}
 function refreshTransferAmount() {
   const from = document.getElementById("tf-from");
   const to = document.getElementById("tf-to");
@@ -2412,8 +2542,13 @@ document.body.addEventListener("change", function (e) {
     refreshTransferAmount();
     return;
   }
-  if ((e.target.id === "cr-merchant" || e.target.id === "cr-biz") && state.modal && state.modal.type === "creditApply") {
+  if (e.target.id === "cr-files" && state.modal && state.modal.type === "creditApply") {
+    addCreditFiles(e.target.files);
+    return;
+  }
+  if ((e.target.id === "cr-merchant" || e.target.id === "cr-biz" || e.target.id === "cr-bill") && state.modal && state.modal.type === "creditApply") {
     readCreditForm();
+    if (e.target.id !== "cr-bill") fillTermsFromRecord();
     state.modal.error = "";
     render();
     return;
@@ -2441,10 +2576,15 @@ document.body.addEventListener("input", function (e) {
     refreshTransferAmount();
     return;
   }
-  if ((e.target.id === "cr-days" || e.target.id === "cr-grace") && state.modal && state.modal.type === "creditApply") {
+  if ((e.target.id === "cr-days" || e.target.id === "cr-grace" || e.target.id === "cr-note") && state.modal && state.modal.type === "creditApply") {
     readCreditForm();
+    if (e.target.id === "cr-note") {
+      const count = document.getElementById("cr-note-count");
+      if (count) count.textContent = e.target.value.length + " / 500";
+      return;
+    }
     const note = document.getElementById("cr-cycle-note");
-    if (note) note.textContent = cycleNote(state.modal);
+    if (note) note.innerHTML = state.modal.mode === "adjust" ? cycleVisual(state.modal) : esc(cycleNote(state.modal));
     return;
   }
   if (e.target.dataset.num) state[e.target.dataset.num] = e.target.value;
@@ -2465,6 +2605,20 @@ document.body.addEventListener("input", function (e) {
   }
 });
 
+document.body.addEventListener("dragover", function (e) {
+  if (e.target.closest && e.target.closest("#cr-upload")) e.preventDefault();
+});
+document.body.addEventListener("drop", function (e) {
+  const zone = e.target.closest && e.target.closest("#cr-upload");
+  if (!zone) return;
+  e.preventDefault();
+  addCreditFiles(e.dataTransfer.files);
+});
+document.body.addEventListener("paste", function (e) {
+  if (!state.modal || state.modal.mode !== "adjust") return;
+  const items = e.clipboardData && e.clipboardData.files;
+  if (items && items.length) addCreditFiles(items);
+});
 window.addEventListener("hashchange", function () {
   const page = location.hash.slice(1);
   if (PAGES[page]) { state.page = page; render(); }

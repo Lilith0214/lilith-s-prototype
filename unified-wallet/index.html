@@ -843,7 +843,7 @@ function renderPath() {
   }).join("");
 }
 function render() {
-  if (state.page === "lines" && !(state.lineMode === "merchant" && state.merchant && state.merchant !== "全部") && !(state.lineMode === "ccy" && RATE[state.detailCcy]) && !(state.lineMode === "biz" && BIZ.indexOf(state.detailBiz) >= 0)) {
+  if (state.page === "pay" || (state.page === "lines" && !(state.lineMode === "merchant" && state.merchant && state.merchant !== "全部") && !(state.lineMode === "ccy" && RATE[state.detailCcy]) && !(state.lineMode === "biz" && BIZ.indexOf(state.detailBiz) >= 0))) {
     state.page = "home";
     state.lineMode = "";
     if ((location.hash || "#list") !== "#home") {
@@ -860,7 +860,7 @@ function render() {
   });
   const view = document.getElementById("view");
   const banner = state.banner ? '<div class="banner"><span>' + esc(state.banner) + '</span><button class="link" id="dismiss">知道了</button></div>' : "";
-  view.innerHTML = banner + ({ list: viewList, home: viewHome, lines: viewLines, stores: viewStores, ledger: viewLedger, pay: viewPay })[state.page]();
+  view.innerHTML = banner + ({ list: viewList, home: viewHome, lines: viewLines, stores: viewStores, ledger: viewLedger })[state.page]();
   renderModal();
 }
 
@@ -1009,7 +1009,7 @@ function viewHome() {
     + '<button type="button" data-home-dim="ccy"' + (state.homeDim === "ccy" ? ' class="on"' : "") + ">按币种</button>"
     + '<button type="button" data-home-dim="biz"' + (state.homeDim === "biz" ? ' class="on"' : "") + ">按业务线</button>"
     + '<button type="button" data-home-dim="merchant"' + (state.homeDim === "merchant" ? ' class="on"' : "") + ">按商户id</button>"
-    + '</div><span class="spacer"></span><button class="btn" id="apply-credit" type="button">申请信用额度</button><button class="link" data-nav="ledger">资金流水</button><button class="link" data-nav="pay">付款试算</button></div>'
+    + '</div><span class="spacer"></span><button class="btn" id="apply-credit" type="button">申请信用额度</button><button class="link" data-nav="ledger">资金流水</button></div>'
     + homeCards(list)
     + "</div></div>";
 }

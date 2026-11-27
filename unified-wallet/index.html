@@ -826,7 +826,7 @@ function pathItems() {
   }
   if (state.page === "stores") {
     const m = merchants.find(function (x) { return x.id === state.storeMerchant; });
-    if (m) items.push({ label: m.name, page: "lines", patch: { merchant: m.id, biz: "全部", ccy: "全部", lineId: "" } });
+    if (m) items.push({ label: m.name, page: "lines", patch: { lineMode: "merchant", merchant: m.id, biz: "全部", ccy: "全部", lineId: "", detailBiz: "全部", detailCcy: "全部" } });
     items.push({ label: "店铺", page: "stores", patch: { storeFocus: "全部", storeMerchant: state.storeMerchant } });
     if (state.storeFocus && state.storeFocus !== "全部") items.push({ label: state.storeFocus, page: "stores", patch: {} });
     return items;
@@ -843,6 +843,14 @@ function renderPath() {
   }).join("");
 }
 function render() {
+  if (state.page === "lines" && !(state.lineMode === "merchant" && state.merchant && state.merchant !== "全部") && !(state.lineMode === "ccy" && RATE[state.detailCcy]) && !(state.lineMode === "biz" && BIZ.indexOf(state.detailBiz) >= 0)) {
+    state.page = "home";
+    state.lineMode = "";
+    if ((location.hash || "#list") !== "#home") {
+      location.hash = "home";
+      return;
+    }
+  }
   renderPath();
   const tab = document.querySelector(".pagetab");
   if (tab) tab.textContent = state.page === "ledger" ? "交易详情" : "客户统一账户";
@@ -1189,14 +1197,6 @@ function detailLines() {
     return (state.detailBiz === "全部" || l.biz === state.detailBiz) && (state.detailCcy === "全部" || l.ccy === state.detailCcy);
   });
 }
-function countLink(kind, value, n) {
-  return '<button type="button" class="link" data-count="' + kind + '" data-value="' + esc(value) + '">' + n + "</button>";
-}
-function uniqOf(list, key) {
-  const out = [];
-  list.forEach(function (l) { if (out.indexOf(l[key]) < 0) out.push(l[key]); });
-  return out;
-}
 function sumMain(list, key) {
   return list.reduce(function (s, l) { return s + usdOf(Number(l[key] || 0), l.ccy); }, 0);
 }
@@ -1204,26 +1204,6 @@ function creditCells(biz, ccy) {
   if (!hasCredit(biz) || ccy !== cur().main) return "<td>—</td><td>—</td><td>—</td>";
   const item = bag(ccy, biz);
   return "<td>" + money(item.limit, ccy) + "</td><td>" + money(item.used, ccy) + "</td><td>" + money(item.limit - item.used, ccy) + "</td>";
-}
-function creditStackCells(biz) {
-  if (!hasCredit(biz)) return "<td>—</td><td>—</td><td>—</td>";
-  const ccy = cur().main;
-  const item = bag(ccy, biz);
-  if (!item.limit && !item.used) return "<td>—</td><td>—</td><td>—</td>";
-  return "<td>" + money(item.limit, ccy) + "</td><td>" + money(item.used, ccy) + "</td><td>" + money(item.limit - item.used, ccy) + "</td>";
-}
-function bizUsableStack(list, biz) {
-  const main = cur().main;
-  const ccys = ccyOrder(list, main);
-  if (!ccys.length) return "—";
-  const item = bag(main, biz);
-  const credit = hasCredit(biz) ? item.limit - item.used : 0;
-  return ccys.map(function (ccy) {
-    const raw = list.filter(function (l) { return l.ccy === ccy; }).reduce(function (s, l) {
-      return s + (Number(l.real) || 0) - (Number(l.openingDebt) || 0);
-    }, 0);
-    return "<div>" + money(atLeastZero(raw + (ccy === main ? credit : 0)), ccy) + "</div>";
-  }).join("");
 }
 function ccyOrder(list, main) {
   const ccys = [];
@@ -1237,20 +1217,6 @@ function ccyOrder(list, main) {
 }
 function sumCcy(list, ccy, key) {
   return list.filter(function (l) { return l.ccy === ccy; }).reduce(function (s, l) { return s + Number(l[key] || 0); }, 0);
-}
-function moneyStack(list, key, main, extraByCcy) {
-  extraByCcy = extraByCcy || {};
-  const ccys = ccyOrder(list, main);
-  Object.keys(extraByCcy).forEach(function (ccy) { if (ccys.indexOf(ccy) < 0 && extraByCcy[ccy]) ccys.push(ccy); });
-  if (!ccys.length) return "—";
-  let html = ccys.map(function (ccy) {
-    const extra = extraByCcy[ccy] || 0;
-    const n = sumCcy(list, ccy, key) + extra;
-    return "<div>" + money(n, ccy) + (extra ? '<div class="mini">含剩余信用 ' + money(extra, ccy) + "</div>" : "") + "</div>";
-  }).join("");
-  const extraUsd = Object.keys(extraByCcy).reduce(function (s, ccy) { return s + usdOf(extraByCcy[ccy] || 0, ccy); }, 0);
-  if (ccys.length > 1 || ccys[0] !== main || extraUsd) html += '<div class="mini">折合 ' + money((sumMain(list, key) + extraUsd) / RATE[main], main) + "</div>";
-  return html;
 }
 function subline(label, value, cls) {
   return '<div class="subline">' + label + ' <b' + (cls ? ' class="' + cls + '"' : "") + ">" + value + "</b></div>";
@@ -1425,39 +1391,7 @@ function viewLines() {
   if (state.lineMode === "merchant" && state.merchant && state.merchant !== "全部") return viewMerchantWallet();
   if (state.lineMode === "ccy" && RATE[state.detailCcy]) return viewCcyWallet();
   if (state.lineMode === "biz" && BIZ.indexOf(state.detailBiz) >= 0) return viewBizWallet();
-  const scoped = scopedLines();
-  let summary = "";
-  if (state.group === "ccy") {
-    summary = '<div class="tablewrap"><table><thead><tr><th>币种</th><th>账户数</th><th>包含业务线</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
-      + uniqOf(scoped, "ccy").map(function (ccy) {
-        const list = scoped.filter(function (l) { return l.ccy === ccy; });
-        const holder = state.merchant !== "全部" ? (merchants.find(function (m) { return m.id === state.merchant; }) || cur()) : cur();
-        const preUsed = (holder.precharge && holder.precharge[ccy] && holder.precharge[ccy].used) || 0;
-        const sum = creditSum(ccy, uniqOf(list, "biz"));
-        const showCredit = ccy === cur().main;
-        const usable = usableInCcy(list, ccy, showCredit ? preUsed : 0);
-        return "<tr><td>" + ccyTag(ccy, showCredit) + "</td><td>" + countLink("ccy", ccy, list.length) + "</td><td>" + esc(uniqOf(list, "biz").join("、")) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.current; }, 0), ccy) + "</td><td>" + money(usable, ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.real; }, 0), ccy) + "</td><td>" + money(list.reduce(function (s, l) { return s + l.frozen; }, 0), ccy) + "</td><td>" + (showCredit ? money(sum.limit, ccy) : "—") + "</td><td>" + (showCredit ? money(sum.used, ccy) : "—") + "</td><td>" + (showCredit ? money(sum.remain, ccy) : "—") + "</td></tr>";
-      }).join("")
-      + "</tbody></table></div>";
-  } else {
-    summary = '<div class="tablewrap"><table><thead><tr><th>业务线</th><th>账户数</th><th>包含币种</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th></tr></thead><tbody>'
-      + BIZ.filter(function (b) { return scoped.some(function (l) { return l.biz === b; }); }).map(function (b) {
-        const list = scoped.filter(function (l) { return l.biz === b; });
-        return "<tr><td class=\"biz " + b + "\">" + b + "</td><td>" + countLink("biz", b, list.length) + "</td><td>" + esc(uniqOf(list, "ccy").join("、")) + "</td><td>" + moneyStack(list, "current", cur().main) + "</td><td>" + bizUsableStack(list, b) + "</td><td>" + moneyStack(list, "real", cur().main) + "</td><td>" + moneyStack(list, "frozen", cur().main) + "</td>" + creditStackCells(b) + "</tr>";
-      }).join("")
-      + "</tbody></table></div>";
-  }
-  const rows = detailLines();
-  const detailName = state.detailBiz !== "全部" ? "账户明细 · " + state.detailBiz : (state.detailCcy !== "全部" ? "账户明细 · " + state.detailCcy : "账户明细");
-  const clearDetail = state.detailBiz !== "全部" || state.detailCcy !== "全部" ? '<button class="link" id="clear-detail" type="button">查看全部</button>' : "";
-  return '<div class="panel"><div class="filters">'
-    + '<div class="seg"><button type="button" class="' + (state.group === "biz" ? "on" : "") + '" data-group="biz">按业务线统计</button><button type="button" class="' + (state.group === "ccy" ? "on" : "") + '" data-group="ccy">按币种统计</button></div>'
-    + select("merchant", [["全部", "全部商户"]].concat(merchants.map(function (m) { return [m.id, m.id + " " + m.name]; })), state.merchant)
-    + '<button class="btn" id="transfer">发起调拨</button></div>'
-    + summary + "</div>"
-    + '<div class="panel" id="account-lines"><div class="filters" style="margin-bottom:8px"><h3 style="margin:0">' + esc(detailName) + "</h3>" + clearDetail + '<span class="spacer"></span><button class="btn primary" id="export-lines" type="button">导出</button></div><div class="tablewrap"><table><thead><tr><th>商户ID</th><th>业务线</th><th>商户名称</th><th>商户邮箱</th><th>商户唯一标识</th><th>ERP代码</th><th>币种</th><th>币种属性</th><th>账户状态</th><th>预充总额限制</th><th>预充已用额度</th><th>手续费承担方式</th><th>是否开启汇损补足</th><th>当前金额</th><th>可用余额</th><th>真实金额</th><th>冻结金额</th><th>信用额度</th><th>已用额度</th><th>剩余额度</th><th>额度状态</th><th>期初负债</th><th>期初设置</th><th>期初时点</th><th>资金账户ID</th><th>创建时间</th></tr></thead><tbody>'
-    + linesTableBody(rows)
-    + "</tbody></table></div></div>";
+  return viewHome();
 }
 
 function exportAccountLines() {
@@ -1904,12 +1838,13 @@ document.body.addEventListener("click", function (e) {
   const midOpen = e.target.closest("[data-mid-open]");
   if (midOpen) {
     bind(midOpen.dataset.cid);
-    go("lines", { merchant: midOpen.dataset.midOpen, biz: "全部", ccy: "全部", lineId: "", detailBiz: "全部", detailCcy: "全部", lineMode: "" });
+    go("lines", { lineMode: "merchant", merchant: midOpen.dataset.midOpen, biz: "全部", ccy: "全部", lineId: "", detailBiz: "全部", detailCcy: "全部" });
     return;
   }
   const jump = e.target.closest("[data-jump]");
   if (jump) {
-    if (jump.dataset.jump === "lines") go("lines", { merchant: jump.dataset.mid, biz: "全部", ccy: "全部", lineId: "", detailBiz: "全部", detailCcy: "全部", lineMode: "" });
+    if (jump.dataset.jump === "lines" && jump.dataset.mid) go("lines", { lineMode: "merchant", merchant: jump.dataset.mid, biz: "全部", ccy: "全部", lineId: "", detailBiz: "全部", detailCcy: "全部" });
+    else if (jump.dataset.jump === "lines") go("home", { lineMode: "" });
     else go("stores", { storeMerchant: jump.dataset.mid, storeFocus: "全部" });
     return;
   }

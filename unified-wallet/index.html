@@ -256,6 +256,13 @@ button { cursor: pointer; }
 .cust-table th.freeze { z-index: 3; background: #fafafa; }
 .cust-table tbody tr:hover td { background: #fafafa; }
 .amt-avail { color: var(--blue); font-variant-numeric: tabular-nums; }
+.contact-cell { display: inline-flex; align-items: center; gap: 6px; }
+.eye {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; padding: 0; border: 0; background: none; color: #8c8c8c;
+}
+.eye:hover { color: var(--blue); }
+.eye svg { display: block; }
 .qform input::placeholder { color: #bfbfbf; }
 .qform select {
   appearance: none; -webkit-appearance: none; padding-right: 28px;
@@ -392,6 +399,7 @@ const state = {
   page: "list",
   customerId: "C20240018",
   filters: { name: "", merchantId: "", grade: "" },
+  shownContacts: {},
   balanceShare: true,
   priority: "reason",
   creditShare: false,
@@ -854,8 +862,7 @@ function viewList() {
   const head = ["客户名称", "客户联系方式", "商户id", "主币种", "客户状态", "客户等级", "当前金额", "可用余额", "信用额度", "已用额度", "剩余额度", "手续费承担方式", "是否开启汇损补足", "操作"];
   const body = rows.length ? rows.map(function (c) {
     const creditMain = mainCredit(c);
-    const contact = (c.profile && c.profile.email) || "—";
-    return "<tr><td>" + esc(c.name) + "</td><td>" + esc(contact) + "</td><td class=\"stack\">" + c.merchants.map(function (m) { return esc(m.id); }).join("<br>") + "</td><td>" + esc(c.main) + "</td><td>" + statusTag(c.status) + "</td><td>" + esc(c.grade || "—") + "</td><td>" + totalInMain(c, customerCurrencyRows(c), "current") + '</td><td class="amt-avail">' + usableInMain(c) + "</td><td>" + money(creditMain.limit, c.main) + "</td><td>" + money(creditMain.used, c.main) + "</td><td>" + money(creditMain.remain, c.main) + "</td><td>" + (c.feeCompany ? "公司承担" : "客户承担") + "</td><td>" + (c.fxTopup ? "开启" : "关闭") + '</td><td class="freeze"><button class="link" type="button" data-open="' + esc(c.id) + '">查看统一钱包</button></td></tr>';
+    return "<tr><td>" + esc(c.name) + "</td><td>" + contactCell(c) + "</td><td class=\"stack\">" + c.merchants.map(function (m) { return esc(m.id); }).join("<br>") + "</td><td>" + esc(c.main) + "</td><td>" + statusTag(c.status) + "</td><td>" + esc(c.grade || "—") + "</td><td>" + totalInMain(c, customerCurrencyRows(c), "current") + '</td><td class="amt-avail">' + usableInMain(c) + "</td><td>" + money(creditMain.limit, c.main) + "</td><td>" + money(creditMain.used, c.main) + "</td><td>" + money(creditMain.remain, c.main) + "</td><td>" + (c.feeCompany ? "公司承担" : "客户承担") + "</td><td>" + (c.fxTopup ? "开启" : "关闭") + '</td><td class="freeze"><button class="link" type="button" data-open="' + esc(c.id) + '">查看统一钱包</button></td></tr>';
   }).join("") : '<tr><td colspan="14">没有符合筛选条件的客户</td></tr>';
   return '<div class="panel"><div class="qform list-form">'
     + '<div class="field"><label>客户名称</label><input data-query="name" placeholder="模糊搜索" value="' + esc(state.filters.name) + '" /></div>'
@@ -865,6 +872,16 @@ function viewList() {
     + "</select></div>"
     + '<div class="actions"><button class="btn primary" id="search-list" type="button">查询</button><button class="btn" id="reset-list" type="button">重置</button></div></div>'
     + '<div class="tablewrap"><table class="cust-table"><thead><tr>' + head.map(function (h, i) { return "<th" + (i === head.length - 1 ? ' class="freeze"' : "") + ">" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div></div>";
+}
+function eyeIcon(off) {
+  const slash = off ? '<path d="M2.2 2.8 13.8 13.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>' : "";
+  return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.6 8s2.3-4 6.4-4 6.4 4 6.4 4-2.3 4-6.4 4S1.6 8 1.6 8Z" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="8" r="1.7" stroke="currentColor" stroke-width="1.2"/>' + slash + "</svg>";
+}
+function contactCell(c) {
+  const contact = (c.profile && c.profile.email) || "";
+  if (!contact) return "—";
+  const shown = !!state.shownContacts[c.id];
+  return '<span class="contact-cell"><span>' + (shown ? esc(contact) : "******") + '</span><button type="button" class="eye" data-contact="' + esc(c.id) + '" aria-label="' + (shown ? "隐藏联系方式" : "显示联系方式") + '">' + eyeIcon(shown) + "</button></span>";
 }
 function mainCredit(c) {
   let limit = 0;
@@ -1867,6 +1884,13 @@ function renderModal() {
 }
 
 document.body.addEventListener("click", function (e) {
+  const contactBtn = e.target.closest("[data-contact]");
+  if (contactBtn) {
+    const id = contactBtn.dataset.contact;
+    state.shownContacts[id] = !state.shownContacts[id];
+    render();
+    return;
+  }
   const openStore = e.target.closest("[data-open-store]");
   if (openStore) {
     go("stores", { storeMerchant: openStore.dataset.mid, storeFocus: openStore.dataset.openStore });

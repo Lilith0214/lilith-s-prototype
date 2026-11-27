@@ -1058,6 +1058,11 @@ function mainCredit(c) {
     const item = m.credit || { limit: 0, used: 0 };
     limit += Number(item.limit) || 0;
     used += Number(item.used) || 0;
+    CREDIT_BIZ.forEach(function (b) {
+      const line = (m.lineCredit && m.lineCredit[b]) || { limit: 0, used: 0 };
+      limit += Number(line.limit) || 0;
+      used += Number(line.used) || 0;
+    });
   });
   return { limit: limit, used: used, remain: limit - used };
 }
@@ -1226,7 +1231,11 @@ function creditRecord(m) {
     const merchant = (cur().merchants || []).find(function (x) { return x.id === m.merchantId; });
     return (merchant && merchant.credit) || { limit: 0, used: 0 };
   }
-  if (m.dim === "line") return bag(ccy, m.biz);
+  if (m.dim === "line") {
+    const merchant = (cur().merchants || []).find(function (x) { return x.id === m.merchantId; });
+    const lines = (merchant && merchant.lineCredit) || {};
+    return lines[m.biz] || { limit: 0, used: 0 };
+  }
   return (cur().customerCredit && cur().customerCredit[ccy]) || { limit: 0, used: 0 };
 }
 function creditPreviewHtml(m) {
@@ -1270,10 +1279,14 @@ function creditApplyDialog() {
     }).join("") + "</select>").replace("<label>", '<label class="req">');
     info = "<p>商户 ID：<b>" + esc(m.merchantId) + "</b></p>";
   } else if (m.dim === "line") {
-    scope = field("业务线", '<select id="cr-biz">' + CREDIT_BIZ.map(function (b) {
+    const merchantSelect = field("商户名称", '<select id="cr-merchant">' + c.merchants.map(function (x) {
+      return '<option value="' + esc(x.id) + '"' + (x.id === m.merchantId ? " selected" : "") + ">" + esc(x.id + " " + x.name) + "</option>";
+    }).join("") + "</select>").replace("<label>", '<label class="req">');
+    const bizSelect = field("业务线", '<select id="cr-biz">' + CREDIT_BIZ.map(function (b) {
       return '<option' + (b === m.biz ? " selected" : "") + ">" + b + "</option>";
     }).join("") + "</select>").replace("<label>", '<label class="req">');
-    info = "<p>业务线：<b>" + esc(m.biz) + "</b></p>";
+    scope = merchantSelect + bizSelect;
+    info = "<p>商户 ID：<b>" + esc(m.merchantId) + "</b></p><p>业务线：<b>" + esc(m.biz) + "</b></p>";
   } else {
     scope = field("客户名称", '<input value="' + esc(c.name) + '" disabled />');
     info = "<p>客户名称：<b>" + esc(c.name) + "</b></p>";
@@ -1283,11 +1296,11 @@ function creditApplyDialog() {
     return html.slice(0, i) + '<div class="hint">' + text + "</div></div>";
   };
   return '<div class="dialog apply"><header><h2>发起信用额度调整申请</h2><button class="x" id="close">×</button></header><div class="body">'
-    + '<div class="apply-dim"><label class="req">申请维度</label><div class="segs">' + dimBtn("customer", "客户维度") + dimBtn("merchant", "商户id维度") + dimBtn("line", "业务线维度") + "</div></div>"
+    + '<div class="apply-dim"><label class="req">申请维度</label><div class="segs">' + dimBtn("customer", "客户维度") + dimBtn("merchant", "商户id维度") + dimBtn("line", "商户id+业务线") + "</div></div>"
     + '<div class="apply-dim"><label>币种</label><div class="ccy-lock"><b>' + esc(c.main) + "</b>" + tag("main", "主币种") + '<span class="mini">只支持该客户的主币种</span></div></div>'
     + '<div class="apply-grid"><div class="apply-col">'
     + scope
-    + '<div class="box"><div class="name">' + (m.dim === "merchant" ? "商户信息" : m.dim === "line" ? "业务线信息" : "客户信息") + "</div>" + info + "</div>"
+    + '<div class="box"><div class="name">' + (m.dim === "customer" ? "客户信息" : "商户信息") + "</div>" + info + "</div>"
     + '<div class="box"><div class="name">信用配置预览</div>' + creditPreviewHtml(m) + "</div>"
     + '<div class="field"><label class="req">销售部业务组<span class="search-tag">可搜索</span></label><input id="cr-group" list="cr-groups" placeholder="输入小组/部门名称搜索" value="' + esc(m.group) + '" /><datalist id="cr-groups">' + CREDIT_GROUPS.map(function (g) { return "<option value=\"" + esc(g) + "\"></option>"; }).join("") + "</datalist></div>"
     + '<div class="sec">信用额度</div>'
@@ -1356,6 +1369,13 @@ function merchantCreditMain(list, main) {
   if (own) {
     limitUsd += usdOf(Number(own.limit) || 0, main);
     usedUsd += usdOf(Number(own.used) || 0, main);
+  }
+  if (ownMerchant && ownMerchant.lineCredit) {
+    CREDIT_BIZ.forEach(function (b) {
+      const line = ownMerchant.lineCredit[b] || { limit: 0, used: 0 };
+      limitUsd += usdOf(Number(line.limit) || 0, main);
+      usedUsd += usdOf(Number(line.used) || 0, main);
+    });
   }
   return { limit: limitUsd / RATE[main], used: usedUsd / RATE[main], remain: (limitUsd - usedUsd) / RATE[main] };
 }
@@ -2282,7 +2302,7 @@ document.body.addEventListener("click", function (e) {
       const sales = Number(m.sales);
       const profit = Number(m.profit);
       if (m.dim === "line" && !hasCredit(m.biz)) { m.error = "拒付和垫资没有信用额度。"; render(); return; }
-      if (m.dim === "merchant" && !cur().merchants.some(function (x) { return x.id === m.merchantId; })) { m.error = "请选择商户。"; render(); return; }
+      if ((m.dim === "merchant" || m.dim === "line") && !cur().merchants.some(function (x) { return x.id === m.merchantId; })) { m.error = "请选择商户。"; render(); return; }
       if (CREDIT_GROUPS.indexOf(m.group) < 0 || !(amount > 0) || !m.cycle || !days || days < 1 || days > 365 || (m.grace !== "" && (!grace || grace < 1 || grace > 365)) || (m.daily !== "" && daily < 0) || (m.single !== "" && single < 0) || !m.website.trim() || isNaN(revenue) || isNaN(sales) || isNaN(profit)) {
         m.error = "请完整填写必填项。信用额度只记在主币种，账期和宽限期为 1-365。";
         render();
@@ -2297,12 +2317,11 @@ document.body.addEventListener("click", function (e) {
         target = merchant.credit;
         where = "商户 " + merchant.id;
       } else if (m.dim === "line") {
-        if (!credit[m.ccy]) {
-          credit[m.ccy] = {};
-          BIZ.forEach(function (b) { credit[m.ccy][b] = { limit: 0, used: 0 }; });
-        }
-        target = credit[m.ccy][m.biz];
-        where = "业务线 " + m.biz;
+        const merchant = cur().merchants.find(function (x) { return x.id === m.merchantId; });
+        if (!merchant.lineCredit) merchant.lineCredit = {};
+        if (!merchant.lineCredit[m.biz]) merchant.lineCredit[m.biz] = { limit: 0, used: 0 };
+        target = merchant.lineCredit[m.biz];
+        where = "商户 " + merchant.id + " 的" + m.biz;
       } else {
         if (!cur().customerCredit) cur().customerCredit = {};
         if (!cur().customerCredit[m.ccy]) cur().customerCredit[m.ccy] = { limit: 0, used: 0 };
